@@ -1,0 +1,29 @@
+{
+  "private": true,
+  "name": "udec-bot",
+  "version": "1.0.0",
+  "author": "Pixoll",
+  "license": "MIT",
+  "description": "UdeC ot",
+  "main": "build/index.js",
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint src",
+    "lint:fix": "eslint --fix src"
+  },
+  "dependencies": {
+    "axios": "^1.6.7",
+    "dotenv": "^16.4.5",
+    "node-html-parser": "^6.1.12",
+    "require-all": "^3.0.0",
+    "telegraf": "^4.16.3"
+  },
+  "devDependencies": {
+    "@types/node": "16.x",
+    "@types/require-all": "^3.0.6",
+    "@typescript-eslint/eslint-plugin": "latest",
+    "@typescript-eslint/parser": "latest",
+    "eslint": "latest",
+    "typescript": "latest"
+  }
+}
