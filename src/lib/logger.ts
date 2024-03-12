@@ -1,15 +1,13 @@
 const logPrefix = '[TGBot]';
 
-export class Logger extends null {
-    public static info(...args: unknown[]): void {
+export const Logger = {
+    info(...args: unknown[]): void {
         console.log(logPrefix, ...args);
-    }
-
-    public static warn(...args: unknown[]): void {
+    },
+    warn(...args: unknown[]): void {
         console.warn(logPrefix, ...args);
-    }
-
-    public static error(...args: unknown[]): void {
+    },
+    error(...args: unknown[]): void {
         console.error(logPrefix, ...args);
-    }
-}
+    },
+} as const;
