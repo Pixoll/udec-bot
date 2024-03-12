@@ -4,6 +4,7 @@ import { Collection } from './collection';
 import { Command, BuildableCommand, parseContext } from './commands';
 import { ArgumentTypeHandler, ArgumentType, BuildableArgumentType as BuildableArgumentTypeHandler } from './types';
 import { capitalize, isNullish } from './util';
+import { Logger } from './logger';
 
 type NodeModuleOf<T> = T | {
     [k: string]: T;
@@ -57,7 +58,7 @@ export class ClientRegistry {
         for (const command of commands) {
             const isValid = command && command.prototype instanceof Command;
             if (!isValid) {
-                console.warn(`Attempting to register an invalid command object: ${command}... skipping.`);
+                Logger.warn(`Attempting to register an invalid command object: ${command}... skipping.`);
                 continue;
             }
 
@@ -65,7 +66,7 @@ export class ClientRegistry {
             registered++;
         }
 
-        console.log('Registered', registered, 'commands.');
+        Logger.info('Registered', registered, 'commands.');
         return this;
     }
 
@@ -74,7 +75,7 @@ export class ClientRegistry {
         for (const type of types) {
             const isValid = type && type.prototype instanceof ArgumentTypeHandler;
             if (!isValid) {
-                console.warn('warn', `Attempting to register an invalid argument type object: ${type}... skipping.`);
+                Logger.warn('warn', `Attempting to register an invalid argument type object: ${type}... skipping.`);
                 continue;
             }
 
@@ -82,7 +83,7 @@ export class ClientRegistry {
             registered++;
         }
 
-        console.log('Registered', registered, 'type handlers.');
+        Logger.info('Registered', registered, 'type handlers.');
         return this;
     }
 
@@ -92,7 +93,7 @@ export class ClientRegistry {
         const { name } = command;
 
         if (commands.has(name)) {
-            console.warn(`A command with the name "${name}" is already registered. Skipping...`);
+            Logger.warn(`A command with the name "${name}" is already registered. Skipping...`);
             return this;
         }
 
@@ -118,7 +119,7 @@ export class ClientRegistry {
         const { type } = typeHandler;
 
         if (types.has(type)) {
-            console.warn('warn', `An argument type handler with the type "${type}" is already registered. Skipping...`);
+            Logger.warn('warn', `An argument type handler with the type "${type}" is already registered. Skipping...`);
             return this;
         }
 

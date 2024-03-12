@@ -2,6 +2,7 @@ import { Context, Telegraf } from 'telegraf';
 import { ClientRegistry } from './registry';
 import path from 'path';
 import { omit } from './util';
+import { Logger } from './logger';
 
 export class TelegramClient extends Telegraf implements Omit<TelegramClientOptions, 'commandsDir'> {
     public declare readonly ownerId: number | null;
@@ -19,7 +20,7 @@ export class TelegramClient extends Telegraf implements Omit<TelegramClientOptio
         Object.assign(this, omit(options, ['commandsDir']));
 
         this.ready = false;
-        console.log('Registering commands and type handlers...');
+        Logger.info('Registering commands and type handlers...');
         this.registry = new ClientRegistry(this);
         this.registry.registerTypeHandlersIn(path.join(__dirname, './types'), 'base')
             .registerCommandsIn(options.commandsDir);
@@ -29,7 +30,7 @@ export class TelegramClient extends Telegraf implements Omit<TelegramClientOptio
 
     public async catchError(error: unknown, context: Context): Promise<void> {
         const messageId = context.message?.message_id;
-        console.error(error);
+        Logger.error(error);
         context.reply('Ocurrió un error y ha sido notificado al mantenedor del bot.', {
             ...messageId && ({
                 'reply_parameters': {
@@ -47,7 +48,7 @@ export class TelegramClient extends Telegraf implements Omit<TelegramClientOptio
     }
 
     public async login(): Promise<void> {
-        console.log('Starting Telegram Client...');
+        Logger.info('Starting Telegram Client...');
         if (this.ready) {
             process.emitWarning('Telegram Client has been already launched. Make sure to only call this method once.');
             return;
@@ -55,7 +56,7 @@ export class TelegramClient extends Telegraf implements Omit<TelegramClientOptio
 
         this.launch({ dropPendingUpdates: true }, () => {
             this.ready = true;
-            console.log('Telegram Client is ready.');
+            Logger.info('Telegram Client is ready.');
         });
     }
 }
