@@ -8,6 +8,7 @@ export class TelegramClient extends Telegraf implements Omit<TelegramClientOptio
     public declare readonly ownerId: number | null;
     public readonly registry: ClientRegistry;
     private ready: boolean;
+    private declare runBeforeLogin: () => unknown;
 
     public constructor(options: TelegramClientOptions) {
         const { TELEGRAM_TOKEN } = process.env;
@@ -47,7 +48,14 @@ export class TelegramClient extends Telegraf implements Omit<TelegramClientOptio
         context.telegram.sendMessage(ownerId,`An unexpected error has occurred:\n\n${stack}`);
     }
 
+    public beforeLogin(fn: () => unknown): this {
+        this.runBeforeLogin = fn;
+        return this;
+    }
+
     public async login(): Promise<void> {
+        await this.runBeforeLogin?.();
+
         Logger.info('Starting Telegram Client...');
         if (this.ready) {
             process.emitWarning('Telegram Client has been already launched. Make sure to only call this method once.');
