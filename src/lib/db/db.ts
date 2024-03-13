@@ -1,5 +1,7 @@
 import { Connection, ProcedureCallPacket, ResultSetHeader, RowDataPacket, createConnection } from 'mysql2';
 import { Logger } from '../logger';
+import { SelectQueryBuilder } from './queryBuilder';
+import { ValuesOf } from '../util';
 
 export enum ColumnType {
     Boolean = 'BOOLEAN',
@@ -61,6 +63,11 @@ type RawQueryResult =
     | RowDataPacket[]
     | RowDataPacket[][]
     | ProcedureCallPacket;
+
+type TableNames<Tables extends TablesArray> = Tables[number]['name'];
+type TableFromName<Tables extends TablesArray, Name extends TableNames<Tables>> = ValuesOf<{
+    [Table in Tables[number]as Table['name'] extends Name ? string : never]: Table;
+}> & TableDescriptor;
 
 export class Database<Tables extends TablesArray> implements DatabaseOptions<Tables> {
     public declare readonly host: string;
@@ -135,6 +142,15 @@ export class Database<Tables extends TablesArray> implements DatabaseOptions<Tab
         }
 
         Logger.info('Database is ready.');
+    }
+
+    public async select<TableName extends TableNames<Tables>, Table extends TableFromName<Tables, TableName>>(
+        tableName: TableName,
+        builder: (queryBuilder: SelectQueryBuilder<Table>) => SelectQueryBuilder<Table>
+    ): Promise<unknown> {
+        const table = this.tables.find(t => t.name === tableName) as Table;
+        const sql = builder(new SelectQueryBuilder(table)).toString();
+        return await this.rawQuery(sql);
     }
 
     private async rawQuery(sql: string): Promise<RawQueryResult | null> {

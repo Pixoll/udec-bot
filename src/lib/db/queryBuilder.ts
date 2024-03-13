@@ -13,9 +13,9 @@ export abstract class QueryBuilder<Table extends TableDescriptor> {
     public abstract toString(): string;
 }
 
-export type TableColumnName<Table extends TableDescriptor> = Table['columns'][number]['name'];
-export type TableColumnValueTypeFromName<Table extends TableDescriptor, Column extends TableColumnName<Table>> = ValuesOf<{
-    [C in Table['columns'][number] as C['name'] extends Column ? C['type'] : never]: ColumnTypeMap[C['type']];
+type TableColumnName<Table extends TableDescriptor> = Table['columns'][number]['name'];
+type TableColumnValueTypeFromName<Table extends TableDescriptor, Column extends TableColumnName<Table>> = ValuesOf<{
+    [C in Table['columns'][number] as C['name'] extends Column ? string : never]: ColumnTypeMap[C['type']];
 }>;
 
 export type TableColumnSelector<Table extends TableDescriptor, Column extends TableColumnName<Table>> = {
@@ -31,15 +31,15 @@ export type TableColumnSelector<Table extends TableDescriptor, Column extends Ta
 
 export class SelectQueryBuilder<
     Table extends TableDescriptor,
-    Columns extends TableColumnName<Table>
+    Columns extends TableColumnName<Table> = TableColumnName<Table>
 > extends QueryBuilder<Table> {
     private readonly columns: Set<TableColumnName<Table>>;
-    private readonly selectors: Array<TableColumnSelector<Table, Columns>>;
+    private readonly filters: Array<TableColumnSelector<Table, Columns>>;
 
     public constructor(table: Table) {
         super('SELECT', table);
         this.columns = new Set();
-        this.selectors = [];
+        this.filters = [];
     }
 
     public select(...columns: Columns[]): this {
@@ -49,15 +49,15 @@ export class SelectQueryBuilder<
         return this;
     }
 
-    public where<Column extends Columns>(selector: TableColumnSelector<Table, Column>): this {
-        this.selectors.push(selector as unknown as TableColumnSelector<Table, Columns>);
+    public where<Column extends Columns>(filter: TableColumnSelector<Table, Column>): this {
+        this.filters.push(filter as unknown as TableColumnSelector<Table, Columns>);
         return this;
     }
 
     public toString(): string {
         const columns = this.columns.size > 0 ? [...this.columns].join(', ') : '*';
-        const where = this.selectors.length > 0
-            ? 'WHERE ' + this.selectors.map(s => {
+        const where = this.filters.length > 0
+            ? 'WHERE ' + this.filters.map(s => {
                 const isNull = s.isNull ? 'IS NULL' : null;
                 const equality = s.equals ? `= ${parseQueryValue(s.equals)}`
                     : s.notEquals ? `!= ${parseQueryValue(s.notEquals)}`
