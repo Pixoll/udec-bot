@@ -3,14 +3,17 @@ import { ClientRegistry } from './registry';
 import path from 'path';
 import { omit } from './util';
 import { Logger } from './logger';
+import { Database, DatabaseOptions, TablesArray } from './db';
 
-export class TelegramClient extends Telegraf implements Omit<TelegramClientOptions, 'commandsDir'> {
+export class TelegramClient<Tables extends TablesArray = []>
+    extends Telegraf
+    implements Omit<TelegramClientOptions<Tables>, 'commandsDir' | 'db'> {
     public declare readonly ownerId: number | null;
     public readonly registry: ClientRegistry;
+    public readonly db: Database<Tables>;
     private ready: boolean;
-    private declare runBeforeLogin: () => unknown;
 
-    public constructor(options: TelegramClientOptions) {
+    public constructor(options: TelegramClientOptions<Tables>) {
         const { TELEGRAM_TOKEN } = process.env;
         if (!TELEGRAM_TOKEN) {
             throw new Error('A TELEGRAM_TOKEN env. variable must be specified.');
@@ -18,11 +21,13 @@ export class TelegramClient extends Telegraf implements Omit<TelegramClientOptio
 
         super(TELEGRAM_TOKEN);
 
-        Object.assign(this, omit(options, ['commandsDir']));
+        Object.assign(this, omit(options, ['commandsDir', 'db']));
+
+        this.db = new Database<Tables>(options.db);
 
         this.ready = false;
         Logger.info('Registering commands and type handlers...');
-        this.registry = new ClientRegistry(this);
+        this.registry = new ClientRegistry(this as unknown as TelegramClient<[]>);
         this.registry.registerTypeHandlersIn(path.join(__dirname, './types'), 'base')
             .registerCommandsIn(options.commandsDir);
 
@@ -45,16 +50,11 @@ export class TelegramClient extends Telegraf implements Omit<TelegramClientOptio
         if (!ownerId) return;
 
         const stack = error instanceof Error ? error.stack ?? error : error;
-        context.telegram.sendMessage(ownerId,`An unexpected error has occurred:\n\n${stack}`);
-    }
-
-    public beforeLogin(fn: () => unknown): this {
-        this.runBeforeLogin = fn;
-        return this;
+        context.telegram.sendMessage(ownerId, `An unexpected error has occurred:\n\n${stack}`);
     }
 
     public async login(): Promise<void> {
-        await this.runBeforeLogin?.();
+        await this.db.connect();
 
         Logger.info('Starting Telegram Client...');
         if (this.ready) {
@@ -62,14 +62,15 @@ export class TelegramClient extends Telegraf implements Omit<TelegramClientOptio
             return;
         }
 
-        this.launch({ dropPendingUpdates: true }, () => {
-            this.ready = true;
-            Logger.info('Telegram Client is ready.');
-        });
+        // this.launch({ dropPendingUpdates: true }, () => {
+        this.ready = true;
+        Logger.info('Telegram Client is ready.');
+        // });
     }
 }
 
-export interface TelegramClientOptions {
+export interface TelegramClientOptions<Tables extends TablesArray> {
     readonly commandsDir: string;
     readonly ownerId: number | null;
+    readonly db: DatabaseOptions<Tables>;
 }
