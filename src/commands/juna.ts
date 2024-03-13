@@ -1,11 +1,15 @@
 import axios from 'axios';
 import { NodeType, parse as parseHtml } from 'node-html-parser';
+import { TelegramClientType } from '../client';
 import { Command, TelegramClient, CommandContext } from '../lib';
 
 const menuUrl = 'https://dise.udec.cl/node/171';
 const menusCache: Record<string, string> = {};
 
 export default class TestCommand extends Command {
+    // @ts-expect-error: type override
+    public declare readonly client: TelegramClientType;
+
     public constructor(client: TelegramClient) {
         super(client, {
             name: 'juna',
