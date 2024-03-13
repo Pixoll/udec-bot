@@ -155,9 +155,9 @@ export class Database<Tables extends TablesArray> implements DatabaseOptions<Tab
                 + (column.autoIncrement ? ' AUTO_INCREMENT' : '')
             ).join(', ')
             + (primaryKeys.length > 0 ? `, PRIMARY KEY(${primaryKeys.join(', ')})` : '')
-            + (uniques.length > 0 ? ', ' + uniques.map(name =>
-                `UNIQUE INDEX ${name}_UNIQUE (${name} ASC) VISIBLE`
-            ).join(', ') : '')
+            + (uniques.length > 0
+                ? `,${uniques.length > 1 ? `CONSTRAINT ${table.name}_UNIQUE` : ''} UNIQUE(${uniques.join(', ')})`
+                : '')
             + ');';
     }
 }
