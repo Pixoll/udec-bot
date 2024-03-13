@@ -13,7 +13,7 @@ exports.subjectsTable = {
         }, {
             name: 'name',
             type: lib_1.ColumnType.String,
-            size: 128,
+            size: 150,
             nonNull: true,
         }, {
             name: 'credits',
@@ -82,7 +82,7 @@ exports.actionsHistoryTable = {
         }, {
             name: 'username',
             type: lib_1.ColumnType.String,
-            size: 129,
+            size: 150,
             nonNull: true,
         }, {
             name: 'timestamp',

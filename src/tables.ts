@@ -11,7 +11,7 @@ export const subjectsTable = {
     }, {
         name: 'name',
         type: ColumnType.String,
-        size: 128,
+        size: 150,
         nonNull: true,
     }, {
         name: 'credits',
@@ -82,7 +82,7 @@ export const actionsHistoryTable = {
     }, {
         name: 'username',
         type: ColumnType.String,
-        size: 129,
+        size: 150,
         nonNull: true,
     }, {
         name: 'timestamp',
