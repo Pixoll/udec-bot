@@ -1,25 +1,25 @@
 {
-    "compilerOptions": {
-        "module": "CommonJS",
-        "target": "ESNext",
-        "rootDir": "src",
-        "outDir": "build",
-        "strict": true,
-        "esModuleInterop": true,
-        "skipLibCheck": true,
-        "forceConsistentCasingInFileNames": true,
-        "removeComments": false,
-        "inlineSourceMap": true,
-        "noErrorTruncation": true,
-        "resolveJsonModule": true,
-        "incremental": true,
-        "tsBuildInfoFile": ".tsbuildinfo",
-    },
-    "include": [
-        "src",
-        "config",
-    ],
-    "exclude": [
-        "node_modules",
-    ]
+  "compilerOptions": {
+    "module": "CommonJS",
+    "target": "ESNext",
+    "rootDir": "src",
+    "outDir": "build",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "removeComments": false,
+    "inlineSourceMap": true,
+    "noErrorTruncation": true,
+    "resolveJsonModule": true,
+    "incremental": true,
+    "tsBuildInfoFile": ".tsbuildinfo",
+  },
+  "include": [
+    "src",
+    "config",
+  ],
+  "exclude": [
+    "node_modules",
+  ]
 }
