@@ -16,27 +16,19 @@ export type TableColumnValueTypeFromName<Table extends TableDescriptor, Column e
     [C in Table['columns'][number] as C['name'] extends Column ? C['type'] : never]: ColumnTypeMap[C['type']];
 }>;
 
-export enum FilterOperationType {
-    OR = 'OR',
-    AND = 'AND',
-}
-
 export type TableColumnSelector<Table extends TableDescriptor, Column extends TableColumnName<Table>> = {
     column: Column;
-    operation: FilterOperationType; 
+    equals?: TableColumnValueTypeFromName<Table, Column>;
+    notEquals?: TableColumnValueTypeFromName<Table, Column>;
     isNull?: boolean;
     lessThan?: number;
     greaterThan?: number;
     lessThanOrEqualTo?: number;
     greaterThanOrEqualTo?: number;
-} & ({
-    equals: TableColumnValueTypeFromName<Table, Column>;
-} | {
-    notEquals: TableColumnValueTypeFromName<Table, Column>;
-});
+};
 
 export class SelectQueryBuilder<
-    Table extends TableDescriptor, 
+    Table extends TableDescriptor,
     Columns extends TableColumnName<Table>
 > extends QueryBuilder<Table> {
     private readonly columns: Set<TableColumnName<Table>>;
@@ -48,7 +40,7 @@ export class SelectQueryBuilder<
         this.selectors = [];
     }
 
-    public select(columns: Columns[] = []): this {
+    public select(...columns: Columns[]): this {
         for (const column of columns) {
             this.columns.add(column);
         }
@@ -61,26 +53,29 @@ export class SelectQueryBuilder<
     }
 
     public override toString(): string {
-        const columns = this.columns.size > 0 ? `(${[...this.columns].join(', ')})` : '*';
+        const columns = this.columns.size > 0 ? [...this.columns].join(', ') : '*';
         const where = this.selectors.length > 0
-            ? ' WHERE ' + this.selectors.map(s => {
-                const isNull = s.isNull ? 'IS NULL' : '';
-                const equality = 'equals' in s
-                    ? `= ${parseQueryValue(s.equals)}`
-                    : `!= ${parseQueryValue(s.notEquals)}`;
+            ? 'WHERE ' + this.selectors.map(s => {
+                const isNull = s.isNull ? 'IS NULL' : null;
+                const equality = s.equals ? `= ${parseQueryValue(s.equals)}`
+                    : s.notEquals ? `!= ${parseQueryValue(s.notEquals)}`
+                        : null;
                 const lessComp = s.lessThan ? `< ${s.lessThan}`
                     : s.lessThanOrEqualTo ? `<= ${s.lessThanOrEqualTo}`
-                        : '';
+                        : null;
                 const greaterComp = s.greaterThan ? `> ${s.greaterThan}`
                     : s.greaterThanOrEqualTo ? `>= ${s.greaterThanOrEqualTo}`
-                        : '';
+                        : null;
 
                 const filters = [isNull, equality, lessComp, greaterComp].filter(f => f);
+                if (filters.length === 0) {
+                    throw new Error('Must specify at least one query filter.');
+                }
 
-                return `${s.column} (${filters.join(` ${s.operation} `)})`;
-            })
+                return `(${s.column} ${filters.join(' OR ')})`;
+            }).join(' AND ')
             : '';
-        return `${this.instruction} ${columns} FROM ${this.table.name}` + where;
+        return `${this.instruction} ${columns} FROM ${this.table.name} ${where};`;
     }
 }
 
@@ -90,7 +85,7 @@ export class InsertQueryBuilder<Table extends TableDescriptor> extends QueryBuil
     }
 }
 
-export class UpdateQueryBuilder <Table extends TableDescriptor> extends QueryBuilder<Table> {
+export class UpdateQueryBuilder<Table extends TableDescriptor> extends QueryBuilder<Table> {
     public constructor(table: Table) {
         super('UPDATE', table);
     }
