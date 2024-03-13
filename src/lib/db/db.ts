@@ -10,6 +10,15 @@ export enum ColumnType {
     Timestamp = 'TIMESTAMP',
 }
 
+export interface ColumnTypeMap {
+    [ColumnType.Boolean]: boolean;
+    [ColumnType.Date]: Date;
+    [ColumnType.Enum]: unknown;
+    [ColumnType.Integer]: number;
+    [ColumnType.String]: string;
+    [ColumnType.Timestamp]: Date;
+}
+
 const sizeLimitedColumnTypes = [ColumnType.String] as const;
 
 export type SizeLimitedColumnTypes = (typeof sizeLimitedColumnTypes)[number];

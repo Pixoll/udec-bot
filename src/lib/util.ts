@@ -1,4 +1,5 @@
 export type Awaitable<T> = T | Promise<T>;
+export type ValuesOf<T> = T[keyof T];
 
 export function omit<T extends object, K extends keyof T>(obj: T, exclude: K[]): Omit<T, K> {
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
