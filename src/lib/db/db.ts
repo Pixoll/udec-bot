@@ -110,9 +110,9 @@ export class Database<Tables extends TablesArray> implements DatabaseOptions<Tab
         Logger.info('Setting up database...');
 
         const r1 = await this.rawQuery(`CREATE DATABASE IF NOT EXISTS ${this.name};`);
-        if (!r1) return Logger.warn(0);
+        if (!r1) return;
         const r2 = await this.rawQuery(`USE ${this.name};`);
-        if (!r2) return Logger.warn(1);
+        if (!r2) return;
 
         for (const table of this.tables) {
             // eslint-disable-next-line no-await-in-loop
@@ -122,7 +122,7 @@ export class Database<Tables extends TablesArray> implements DatabaseOptions<Tab
             const tableCreationQuery = this.getTableCreationQuery(table);
             // eslint-disable-next-line no-await-in-loop
             const rt = await this.rawQuery(tableCreationQuery);
-            if (!rt) return Logger.warn(table.name);
+            if (!rt) return;
         }
 
         Logger.info('Database is ready.');
@@ -131,7 +131,6 @@ export class Database<Tables extends TablesArray> implements DatabaseOptions<Tab
     private async rawQuery(sql: string): Promise<RawQueryResult | null> {
         return new Promise((resolve) =>
             this.connection.query(sql, (error, result) => {
-                Logger.info(sql, '=>', result);
                 if (error) Logger.error(error);
                 resolve(error ? null : result as RawQueryResult);
             })
