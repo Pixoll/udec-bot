@@ -1,7 +1,7 @@
 import { ColumnType, TableDescriptor } from './lib';
 
 export const subjectsTable = {
-    name: 'subjects',
+    name: 'udec_subjects',
     columns: [{
         name: 'code',
         type: ColumnType.Integer,
@@ -28,7 +28,7 @@ export enum AssignmentType {
 }
 
 export const assignmentsTable = {
-    name: 'assignments',
+    name: 'udec_assignments',
     columns: [{
         name: 'id',
         type: ColumnType.Integer,
@@ -62,7 +62,7 @@ export enum ActionType {
 }
 
 export const actionsHistoryTable = {
-    name: 'actions_history',
+    name: 'udec_actions_history',
     columns: [{
         name: 'id',
         type: ColumnType.Integer,
