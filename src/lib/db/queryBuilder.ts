@@ -9,6 +9,8 @@ export abstract class QueryBuilder<Table extends TableDescriptor> {
         this.instruction = instruction;
         this.table = table;
     }
+
+    public abstract toString(): string;
 }
 
 export type TableColumnName<Table extends TableDescriptor> = Table['columns'][number]['name'];
@@ -52,7 +54,7 @@ export class SelectQueryBuilder<
         return this;
     }
 
-    public override toString(): string {
+    public toString(): string {
         const columns = this.columns.size > 0 ? [...this.columns].join(', ') : '*';
         const where = this.selectors.length > 0
             ? 'WHERE ' + this.selectors.map(s => {
@@ -72,10 +74,10 @@ export class SelectQueryBuilder<
                     throw new Error('Must specify at least one query filter.');
                 }
 
-                return `(${s.column} ${filters.join(' OR ')})`;
+                return `(${s.column} ${filters.join(` OR ${s.column} `)})`;
             }).join(' AND ')
             : '';
-        return `${this.instruction} ${columns} FROM ${this.table.name} ${where};`;
+        return `${this.instruction} ${columns} FROM ${this.table.name} ${where};`.replace(/ ;$/, ';');
     }
 }
 
@@ -83,11 +85,19 @@ export class InsertQueryBuilder<Table extends TableDescriptor> extends QueryBuil
     public constructor(table: Table) {
         super('INSERT INTO', table);
     }
+
+    public toString(): string {
+        return '';
+    }
 }
 
 export class UpdateQueryBuilder<Table extends TableDescriptor> extends QueryBuilder<Table> {
     public constructor(table: Table) {
         super('UPDATE', table);
+    }
+
+    public toString(): string {
+        return '';
     }
 }
 
