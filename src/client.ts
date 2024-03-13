@@ -1,6 +1,6 @@
 import path from 'path';
 import { TelegramClient } from './lib';
-import { Database } from './db';
+import { actionsHistoryTable, assignmentsTable, subjectsTable } from './tables';
 
 const { OWNER_ID } = process.env;
 if (!OWNER_ID) {
@@ -10,8 +10,13 @@ if (!OWNER_ID) {
 export const client = new TelegramClient({
     commandsDir: path.join(__dirname, './commands'),
     ownerId: +OWNER_ID,
+    db: {
+        tables: [
+            subjectsTable,
+            assignmentsTable,
+            actionsHistoryTable,
+        ] as const,
+    },
 });
 
-export const db = new Database(client);
-
-client.beforeLogin(() => db.connect());
+export type TelegramClientType = typeof client;

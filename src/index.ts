@@ -1,6 +1,8 @@
 import { config as dotenv } from 'dotenv';
-import { client } from './client';
-
 dotenv();
 
-client.login();
+import { client } from './client';
+
+void async function (): Promise<void> {
+    await client.login();
+}();
