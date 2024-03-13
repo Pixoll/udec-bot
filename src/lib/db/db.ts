@@ -146,11 +146,12 @@ export class Database<Tables extends TablesArray> implements DatabaseOptions<Tab
 
     public async select<TableName extends TableNames<Tables>, Table extends TableFromName<Tables, TableName>>(
         tableName: TableName,
-        builder: (queryBuilder: SelectQueryBuilder<Table>) => SelectQueryBuilder<Table>
+        builder?: (queryBuilder: SelectQueryBuilder<Table>) => SelectQueryBuilder<Table>
     ): Promise<unknown> {
         const table = this.tables.find(t => t.name === tableName) as Table;
-        const sql = builder(new SelectQueryBuilder(table)).toString();
-        return await this.rawQuery(sql);
+        const sqlBuilder = new SelectQueryBuilder(table);
+        builder?.(sqlBuilder);
+        return await this.rawQuery(sqlBuilder.toString());
     }
 
     private async rawQuery(sql: string): Promise<RawQueryResult | null> {
