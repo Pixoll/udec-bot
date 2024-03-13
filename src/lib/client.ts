@@ -62,10 +62,10 @@ export class TelegramClient<Tables extends TablesArray = []>
             return;
         }
 
-        // this.launch({ dropPendingUpdates: true }, () => {
+        this.launch({ dropPendingUpdates: true }, () => {
             this.ready = true;
             Logger.info('Telegram Client is ready.');
-        // });
+        });
     }
 }
 
