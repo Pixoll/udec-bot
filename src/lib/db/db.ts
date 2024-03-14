@@ -51,6 +51,7 @@ export type TablesArray = readonly TableDescriptor[] | TableDescriptor[];
 export interface DatabaseOptions<Tables extends TablesArray> {
     readonly host?: string;
     readonly port?: number;
+    readonly socketPath?: string;
     readonly username?: string;
     readonly password?: string;
     readonly name?: string;
@@ -72,6 +73,7 @@ type TableFromName<Tables extends TablesArray, Name extends TableNames<Tables>> 
 export class Database<Tables extends TablesArray> implements DatabaseOptions<Tables> {
     public declare readonly host: string;
     public declare readonly port: number;
+    public declare readonly socketPath: string;
     public declare readonly username: string;
     public declare readonly password: string;
     public declare readonly name: string;
@@ -79,10 +81,11 @@ export class Database<Tables extends TablesArray> implements DatabaseOptions<Tab
     public readonly connection: Connection;
 
     public constructor(options: DatabaseOptions<Tables>) {
-        const { DB_HOST, DB_PORT, DB_USERNAME, DB_PASSWORD, DB_NAME } = process.env;
+        const { DB_HOST, DB_PORT,  DB_SOCKET_PATH, DB_USERNAME, DB_PASSWORD, DB_NAME } = process.env;
         Object.assign<Database<Tables>, Omit<DatabaseOptions<Tables>, 'tables'>, Partial<DatabaseOptions<Tables>>>(this, {
             host: DB_HOST,
-            port: +DB_PORT,
+            port: DB_PORT ? +DB_PORT : -1,
+            socketPath: DB_SOCKET_PATH,
             username: DB_USERNAME,
             password: DB_PASSWORD,
             name: DB_NAME,
@@ -95,6 +98,7 @@ export class Database<Tables extends TablesArray> implements DatabaseOptions<Tab
         this.connection = createConnection({
             host: this.host,
             port: this.port,
+            socketPath: this.socketPath,
             user: this.username,
             password: this.password,
         });
