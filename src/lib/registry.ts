@@ -109,6 +109,10 @@ export class ClientRegistry {
         this.client.command(name, async (ctx, next) => {
             Logger.info(`Running ${ctx.message.text}`);
 
+            if (/^\/\w+@/.test(ctx.message.text)) {
+                ctx.message.text = ctx.message.text.replace(/@\w+/, '');
+            }
+
             const context = parseContext(ctx, command);
             const canRunHere = command.canRunHere(context);
             if (canRunHere !== true) {
