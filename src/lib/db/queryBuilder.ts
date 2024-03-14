@@ -60,7 +60,9 @@ export class SelectQueryBuilder<
         const columns = this.columns.size > 0 ? [...this.columns].join(', ') : '*';
         const where = this.filters.length > 0
             ? 'WHERE ' + this.filters.map(s => {
-                const isNull = s.isNull ? 'IS NULL' : null;
+                const isNull = typeof s.isNull === 'undefined'
+                    ? `IS${!s.isNull ? 'NOT ' : ''} NULL`
+                    : null;
                 const equality = s.equals ? `= ${parseQueryValue(s.equals)}`
                     : s.notEquals ? `!= ${parseQueryValue(s.notEquals)}`
                         : null;
