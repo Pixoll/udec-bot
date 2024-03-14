@@ -7,12 +7,14 @@ export enum ArgumentType {
     Boolean = 'booleano',
     Number = 'número',
     String = 'texto',
+    Date = 'fecha',
 }
 
 export interface ArgumentTypeMap {
     [ArgumentType.Boolean]: boolean;
     [ArgumentType.Number]: number;
     [ArgumentType.String]: string;
+    [ArgumentType.Date]: Date;
 }
 
 export abstract class ArgumentTypeHandler<T extends ArgumentType> {
@@ -28,7 +30,6 @@ export abstract class ArgumentTypeHandler<T extends ArgumentType> {
 
     public abstract parse(value: string, context: CommandContext, argument: Argument<T>): Awaitable<ArgumentTypeMap[T]>;
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     public isEmpty(value: string, _context: CommandContext, _argument: Argument<T>): boolean {
         return value.length === 0;
     }

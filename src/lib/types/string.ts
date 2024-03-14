@@ -3,7 +3,7 @@ import { TelegramClient } from '../client';
 import { isNullish } from '../util';
 import { ArgumentType, ArgumentTypeHandler } from './base';
 
-export default class StringArgumentType extends ArgumentTypeHandler<ArgumentType.String> {
+export class StringArgumentTypeHandler extends ArgumentTypeHandler<ArgumentType.String> {
     public constructor(client: TelegramClient) {
         super(client, ArgumentType.String);
     }
