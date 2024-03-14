@@ -19,7 +19,7 @@ export function capitalize<S extends string>(text: S): Capitalize<S> {
     return (text[0].toUpperCase() + text.slice(1)) as Capitalize<S>;
 }
 
-export function dateToString(date?: Date): string {
+export function dateToString(date?: Date | null): string {
     return new Intl.DateTimeFormat('en-GB', {
         day: '2-digit',
         month: '2-digit',

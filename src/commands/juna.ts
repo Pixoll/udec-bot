@@ -1,12 +1,38 @@
-import axios from 'axios';
-import { NodeType, parse as parseHtml } from 'node-html-parser';
 import { TelegramClientType } from '../client';
-import { Command, TelegramClient, CommandContext, dateToString } from '../lib';
+import {
+    ArgumentOptions,
+    ArgumentType,
+    ArgumentOptionsToResult,
+    Command,
+    CommandContext,
+    TelegramClient,
+    dateToString,
+} from '../lib';
+import { Page } from 'puppeteer';
+import { getTabWithUrl, openTab } from '../puppeteer';
 
 const menuUrl = 'https://dise.udec.cl/node/171';
+let menuTab: Page | undefined;
+
+const querySelectors = {
+    menu: '#node-171 > div > div > div > table > tbody',
+    selectDay: 'form#form1 > select#dia',
+    selectMonth: 'form#form1 > select#mes',
+    viewMenuAtDate: 'form#form1 > input',
+} as const;
+
 const menusCache: Record<string, string> = {};
 
-export default class TestCommand extends Command {
+const args = [{
+    key: 'fecha',
+    prompt: 'La fecha del menú a buscar.',
+    type: ArgumentType.Date,
+}] as const satisfies ArgumentOptions[];
+
+type RawArgs = typeof args;
+type ArgsResult = ArgumentOptionsToResult<RawArgs>;
+
+export default class TestCommand extends Command<RawArgs> {
     // @ts-expect-error: type override
     public declare readonly client: TelegramClientType;
 
@@ -14,32 +40,34 @@ export default class TestCommand extends Command {
         super(client, {
             name: 'juna',
             description: 'Menu de Casino Los Patos.',
+            args,
         });
     }
 
-    public async run(context: CommandContext): Promise<void> {
-        const menu = await getJunaebMenu();
+    public async run(context: CommandContext, { fecha }: ArgsResult): Promise<void> {
+        const menu = await getJunaebMenu(fecha);
         await context.fancyReply(menu, {
             'parse_mode': 'MarkdownV2',
         });
     }
 }
 
-async function getJunaebMenu(): Promise<string> {
-    const date = dateToString();
-    if (menusCache[date]) return menusCache[date];
+async function getJunaebMenu(date: Date | null): Promise<string> {
+    const dateString = dateToString(date);
+    if (menusCache[dateString]) return menusCache[dateString];
 
-    const response = await axios.get(menuUrl);
-    const html = parseHtml(response.data);
-    const menuTable = html.getElementById('node-171')?.childNodes
-        .find(child => 'rawTagName' in child && child.rawTagName === 'div')
-        ?.childNodes.filter(child => child.nodeType === NodeType.ELEMENT_NODE).at(0)
-        ?.childNodes.filter(child => child.nodeType === NodeType.ELEMENT_NODE).at(0)
-        ?.childNodes.filter(child => child.nodeType === NodeType.ELEMENT_NODE).at(0);
+    menuTab ??= await getMenuTab();
+    if (date) {
+        const [day, month] = dateString.split('/').slice(0, 2).map(n => +n);
+        await getMenuAtDate(menuTab, day, month);
+    }
+
+    const menuTable = await menuTab.waitForSelector(querySelectors.menu).catch(() => null);
     if (!menuTable) return 'No se pudo encontrar el menú Junaeb.';
 
-    const parsedMenu = menuTable.childNodes.filter(child => child.nodeType === NodeType.ELEMENT_NODE)
-        .map(child => child.innerText.trim().replace(/\s+/g, ' '));
+    const parsedMenu = await menuTable.evaluate(menu =>
+        [...menu.children].map(child => child.textContent?.trim().replace(/\s+/g, ' ') ?? '')
+    );
     const mainMenu = parsedMenu.slice(1, parsedMenu.indexOf(''))
         .flatMap(menu => {
             menu = menu.replace(/\s*:\s*/, ': ');
@@ -50,11 +78,31 @@ async function getJunaebMenu(): Promise<string> {
 
     const menuString = [
         '🦆 *Menu Los Patos* 🦆',
-        `\\~ _${date}_`,
+        `\\~ _${dateString}_`,
         '',
         ...mainMenu,
     ].join('\n');
-    menusCache[date] = menuString;
+    menusCache[dateString] = menuString;
 
     return menuString;
+}
+
+async function getMenuTab(): Promise<Page> {
+    return await getTabWithUrl(menuUrl) ?? await openTab(menuUrl);
+}
+
+async function getMenuAtDate(tab: Page, day: number, month: number): Promise<boolean> {
+    const daySelector = await tab.waitForSelector(querySelectors.selectDay).catch(() => null);
+    if (!daySelector) return false;
+    const monthSelector = await tab.waitForSelector(querySelectors.selectMonth).catch(() => null);
+    if (!monthSelector) return false;
+    const submitButton = await tab.waitForSelector(querySelectors.viewMenuAtDate).catch(() => null);
+    if (!submitButton) return false;
+
+    await daySelector.select(day.toString());
+    await monthSelector.select(month.toString());
+    await submitButton.click();
+    const reloaded = await tab.waitForNavigation();
+
+    return !!reloaded;
 }
