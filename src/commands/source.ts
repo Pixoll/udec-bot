@@ -20,6 +20,7 @@ export default class SourceCommand extends Command<[]> {
 
         Código fuente: [GitHub](${packageJson.repository.url})
         `).replace(/[.-]/g, '\\$&'), {
+            'parse_mode': 'MarkdownV2',
             'link_preview_options': {
                 'is_disabled': false,
             },

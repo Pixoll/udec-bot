@@ -19,7 +19,9 @@ export default class TestCommand extends Command {
 
     public async run(context: CommandContext): Promise<void> {
         const menu = await getJunaebMenu();
-        await context.fancyReply(menu);
+        await context.fancyReply(menu, {
+            'parse_mode': 'MarkdownV2',
+        });
     }
 }
 

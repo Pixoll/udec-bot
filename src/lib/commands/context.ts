@@ -28,7 +28,6 @@ async function fancyReply(
             'message_id': this.message?.message_id,
             'allow_sending_without_reply': true,
         },
-        'parse_mode': 'MarkdownV2',
         ...extra,
     }).catch((error) => {
         this.command.client.catchError(error, this);
