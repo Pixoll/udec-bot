@@ -99,6 +99,8 @@ export class ClientRegistry {
 
         commands.set(name, command);
         this.client.command(name, async (ctx, next) => {
+            Logger.info(`Running /${name}`);
+
             const context = parseContext(ctx, command);
             const canRunHere = command.canRunHere(context);
             if (canRunHere !== true) {
