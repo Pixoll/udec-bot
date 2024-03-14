@@ -3,7 +3,7 @@ import { Argument } from '../commands';
 import { dateAtSantiago, dateToString, isNullish } from '../util';
 import { ArgumentType, ArgumentTypeHandler } from './base';
 
-const dateRegex = /^[0-3]?\d[/-][01]?\d(?:[/-]\d{4})?$/;
+const dateRegex = /^[0-3]?\d[/-][01]?\d((?:[/-]\d{4}))?$/;
 
 export class DateArgumentTypeHandler extends ArgumentTypeHandler<ArgumentType.Date> {
     public constructor(client: TelegramClient) {
@@ -13,7 +13,7 @@ export class DateArgumentTypeHandler extends ArgumentTypeHandler<ArgumentType.Da
     public validate(value: string, _: unknown, argument: Argument<ArgumentType.Date>): string | boolean {
         const date = parseDate(value);
         if (!date) {
-            return 'Ingrese una fecha válida. El formato es DD-MM-YYYY.';
+            return 'Ingrese una fecha válida. El formato es DD-MM o DD-MM-YYYY.';
         }
 
         const time = date.getTime();
@@ -34,8 +34,13 @@ export class DateArgumentTypeHandler extends ArgumentTypeHandler<ArgumentType.Da
 }
 
 function parseDate(input: string): Date | null {
-    if (!dateRegex.test(input)) return null;
-    const date = dateAtSantiago(input);
-    if (isNaN(date.getTime())) return null;
-    return date;
+    const match = input.match(dateRegex);
+    if (!match) return null;
+    if (!match[1]) {
+        input = input + '/' + dateAtSantiago().getFullYear();
+    }
+
+    const parsedInput = input.replace(/-/g, '/').split('/').reverse().join('/');
+    const date = dateAtSantiago(parsedInput);
+    return isNaN(date.getTime()) ? null : date;
 }
