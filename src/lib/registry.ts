@@ -100,6 +100,12 @@ export class ClientRegistry {
         commands.set(name, command);
         this.client.command(name, async (ctx, next) => {
             const context = parseContext(ctx, command);
+            if (!command.canRunHere(context)) {
+                await context.fancyReply('No se puede usar este comando aquí.');
+                next();
+                return;
+            }
+
             const args = await command.parseArgs(context);
             if (!args.ok) {
                 await context.fancyReply(args.message);

@@ -9,6 +9,7 @@ export default class HistoryCommand extends Command<[]> {
         super(client, {
             name: 'history',
             description: 'Historial de acciones de /certs.',
+            groupOnly: true,
         });
     }
 

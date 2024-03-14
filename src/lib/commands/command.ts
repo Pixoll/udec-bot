@@ -7,6 +7,7 @@ import { CommandContext } from './context';
 export type CommandOptions<Args extends readonly ArgumentOptions[] = readonly ArgumentOptions[]> = {
     readonly name: string;
     readonly description: string;
+    readonly groupOnly?: boolean;
 } & (Args extends [] ? {
     readonly args?: Args;
 } : {
@@ -47,16 +48,22 @@ export abstract class Command<Args extends readonly ArgumentOptions[] = []> {
     public readonly client: TelegramClient;
     public declare readonly name: string;
     public declare readonly description: string;
+    public declare readonly groupOnly: boolean;
     public declare readonly args: ArgumentOptionsToClasses<Args>;
 
     protected constructor(client: TelegramClient, options: CommandOptions<Args>) {
         this.client = client;
         Object.assign(this, omit(options, ['args']));
 
+        this.groupOnly ??= false;
         this.args = (options.args?.map(arg => new Argument(client, arg)) ?? []) as ArgumentOptionsToClasses<Args>;
     }
 
     public abstract run(context: CommandContext, args: AnyArguments): unknown;
+
+    public canRunHere(context: CommandContext): boolean {
+        return this.groupOnly && context.chat.type !== 'private';
+    }
 
     public async parseArgs(context: CommandContext): Promise<ParseArgsResult> {
         if (!this.args) {

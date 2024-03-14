@@ -9,6 +9,7 @@ export default class RamosCommand extends Command<[]> {
         super(client, {
             name: 'ramos',
             description: 'Ramos del curso.',
+            groupOnly: true,
         });
     }
 

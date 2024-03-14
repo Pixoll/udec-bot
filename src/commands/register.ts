@@ -9,6 +9,7 @@ export default class RegisterCommand extends Command<[]> {
         super(client, {
             name: 'register',
             description: 'Registra tu chat grupal.',
+            groupOnly: true,
         });
     }
 

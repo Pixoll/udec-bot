@@ -9,6 +9,7 @@ export default class CertsCommand extends Command<[]> {
         super(client, {
             name: 'certs',
             description: 'Próximas evaluaciones.',
+            groupOnly: true,
         });
     }
 

@@ -6,6 +6,7 @@ class RamosCommand extends lib_1.Command {
         super(client, {
             name: 'ramos',
             description: 'Ramos del curso.',
+            groupOnly: true,
         });
     }
     async run(context) {
@@ -13,4 +14,4 @@ class RamosCommand extends lib_1.Command {
     }
 }
 exports.default = RamosCommand;
-//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoicmFtb3MuanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyIuLi8uLi9zcmMvY29tbWFuZHMvcmFtb3MudHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7QUFDQSxnQ0FBaUU7QUFFakUsTUFBcUIsWUFBYSxTQUFRLGFBQVc7SUFJakQsWUFBbUIsTUFBc0I7UUFDckMsS0FBSyxDQUFDLE1BQU0sRUFBRTtZQUNWLElBQUksRUFBRSxPQUFPO1lBQ2IsV0FBVyxFQUFFLGtCQUFrQjtTQUNsQyxDQUFDLENBQUM7SUFDUCxDQUFDO0lBRU0sS0FBSyxDQUFDLEdBQUcsQ0FBQyxPQUF1QjtRQUNwQyxPQUFPLENBQUM7SUFDWixDQUFDO0NBQ0o7QUFkRCwrQkFjQyJ9
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoicmFtb3MuanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyIuLi8uLi9zcmMvY29tbWFuZHMvcmFtb3MudHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7QUFDQSxnQ0FBaUU7QUFFakUsTUFBcUIsWUFBYSxTQUFRLGFBQVc7SUFJakQsWUFBbUIsTUFBc0I7UUFDckMsS0FBSyxDQUFDLE1BQU0sRUFBRTtZQUNWLElBQUksRUFBRSxPQUFPO1lBQ2IsV0FBVyxFQUFFLGtCQUFrQjtZQUMvQixTQUFTLEVBQUUsSUFBSTtTQUNsQixDQUFDLENBQUM7SUFDUCxDQUFDO0lBRU0sS0FBSyxDQUFDLEdBQUcsQ0FBQyxPQUF1QjtRQUNwQyxPQUFPLENBQUM7SUFDWixDQUFDO0NBQ0o7QUFmRCwrQkFlQyJ9
