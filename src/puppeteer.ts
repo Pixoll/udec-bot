@@ -5,7 +5,9 @@ let browserReady = false;
 
 void async function (): Promise<void> {
     if (browserReady) return;
-    browser = await puppeteer.launch({ headless: true });
+    browser = await puppeteer.launch({
+        args: ['--no-sandbox'],
+    });
     browserReady = true;
 }();
 
