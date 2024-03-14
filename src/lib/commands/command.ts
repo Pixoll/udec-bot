@@ -61,8 +61,11 @@ export abstract class Command<Args extends readonly ArgumentOptions[] = []> {
 
     public abstract run(context: CommandContext, args: AnyArguments): unknown;
 
-    public canRunHere(context: CommandContext): boolean {
-        if (this.groupOnly) return context.chat.type !== 'private';
+    public canRunHere(context: CommandContext): string | boolean {
+        if (this.groupOnly && context.chat.type === 'private') {
+            return 'Este comando solo puede ser usado en chats grupales.';
+        }
+
         return true;
     }
 
