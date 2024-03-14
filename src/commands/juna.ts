@@ -15,6 +15,7 @@ const menuUrl = 'https://dise.udec.cl/node/171';
 let menuTab: Page | undefined;
 
 const querySelectors = {
+    error: 'div > section > div.alert.alert-block.alert-dismissible.alert-danger.messages.error',
     menu: '#node-171 > div > div > div > table > tbody',
     selectDay: 'form#form1 > select#dia',
     selectMonth: 'form#form1 > select#mes',
@@ -62,8 +63,11 @@ async function getJunaebMenu(date: Date | null): Promise<string> {
         await getMenuAtDate(menuTab, day, month);
     }
 
+    const error = await menuTab.waitForSelector(querySelectors.error, { timeout: 2_000 }).catch(() => null);
+    if (error) return 'No se pudo encontrar el menú Junaeb\\.';
+
     const menuTable = await menuTab.waitForSelector(querySelectors.menu).catch(() => null);
-    if (!menuTable) return 'No se pudo encontrar el menú Junaeb.';
+    if (!menuTable) return 'No se pudo encontrar el menú Junaeb\\.';
 
     const parsedMenu = await menuTable.evaluate(menu =>
         [...menu.children].map(child => child.textContent?.trim().replace(/\s+/g, ' ') ?? '')
