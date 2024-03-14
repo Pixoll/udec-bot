@@ -62,7 +62,8 @@ export abstract class Command<Args extends readonly ArgumentOptions[] = []> {
     public abstract run(context: CommandContext, args: AnyArguments): unknown;
 
     public canRunHere(context: CommandContext): boolean {
-        return this.groupOnly && context.chat.type !== 'private';
+        if (this.groupOnly) return context.chat.type !== 'private';
+        return true;
     }
 
     public async parseArgs(context: CommandContext): Promise<ParseArgsResult> {
