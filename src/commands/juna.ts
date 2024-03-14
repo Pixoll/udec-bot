@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { NodeType, parse as parseHtml } from 'node-html-parser';
 import { TelegramClientType } from '../client';
-import { Command, TelegramClient, CommandContext } from '../lib';
+import { Command, TelegramClient, CommandContext, dateToString } from '../lib';
 
 const menuUrl = 'https://dise.udec.cl/node/171';
 const menusCache: Record<string, string> = {};
@@ -26,7 +26,7 @@ export default class TestCommand extends Command {
 }
 
 async function getJunaebMenu(): Promise<string> {
-    const date = getDateNow();
+    const date = dateToString();
     if (menusCache[date]) return menusCache[date];
 
     const response = await axios.get(menuUrl);
@@ -57,13 +57,4 @@ async function getJunaebMenu(): Promise<string> {
     menusCache[date] = menuString;
 
     return menuString;
-}
-
-function getDateNow(): string {
-    return new Intl.DateTimeFormat('en-GB', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        timeZone: 'America/Santiago',
-    }).format(new Date());
 }
