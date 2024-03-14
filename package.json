@@ -4,12 +4,15 @@
   "version": "1.0.0",
   "author": "Pixoll",
   "license": "MIT",
-  "description": "UdeC ot",
+  "description": "UdeC Bot",
   "main": "build/index.js",
   "scripts": {
     "build": "tsc",
     "lint": "eslint src",
     "lint:fix": "eslint --fix src"
+  },
+  "repository": {
+    "url": "https://github.com/Pixoll/udec-bot"
   },
   "dependencies": {
     "axios": "^1.6.7",

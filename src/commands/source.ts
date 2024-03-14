@@ -1,7 +1,7 @@
 import { TelegramClientType } from '../client';
 import { Command, CommandContext, TelegramClient } from '../lib';
-
-const sourceUrl = 'https://github.com/Pixoll/udec-bot';
+import packageJson from '../package';
+import { stripIndent } from '../util';
 
 export default class SourceCommand extends Command<[]> {
     // @ts-expect-error: type override
@@ -15,6 +15,14 @@ export default class SourceCommand extends Command<[]> {
     }
 
     public async run(context: CommandContext): Promise<void> {
-        await context.fancyReply(`[Código fuente](${sourceUrl})`);
+        await context.fancyReply(stripIndent(`
+        *UdeC Bot v${packageJson.version}*
+
+        Código fuente: [GitHub](${packageJson.repository.url})
+        `).replace(/[.-]/g, '\\$&'), {
+            'link_preview_options': {
+                'is_disabled': false,
+            },
+        });
     }
 }
