@@ -1,6 +1,6 @@
 import { Connection, ProcedureCallPacket, ResultSetHeader, RowDataPacket, createConnection } from 'mysql2';
 import { Logger } from '../logger';
-import { ConstructableQueryBuilder, InsertQueryBuilder, SelectQueryBuilder } from './queryBuilder';
+import { ConstructableQueryBuilder, InsertQueryBuilder, SelectQueryBuilder, UpdateQueryBuilder } from './queryBuilder';
 import { ValuesOf } from '../util';
 
 export enum ColumnType {
@@ -153,9 +153,16 @@ export class Database<Tables extends TablesArray> implements DatabaseOptions<Tab
 
     public async insert<TableName extends TableNames<Tables>, Table extends TableFromName<Tables, TableName>>(
         tableName: TableName,
-        builder?: (queryBuilder: InsertQueryBuilder<Table>) => InsertQueryBuilder<Table>
+        builder: (queryBuilder: InsertQueryBuilder<Table>) => InsertQueryBuilder<Table>
     ): Promise<unknown> {
         return await this.queryFromBuilder(InsertQueryBuilder, tableName, builder);
+    }
+
+    public async update<TableName extends TableNames<Tables>, Table extends TableFromName<Tables, TableName>>(
+        tableName: TableName,
+        builder: (queryBuilder: UpdateQueryBuilder<Table>) => UpdateQueryBuilder<Table>
+    ): Promise<unknown> {
+        return await this.queryFromBuilder(UpdateQueryBuilder, tableName, builder);
     }
 
     private async queryFromBuilder<Builder>(
