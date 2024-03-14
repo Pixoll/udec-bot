@@ -27,30 +27,38 @@ export class ClientRegistry {
         const commandsFolder: Record<string, NodeModuleOf<typeof Command>> = requireAll(path);
         const commands = Object.entries(commandsFolder)
             .filter(([fileName]) => !exclude.includes(fileName))
-            .map(([fileName, commandModule]) =>
-                'prototype' in commandModule && commandModule.prototype instanceof Command
-                    ? commandModule
-                    : 'default' in commandModule ? commandModule.default
-                        : (commandModule as Record<string, typeof Command>)[`${capitalize(fileName)}Command`]
-            )
+            .map(([fileName, commandModule]) => {
+                if ('prototype' in commandModule && commandModule.prototype instanceof Command) {
+                    return commandModule;
+                }
+                if ('default' in commandModule) {
+                    return commandModule.default;
+                }
+                const mod = commandModule as Record<string, typeof Command>;
+                return mod[`${capitalize(fileName)}Command`];
+            })
             .filter((command): command is typeof Command => !isNullish(command));
 
         return this.registerCommands(commands as unknown as ConstructableCommand[]);
     }
 
     public registerTypeHandlersIn(path: string, ...exclude: string[]): this {
-        const typesFolder: Record<string, NodeModuleOf<typeof ArgumentTypeHandler>> = requireAll(path);
-        const types = Object.entries(typesFolder)
+        const typeHandlersFolder: Record<string, NodeModuleOf<typeof ArgumentTypeHandler>> = requireAll(path);
+        const typeHandlers = Object.entries(typeHandlersFolder)
             .filter(([fileName]) => !exclude.includes(fileName))
-            .map(([fileName, typeModule]) =>
-                'prototype' in typeModule && typeModule.prototype instanceof ArgumentTypeHandler
-                    ? typeModule
-                    : 'default' in typeModule ? typeModule.default
-                        : (typeModule as Record<string, typeof ArgumentTypeHandler>)[`${capitalize(fileName)}ArgumentType`]
-            )
+            .map(([fileName, typeHandlerModule]) => {
+                if ('prototype' in typeHandlerModule && typeHandlerModule.prototype instanceof ArgumentTypeHandler) {
+                    return typeHandlerModule;
+                }
+                if ('default' in typeHandlerModule) {
+                    return typeHandlerModule.default;
+                }
+                const mod = typeHandlerModule as Record<string, typeof ArgumentTypeHandler>;
+                return mod[`${capitalize(fileName)}ArgumentTypeHandler`];
+            })
             .filter((type): type is typeof ArgumentTypeHandler => !isNullish(type));
 
-        return this.registerTypeHandlers(types as BuildableArgumentTypeHandler[]);
+        return this.registerTypeHandlers(typeHandlers as BuildableArgumentTypeHandler[]);
     }
 
     protected registerCommands(commands: ConstructableCommand[]): this {
