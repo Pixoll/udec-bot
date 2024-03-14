@@ -34,4 +34,4 @@ export abstract class ArgumentTypeHandler<T extends ArgumentType> {
     }
 }
 
-export type BuildableArgumentType = new (client: TelegramClient) => ArgumentTypeHandler<ArgumentType>;
+export type ConstructableArgumentType = new (client: TelegramClient) => ArgumentTypeHandler<ArgumentType>;

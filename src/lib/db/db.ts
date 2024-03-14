@@ -1,6 +1,6 @@
 import { Connection, ProcedureCallPacket, ResultSetHeader, RowDataPacket, createConnection } from 'mysql2';
 import { Logger } from '../logger';
-import { SelectQueryBuilder } from './queryBuilder';
+import { ConstructableQueryBuilder, InsertQueryBuilder, SelectQueryBuilder } from './queryBuilder';
 import { ValuesOf } from '../util';
 
 export enum ColumnType {
@@ -148,9 +148,24 @@ export class Database<Tables extends TablesArray> implements DatabaseOptions<Tab
         tableName: TableName,
         builder?: (queryBuilder: SelectQueryBuilder<Table>) => SelectQueryBuilder<Table>
     ): Promise<unknown> {
-        const table = this.tables.find(t => t.name === tableName) as Table;
-        const sqlBuilder = new SelectQueryBuilder(table);
-        builder?.(sqlBuilder);
+        return await this.queryFromBuilder(SelectQueryBuilder, tableName, builder);
+    }
+
+    public async insert<TableName extends TableNames<Tables>, Table extends TableFromName<Tables, TableName>>(
+        tableName: TableName,
+        builder?: (queryBuilder: InsertQueryBuilder<Table>) => InsertQueryBuilder<Table>
+    ): Promise<unknown> {
+        return await this.queryFromBuilder(InsertQueryBuilder, tableName, builder);
+    }
+
+    private async queryFromBuilder<Builder>(
+        BuilderConstructor: ConstructableQueryBuilder,
+        tableName: string,
+        builderFn?: (queryBuilder: Builder) => Builder
+    ): Promise<unknown> {
+        const table = this.tables.find(t => t.name === tableName) as TableDescriptor;
+        const sqlBuilder = new BuilderConstructor(table);
+        builderFn?.(sqlBuilder as Builder);
         return await this.rawQuery(sqlBuilder.toString());
     }
 

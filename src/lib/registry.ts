@@ -1,8 +1,8 @@
 import requireAll from 'require-all';
 import { TelegramClient } from './client';
 import { Collection } from './collection';
-import { Command, BuildableCommand, parseContext } from './commands';
-import { ArgumentTypeHandler, ArgumentType, BuildableArgumentType as BuildableArgumentTypeHandler } from './types';
+import { Command, ConstructableCommand, parseContext } from './commands';
+import { ArgumentTypeHandler, ArgumentType, ConstructableArgumentType as BuildableArgumentTypeHandler } from './types';
 import { capitalize, isNullish } from './util';
 import { Logger } from './logger';
 
@@ -35,7 +35,7 @@ export class ClientRegistry {
             )
             .filter((command): command is typeof Command => !isNullish(command));
 
-        return this.registerCommands(commands as unknown as BuildableCommand[]);
+        return this.registerCommands(commands as unknown as ConstructableCommand[]);
     }
 
     public registerTypeHandlersIn(path: string, ...exclude: string[]): this {
@@ -53,7 +53,7 @@ export class ClientRegistry {
         return this.registerTypeHandlers(types as BuildableArgumentTypeHandler[]);
     }
 
-    protected registerCommands(commands: BuildableCommand[]): this {
+    protected registerCommands(commands: ConstructableCommand[]): this {
         let registered = 0;
         for (const command of commands) {
             const isValid = command && command.prototype instanceof Command;
@@ -87,7 +87,7 @@ export class ClientRegistry {
         return this;
     }
 
-    protected registerCommand(NewCommand: BuildableCommand): this {
+    protected registerCommand(NewCommand: ConstructableCommand): this {
         const { commands, client } = this;
         const command = new NewCommand(client);
         const { name } = command;

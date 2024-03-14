@@ -1,7 +1,7 @@
 import { ValuesOf } from '../util';
 import { ColumnTypeMap, TableDescriptor } from './db';
 
-export abstract class QueryBuilder<Table extends TableDescriptor> {
+export abstract class QueryBuilder<Table extends TableDescriptor = TableDescriptor> {
     protected readonly instruction: string;
     protected readonly table: Table;
 
@@ -12,6 +12,8 @@ export abstract class QueryBuilder<Table extends TableDescriptor> {
 
     public abstract toString(): string;
 }
+
+export type ConstructableQueryBuilder = new (table: TableDescriptor) => QueryBuilder;
 
 type TableColumnName<Table extends TableDescriptor> = Table['columns'][number]['name'];
 type TableColumnValueTypeFromName<Table extends TableDescriptor, Column extends TableColumnName<Table>> = ValuesOf<{
@@ -81,13 +83,52 @@ export class SelectQueryBuilder<
     }
 }
 
-export class InsertQueryBuilder<Table extends TableDescriptor> extends QueryBuilder<Table> {
+type TableColumnValueTypesFromNames<
+    Table extends TableDescriptor,
+    Columns extends Array<TableColumnName<Table>>
+> =  Columns extends [infer Column extends TableColumnName<Table>, ...infer Rest extends Array<TableColumnName<Table>>]
+    ? [TableColumnValueTypeFromName<Table, Column>, ...TableColumnValueTypesFromNames<Table, Rest>]
+    : [];
+
+export class InsertQueryBuilder<
+    Table extends TableDescriptor,
+    Columns extends Array<TableColumnName<Table>> = Array<TableColumnName<Table>>
+> extends QueryBuilder<Table> {
+    private readonly cols: Set<Columns[number]>;
+    private readonly vals: unknown[];
+
     public constructor(table: Table) {
         super('INSERT INTO', table);
+        this.cols = new Set();
+        this.vals = [];
+    }
+
+    public columns<Cols extends Array<TableColumnName<Table>>>(
+        ...columns: Cols
+    ): Pick<InsertQueryBuilder<Table, Cols>, 'values'> {
+        for (const column of columns) {
+            this.cols.add(column);
+        }
+        return this as unknown as InsertQueryBuilder<Table, Cols>;
+    }
+
+    public values(...values: TableColumnValueTypesFromNames<Table, Columns>): Pick<this, 'toString'> {
+        this.vals.push(...values);
+        return this;
     }
 
     public toString(): string {
-        return '';
+        const columns = [...this.cols];
+        const values = this.vals.map(parseQueryValue);
+
+        if (columns.length === 0) {
+            throw new Error('At least one column must be specified.');
+        }
+        if (columns.length !== values.length) {
+            throw new Error('Amount of values must equal amount of columns.');
+        }
+
+        return `${this.instruction} ${this.table.name} (${columns.join(', ')}) VALUES (${values.join(', ')});`;
     }
 }
 

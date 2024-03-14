@@ -86,4 +86,4 @@ export abstract class Command<Args extends readonly ArgumentOptions[] = []> {
     }
 }
 
-export type BuildableCommand = new (client: TelegramClient) => Command;
+export type ConstructableCommand = new (client: TelegramClient) => Command;
