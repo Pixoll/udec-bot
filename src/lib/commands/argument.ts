@@ -9,6 +9,7 @@ type ArgumentDefault<T extends ArgumentType> =
 
 export interface ArgumentOptions<T extends ArgumentType = ArgumentType> {
     readonly key: string;
+    readonly label?: string | null;
     readonly prompt: string;
     readonly type: T;
     readonly required?: boolean;
@@ -40,6 +41,7 @@ export interface ArgumentResultError {
 }
 
 const defaultOptions = {
+    label: null,
     required: false,
     default: null,
     choices: null,
@@ -49,6 +51,7 @@ const defaultOptions = {
 
 export class Argument<T extends ArgumentType = ArgumentType> implements Omit<ArgumentOptions<T>, 'type'> {
     public declare readonly key: string;
+    public declare readonly label: string | null;
     public declare readonly prompt: string;
     public readonly typeHandler: ArgumentTypeHandler<T>;
     public declare readonly required: boolean;
@@ -63,7 +66,9 @@ export class Argument<T extends ArgumentType = ArgumentType> implements Omit<Arg
 
     public constructor(client: TelegramClient, options: ArgumentOptions<T>) {
         this.client = client;
+
         Object.assign(this, defaultOptions, omit(options, ['parse', 'validate', 'isEmpty']));
+
         this.parser = options.parse ?? null;
         this.validator = options.validate ?? null;
         this.emptyChecker = options.isEmpty ?? null;
@@ -75,14 +80,16 @@ export class Argument<T extends ArgumentType = ArgumentType> implements Omit<Arg
     }
 
     public async obtain(value: string, context: CommandContext): Promise<ArgumentResult<T>> {
-        const { default: defaultValue, required } = this;
+        const { default: defaultValue, required, typeHandler, key, label } = this;
+        const name = label ?? key;
+        const type = typeHandler.type;
         const empty = this.isEmpty(value, context);
         if (empty) {
             if (required) {
                 return {
                     ok: false,
                     error: ArgumentResultErrorType.Empty,
-                    message: `Especifique argumento "${this.key}" de tipo ${this.typeHandler.type}`,
+                    message: `Especifique argumento "${name}" de tipo ${type}`,
                 };
             }
 
@@ -100,7 +107,7 @@ export class Argument<T extends ArgumentType = ArgumentType> implements Omit<Arg
             return {
                 ok: false,
                 error: ArgumentResultErrorType.Invalid,
-                message: isValid || `Argumento inválido, "${this.key}" debe ser de tipo ${this.typeHandler.type}`,
+                message: isValid || `Argumento inválido, "${name}" debe ser de tipo ${type}`,
             };
         }
 
