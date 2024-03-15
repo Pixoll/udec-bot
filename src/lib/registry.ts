@@ -128,6 +128,7 @@ export class ClientRegistry {
                 return;
             }
 
+            await context.react('👍').catch(() => null);
             command.run(context, args.values);
             next();
         });
