@@ -15,8 +15,9 @@ export function isNullish(value: unknown): value is null | undefined {
     return typeof value === 'undefined' || value === null;
 }
 
-export function capitalize<S extends string>(text: S): Capitalize<S> {
-    return (text[0].toUpperCase() + text.slice(1)) as Capitalize<S>;
+export function capitalize<S extends string>(text: S, restLower = false): Capitalize<S> {
+    const rest = text.slice(1);
+    return (text[0].toUpperCase() + (restLower ? rest.toLowerCase() : rest)) as Capitalize<S>;
 }
 
 export function dateToString(date?: Date | null): string {
