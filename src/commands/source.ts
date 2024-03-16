@@ -1,7 +1,21 @@
+import { readFileSync } from 'fs';
+import path from 'path';
 import { TelegramClientType } from '../client';
 import { Command, CommandContext, TelegramClient } from '../lib';
-import packageJson from '../package';
 import { stripIndent } from '../util';
+
+const packageJson = JSON.parse(readFileSync(path.join(__dirname, '../../package.json'), 'utf-8')) as PackageJson;
+
+interface PackageJson {
+    readonly name: string;
+    readonly version: string;
+    readonly author: string;
+    readonly license: string;
+    readonly description: string;
+    readonly repository: {
+        readonly url: string;
+    };
+}
 
 export default class SourceCommand extends Command<[]> {
     // @ts-expect-error: type override
