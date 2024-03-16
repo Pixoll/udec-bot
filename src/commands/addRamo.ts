@@ -48,6 +48,23 @@ export default class AddRamoCommand extends Command<RawArgs> {
     }
 
     public async run(context: CommandContext, { code }: ArgsResult): Promise<void> {
+        const result = await this.client.db.select('udec_subjects', builder => builder.where({
+            column: 'code',
+            equals: code,
+        })).then(r => r?.[0] ?? null);
+        if (result) {
+            await context.fancyReply(stripIndent(`
+            Este ramo ya está registrado con los siguientes datos:
+
+            *Nombre*: ${result.name}
+            *Código*: ${code}
+            *Créditos*: ${result.credits}
+            `), {
+                'parse_mode': 'MarkdownV2',
+            });
+            return;
+        }
+
         const tab = await loadSubjectInfoTab(code);
 
         const name = await getSubjectName(tab, code);
