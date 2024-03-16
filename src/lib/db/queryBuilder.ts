@@ -153,7 +153,7 @@ function parseFilters<
     Columns extends TableColumnName<Table>
 >(filters: Array<TableColumnSelector<Table, Columns>>): string {
     return filters.map(f => {
-        const isNull = typeof f.isNull === 'undefined'
+        const isNull = typeof f.isNull !== 'undefined'
             ? `IS${!f.isNull ? ' NOT' : ''} NULL`
             : null;
         const equality = f.equals ? `= ${parseQueryValue(f.equals)}`
@@ -171,6 +171,6 @@ function parseFilters<
             throw new Error('Must specify at least one query filter.');
         }
 
-        return `(${f.column} ${filters.join(` AND ${f.column} `)})`;
+        return `(${f.column} ${filters.join(` OR ${f.column} `)})`;
     }).join(' AND ');
 }
