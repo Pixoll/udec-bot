@@ -83,7 +83,6 @@ export abstract class Command<Args extends readonly ArgumentOptions[] = []> {
         for (let i = 0; i < this.args.length; i++) {
             const arg = this.args[i] as Argument<ArgumentType>;
             const value = i === this.args.length - 1 ? argsStrings.slice(i).join(' ') : argsStrings[i];
-            // eslint-disable-next-line no-await-in-loop
             const result = await arg.obtain(value, context);
             if (!result.ok) return result;
 

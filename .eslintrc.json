@@ -89,9 +89,6 @@
       "error",
       3
     ],
-    "no-await-in-loop": [
-      "error"
-    ],
     "@typescript-eslint/array-type": [
       "error",
       {
