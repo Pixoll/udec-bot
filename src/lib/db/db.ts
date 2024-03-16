@@ -64,6 +64,18 @@ export interface DatabaseOptions<Tables extends TablesArray> {
     readonly tables: Tables;
 }
 
+export type QueryResult<T> = QueryResultOk<T> | QueryResultError;
+
+interface QueryResultOk<T> {
+    ok: true;
+    result: T;
+}
+
+interface QueryResultError {
+    ok: false;
+    error: unknown;
+}
+
 type RawQueryResult =
     | readonly [readonly DescribeTableResult[]]
     | readonly ResultSetHeader[]
@@ -164,21 +176,29 @@ export class Database<Tables extends TablesArray> implements DatabaseOptions<Tab
     public async select<TableName extends TableNames<Tables>, Table extends TableFromName<Tables, TableName>>(
         tableName: TableName,
         builder?: (queryBuilder: SelectQueryBuilder<Table>) => QueryBuilder
-    ): Promise<Array<TableColumnValuePairs<Table>> | null> {
-        const result = await this.queryFromBuilder<SelectQueryBuilder<Table>, [RowDataPacket[]] | null>(
+    ): Promise<QueryResult<Array<TableColumnValuePairs<Table>>>> {
+        const query = await this.queryFromBuilder<SelectQueryBuilder<Table>, [RowDataPacket[]]>(
             SelectQueryBuilder, tableName, builder
         );
-        return result?.[0] as Array<TableColumnValuePairs<Table>> ?? null;
+        if (!query.ok) return query;
+        return {
+            ok: true,
+            result: query.result[0] as Array<TableColumnValuePairs<Table>>,
+        };
     }
 
     public async insert<TableName extends TableNames<Tables>, Table extends TableFromName<Tables, TableName>>(
         tableName: TableName,
         builder: (queryBuilder: InsertQueryBuilder<Table>) => QueryBuilder
-    ): Promise<ResultSetHeader | null> {
-        const result = await this.queryFromBuilder<InsertQueryBuilder<Table>, ResultSetHeader[] | null>(
+    ): Promise<QueryResult<ResultSetHeader>> {
+        const query = await this.queryFromBuilder<InsertQueryBuilder<Table>, ResultSetHeader[]>(
             InsertQueryBuilder, tableName, builder
         );
-        return result?.[0] ?? null;
+        if (!query.ok) return query;
+        return {
+            ok: true,
+            result: query.result[0],
+        };
     }
 
     public async update<TableName extends TableNames<Tables>, Table extends TableFromName<Tables, TableName>>(
@@ -188,24 +208,29 @@ export class Database<Tables extends TablesArray> implements DatabaseOptions<Tab
         return await this.queryFromBuilder(UpdateQueryBuilder, tableName, builder);
     }
 
-    public async query<Result extends RawQueryResult | null>(sql: string): Promise<Result> {
-        let result: Result;
+    public async query<Result extends RawQueryResult>(sql: string): Promise<QueryResult<Result>> {
+        Logger.info('MySQL instruction:', sql);
         try {
-            result = await this.connection.query(sql) as unknown as Result;
+            const result = await this.connection.query(sql) as unknown as Result;
+            Logger.info('Result =>', result);
+            return {
+                ok: true,
+                result,
+            };
         } catch (error) {
             Logger.error(error);
-            result = null as Result;
+            return {
+                ok: false,
+                error,
+            };
         }
-
-        Logger.info('MySQL instruction:', sql, '=>', result);
-        return result;
     }
 
-    private async queryFromBuilder<Builder, Result extends RawQueryResult | null>(
+    private async queryFromBuilder<Builder, Result extends RawQueryResult>(
         BuilderConstructor: ConstructableQueryBuilder,
         tableName: string,
         builderFn?: (queryBuilder: Builder) => QueryBuilder
-    ): Promise<Result> {
+    ): Promise<QueryResult<Result>> {
         const table = this.tables.find(t => t.name === tableName) as TableDescriptor;
         const sqlBuilder = new BuilderConstructor(table);
         builderFn?.(sqlBuilder as Builder);
@@ -213,17 +238,18 @@ export class Database<Tables extends TablesArray> implements DatabaseOptions<Tab
     }
 
     private async checkTableExists(name: string): Promise<boolean> {
-        const result = await this.query(`SHOW TABLES LIKE "${name}";`);
-        return Array.isArray(result) && result[0].length > 0;
+        const query = await this.query(`SHOW TABLES LIKE "${name}";`);
+        return !query.ok || (Array.isArray(query.result) && query.result[0].length > 0);
     }
 
     private async applyTableStructure(table: TableDescriptor): Promise<void> {
-        const result = await this.query<[DescribeTableResult[]] | null>(`DESCRIBE ${table.name};`);
-        if (!result) return;
-        const isSameStructure = validateTableStructure(result[0], table.columns);
+        const query = await this.query<[DescribeTableResult[]]>(`DESCRIBE ${table.name};`);
+        if (!query.ok) return;
+        const currentStructure = query.result[0];
+        const isSameStructure = validateTableStructure(currentStructure, table.columns);
         if (isSameStructure) return;
 
-        Logger.error('Non-matching structures:', table.columns, '=>', result[0]);
+        Logger.error('Non-matching structures:', table.columns, '=>', currentStructure);
     }
 
     private getTableCreationQuery(table: TableDescriptor): string {
