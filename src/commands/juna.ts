@@ -25,7 +25,8 @@ const querySelectors = {
 const menusCache: Record<string, string> = {};
 
 const args = [{
-    key: 'fecha',
+    key: 'date',
+    label: 'fecha',
     prompt: 'La fecha del menú a buscar.',
     type: ArgumentType.Date,
 }] as const satisfies ArgumentOptions[];
@@ -45,8 +46,8 @@ export default class TestCommand extends Command<RawArgs> {
         });
     }
 
-    public async run(context: CommandContext, { fecha }: ArgsResult): Promise<void> {
-        const menu = await getJunaebMenu(fecha);
+    public async run(context: CommandContext, { date }: ArgsResult): Promise<void> {
+        const menu = await getJunaebMenu(date);
         await context.fancyReply(menu, {
             'parse_mode': 'MarkdownV2',
         });
