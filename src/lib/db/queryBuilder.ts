@@ -81,7 +81,7 @@ export class InsertQueryBuilder<Table extends TableDescriptor> extends QueryBuil
         this.pairs = null;
     }
 
-    public values(pairs: TableColumnValuePairs<Table>): Pick<this, 'toString'> {
+    public values(pairs: TableColumnValuePairs<Table>): QueryBuilder {
         this.pairs = pairs;
         return this;
     }
