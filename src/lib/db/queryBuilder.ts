@@ -65,7 +65,7 @@ export class SelectQueryBuilder<
     }
 }
 
-type TableColumnValuePairs<Table extends TableDescriptor> = {
+export type TableColumnValuePairs<Table extends TableDescriptor> = {
     [Column in Table['columns'][number] as Column['nonNull'] extends true ? Column['name'] : never]:
     ColumnTypeMap[Column['type']];
 } & {
@@ -154,7 +154,7 @@ function parseFilters<
 >(filters: Array<TableColumnSelector<Table, Columns>>): string {
     return filters.map(f => {
         const isNull = typeof f.isNull === 'undefined'
-            ? `IS${!f.isNull ? 'NOT ' : ''} NULL`
+            ? `IS${!f.isNull ? ' NOT' : ''} NULL`
             : null;
         const equality = f.equals ? `= ${parseQueryValue(f.equals)}`
             : f.notEquals ? `!= ${parseQueryValue(f.notEquals)}`
@@ -171,6 +171,6 @@ function parseFilters<
             throw new Error('Must specify at least one query filter.');
         }
 
-        return `(${f.column} ${filters.join(` OR ${f.column} `)})`;
+        return `(${f.column} ${filters.join(` AND ${f.column} `)})`;
     }).join(' AND ');
 }
