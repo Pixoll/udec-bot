@@ -5,6 +5,7 @@ import {
     InsertQueryBuilder,
     QueryBuilder,
     SelectQueryBuilder,
+    TableColumnValuePairs,
     UpdateQueryBuilder,
 } from './queryBuilder';
 import { ValuesOf } from '../util';
@@ -147,18 +148,21 @@ export class Database<Tables extends TablesArray> implements DatabaseOptions<Tab
     public async select<TableName extends TableNames<Tables>, Table extends TableFromName<Tables, TableName>>(
         tableName: TableName,
         builder?: (queryBuilder: SelectQueryBuilder<Table>) => QueryBuilder
-    ): Promise<unknown> {
-        return await this.queryFromBuilder(SelectQueryBuilder, tableName, builder);
+    ): Promise<Array<TableColumnValuePairs<Table>> | null> {
+        const result = await this.queryFromBuilder<SelectQueryBuilder<Table>, [RowDataPacket[]] | null>(
+            SelectQueryBuilder, tableName, builder
+        );
+        return result?.[0] as Array<TableColumnValuePairs<Table>> ?? null;
     }
 
     public async insert<TableName extends TableNames<Tables>, Table extends TableFromName<Tables, TableName>>(
         tableName: TableName,
         builder: (queryBuilder: InsertQueryBuilder<Table>) => QueryBuilder
-    ): Promise<ResultSetHeader> {
-        const result = await this.queryFromBuilder<InsertQueryBuilder<Table>, ResultSetHeader[]>(
+    ): Promise<ResultSetHeader | null> {
+        const result = await this.queryFromBuilder<InsertQueryBuilder<Table>, ResultSetHeader[] | null>(
             InsertQueryBuilder, tableName, builder
         );
-        return result[0];
+        return result?.[0] ?? null;
     }
 
     public async update<TableName extends TableNames<Tables>, Table extends TableFromName<Tables, TableName>>(
