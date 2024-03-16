@@ -62,8 +62,8 @@ class AddRamoCommand extends lib_1.Command {
             name,
         }));
         await context.fancyReply((0, util_1.stripIndent)(`
-        *Añadido el ramo*:
-        
+        ¡Ramo registrado\\! 🎉
+
         *Nombre*: ${name}
         *Código*: ${code}
         *Créditos*: ${credits}

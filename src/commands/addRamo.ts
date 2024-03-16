@@ -86,8 +86,8 @@ export default class AddRamoCommand extends Command<RawArgs> {
         }));
 
         await context.fancyReply(stripIndent(`
-        *Añadido el ramo*:
-        
+        ¡Ramo registrado\\! 🎉
+
         *Nombre*: ${name}
         *Código*: ${code}
         *Créditos*: ${credits}
