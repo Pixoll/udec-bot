@@ -59,10 +59,8 @@ async function getJunaebMenu(date: Date | null): Promise<string> {
     if (menusCache[dateString]) return menusCache[dateString];
 
     menuTab ??= await getMenuTab();
-    if (date) {
-        const [day, month] = dateString.split('/').slice(0, 2).map(n => +n);
-        await getMenuAtDate(menuTab, day, month);
-    }
+    const [day, month] = dateString.split('/').slice(0, 2).map(n => +n);
+    await getMenuAtDate(menuTab, day, month);
 
     const error = await menuTab.waitForSelector(querySelectors.error, { timeout: 2_000 }).catch(() => null);
     if (error) return 'No se pudo encontrar el menú Junaeb\\.';
