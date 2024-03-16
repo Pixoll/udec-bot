@@ -48,17 +48,25 @@ export default class AddRamoCommand extends Command<RawArgs> {
     }
 
     public async run(context: CommandContext, { code }: ArgsResult): Promise<void> {
-        const result = await this.client.db.select('udec_subjects', builder => builder.where({
-            column: 'code',
-            equals: code,
-        })).then(r => r?.[0] ?? null);
-        if (result) {
+        const chatId = context.chat.id;
+
+        const existing = await this.client.db.select('udec_subjects', builder => builder
+            .where({
+                column: 'code',
+                equals: code,
+            })
+            .where({
+                column: 'chat_id',
+                equals: chatId,
+            })
+        ).then(q => q.ok ? q.result[0] ?? null : null);
+        if (existing) {
             await context.fancyReply(stripIndent(`
             Este ramo ya está registrado con los siguientes datos:
 
-            *Nombre*: ${result.name}
+            *Nombre*: ${existing.name}
             *Código*: ${code}
-            *Créditos*: ${result.credits}
+            *Créditos*: ${existing.credits}
             `), {
                 'parse_mode': 'MarkdownV2',
             });
@@ -79,11 +87,16 @@ export default class AddRamoCommand extends Command<RawArgs> {
             return;
         }
 
-        await this.client.db.insert('udec_subjects', builder => builder.values({
+        const inserted = await this.client.db.insert('udec_subjects', builder => builder.values({
             code,
             credits,
             name,
+            'chat_id': chatId,
         }));
+        if (!inserted.ok) {
+            await this.client.catchError(inserted.error, context);
+            return;
+        }
 
         await context.fancyReply(stripIndent(`
         ¡Ramo registrado\\! 🎉

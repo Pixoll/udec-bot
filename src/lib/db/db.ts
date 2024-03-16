@@ -12,6 +12,7 @@ import {
 import { ValuesOf, xor } from '../util';
 
 export enum ColumnType {
+    Bigint = 'BIGINT',
     Boolean = 'TINYINT(1)',
     Date = 'DATE',
     Enum = 'ENUM',
@@ -21,6 +22,7 @@ export enum ColumnType {
 }
 
 export interface ColumnTypeMap {
+    [ColumnType.Bigint]: number;
     [ColumnType.Boolean]: boolean;
     [ColumnType.Date]: Date;
     [ColumnType.Enum]: unknown;

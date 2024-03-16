@@ -9,6 +9,10 @@ export const subjectsTable = {
         primaryKey: true,
         unique: true,
     }, {
+        name: 'chat_id',
+        type: ColumnType.Bigint,
+        nonNull: true,
+    }, {
         name: 'name',
         type: ColumnType.String,
         size: 150,
@@ -38,7 +42,7 @@ export const assignmentsTable = {
         autoIncrement: true,
     }, {
         name: 'chat_id',
-        type: ColumnType.Integer,
+        type: ColumnType.Bigint,
         nonNull: true,
     }, {
         name: 'subject_code',
@@ -72,7 +76,7 @@ export const actionsHistoryTable = {
         autoIncrement: true,
     }, {
         name: 'chat_id',
-        type: ColumnType.Integer,
+        type: ColumnType.Bigint,
         nonNull: true,
     }, {
         name: 'type',
