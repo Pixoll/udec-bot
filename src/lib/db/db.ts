@@ -1,4 +1,4 @@
-import { Connection, ProcedureCallPacket, ResultSetHeader, RowDataPacket, createConnection } from 'mysql2';
+import { Connection, ProcedureCallPacket, ResultSetHeader, RowDataPacket, createConnection } from 'mysql2/promise';
 import { Logger } from '../logger';
 import {
     ConstructableQueryBuilder,
@@ -65,7 +65,6 @@ export interface DatabaseOptions<Tables extends TablesArray> {
 }
 
 type RawQueryResult =
-    | ResultSetHeader
     | ResultSetHeader[]
     | RowDataPacket[]
     | RowDataPacket[][]
@@ -84,7 +83,7 @@ export class Database<Tables extends TablesArray> implements DatabaseOptions<Tab
     public declare readonly password: string;
     public declare readonly name: string;
     public declare readonly tables: Tables;
-    public readonly connection: Connection;
+    private declare connection: Connection;
 
     public constructor(options: DatabaseOptions<Tables>) {
         const { DB_HOST, DB_PORT,  DB_SOCKET_PATH, DB_USERNAME, DB_PASSWORD, DB_NAME } = process.env;
@@ -100,36 +99,27 @@ export class Database<Tables extends TablesArray> implements DatabaseOptions<Tab
         if (!this.tables) {
             throw new Error('DatabaseOptions.tables must be specified.');
         }
+    }
 
-        this.connection = createConnection({
+    public async connect(): Promise<void> {
+        Logger.info('Connecting to database...');
+
+        this.connection = await createConnection({
             host: this.host,
             port: this.port,
             socketPath: this.socketPath,
             user: this.username,
             password: this.password,
         });
-    }
+        Logger.info('Connected to database.');
 
-    public async connect(): Promise<void> {
-        Logger.info('Connecting to database...');
-        return new Promise<void>((resolve, reject) => {
-            this.connection.connect((error) => {
-                if (error) reject(error);
-                Logger.info('Connected to database.');
-                resolve();
-            });
-        }).then(() => this.setup());
+        await this.setup();
     }
 
     public async disconnect(): Promise<void> {
         Logger.info('Disconnecting from database...');
-        return new Promise<void>((resolve, reject) => {
-            this.connection.end((error) => {
-                if (error) reject(error);
-                Logger.info('Disconnected from database.');
-                resolve();
-            });
-        });
+        await this.connection.end();
+        Logger.info('Disconnected from database.');
     }
 
     private async setup(): Promise<void> {
@@ -165,7 +155,10 @@ export class Database<Tables extends TablesArray> implements DatabaseOptions<Tab
         tableName: TableName,
         builder: (queryBuilder: InsertQueryBuilder<Table>) => QueryBuilder
     ): Promise<ResultSetHeader> {
-        return await this.queryFromBuilder(InsertQueryBuilder, tableName, builder);
+        const result = await this.queryFromBuilder<InsertQueryBuilder<Table>, ResultSetHeader[]>(
+            InsertQueryBuilder, tableName, builder
+        );
+        return result[0];
     }
 
     public async update<TableName extends TableNames<Tables>, Table extends TableFromName<Tables, TableName>>(
@@ -176,12 +169,14 @@ export class Database<Tables extends TablesArray> implements DatabaseOptions<Tab
     }
 
     public async query<Result extends RawQueryResult | null>(sql: string): Promise<Result> {
-        return new Promise((resolve) =>
-            this.connection.query(sql, (error, result) => {
-                if (error) Logger.error(error);
-                resolve((error ? null : result) as Result);
-            })
-        );
+        let result: Result;
+        try {
+            result = await this.connection.query(sql) as unknown as Result;
+        } catch (error) {
+            Logger.error(error);
+            result = null as Result;
+        }
+        return result;
     }
 
     private async queryFromBuilder<Builder, Result extends RawQueryResult | null>(
