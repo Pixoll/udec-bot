@@ -1,6 +1,12 @@
 import { Connection, ProcedureCallPacket, ResultSetHeader, RowDataPacket, createConnection } from 'mysql2';
 import { Logger } from '../logger';
-import { ConstructableQueryBuilder, InsertQueryBuilder, SelectQueryBuilder, UpdateQueryBuilder } from './queryBuilder';
+import {
+    ConstructableQueryBuilder,
+    InsertQueryBuilder,
+    QueryBuilder,
+    SelectQueryBuilder,
+    UpdateQueryBuilder,
+} from './queryBuilder';
 import { ValuesOf } from '../util';
 
 export enum ColumnType {
@@ -129,9 +135,9 @@ export class Database<Tables extends TablesArray> implements DatabaseOptions<Tab
     private async setup(): Promise<void> {
         Logger.info('Setting up database...');
 
-        const r1 = await this.rawQuery(`CREATE DATABASE IF NOT EXISTS ${this.name};`);
+        const r1 = await this.query(`CREATE DATABASE IF NOT EXISTS ${this.name};`);
         if (!r1) return;
-        const r2 = await this.rawQuery(`USE ${this.name};`);
+        const r2 = await this.query(`USE ${this.name};`);
         if (!r2) return;
 
         for (const table of this.tables) {
@@ -141,7 +147,7 @@ export class Database<Tables extends TablesArray> implements DatabaseOptions<Tab
 
             const tableCreationQuery = this.getTableCreationQuery(table);
             // eslint-disable-next-line no-await-in-loop
-            const rt = await this.rawQuery(tableCreationQuery);
+            const rt = await this.query(tableCreationQuery);
             if (!rt) return;
         }
 
@@ -150,47 +156,47 @@ export class Database<Tables extends TablesArray> implements DatabaseOptions<Tab
 
     public async select<TableName extends TableNames<Tables>, Table extends TableFromName<Tables, TableName>>(
         tableName: TableName,
-        builder?: (queryBuilder: SelectQueryBuilder<Table>) => SelectQueryBuilder<Table>
+        builder?: (queryBuilder: SelectQueryBuilder<Table>) => QueryBuilder
     ): Promise<unknown> {
         return await this.queryFromBuilder(SelectQueryBuilder, tableName, builder);
     }
 
     public async insert<TableName extends TableNames<Tables>, Table extends TableFromName<Tables, TableName>>(
         tableName: TableName,
-        builder: (queryBuilder: InsertQueryBuilder<Table>) => InsertQueryBuilder<Table>
-    ): Promise<unknown> {
+        builder: (queryBuilder: InsertQueryBuilder<Table>) => QueryBuilder
+    ): Promise<ResultSetHeader> {
         return await this.queryFromBuilder(InsertQueryBuilder, tableName, builder);
     }
 
     public async update<TableName extends TableNames<Tables>, Table extends TableFromName<Tables, TableName>>(
         tableName: TableName,
-        builder: (queryBuilder: UpdateQueryBuilder<Table>) => UpdateQueryBuilder<Table>
+        builder: (queryBuilder: UpdateQueryBuilder<Table>) => QueryBuilder
     ): Promise<unknown> {
         return await this.queryFromBuilder(UpdateQueryBuilder, tableName, builder);
     }
 
-    private async queryFromBuilder<Builder>(
-        BuilderConstructor: ConstructableQueryBuilder,
-        tableName: string,
-        builderFn?: (queryBuilder: Builder) => Builder
-    ): Promise<unknown> {
-        const table = this.tables.find(t => t.name === tableName) as TableDescriptor;
-        const sqlBuilder = new BuilderConstructor(table);
-        builderFn?.(sqlBuilder as Builder);
-        return await this.rawQuery(sqlBuilder.toString());
-    }
-
-    private async rawQuery(sql: string): Promise<RawQueryResult | null> {
+    public async query<Result extends RawQueryResult | null>(sql: string): Promise<Result> {
         return new Promise((resolve) =>
             this.connection.query(sql, (error, result) => {
                 if (error) Logger.error(error);
-                resolve(error ? null : result as RawQueryResult);
+                resolve((error ? null : result) as Result);
             })
         );
     }
 
+    private async queryFromBuilder<Builder, Result extends RawQueryResult | null>(
+        BuilderConstructor: ConstructableQueryBuilder,
+        tableName: string,
+        builderFn?: (queryBuilder: Builder) => QueryBuilder
+    ): Promise<Result> {
+        const table = this.tables.find(t => t.name === tableName) as TableDescriptor;
+        const sqlBuilder = new BuilderConstructor(table);
+        builderFn?.(sqlBuilder as Builder);
+        return await this.query(sqlBuilder.toString());
+    }
+
     private async checkTableExists(name: string): Promise<boolean> {
-        const result = await this.rawQuery(`SHOW TABLES LIKE "${name}";`);
+        const result = await this.query(`SHOW TABLES LIKE "${name}";`);
         return Array.isArray(result) && result.length > 0;
     }
 
