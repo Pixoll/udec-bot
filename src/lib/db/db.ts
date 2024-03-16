@@ -176,6 +176,8 @@ export class Database<Tables extends TablesArray> implements DatabaseOptions<Tab
             Logger.error(error);
             result = null as Result;
         }
+
+        Logger.info('MySQL instruction:', sql, '=>', result);
         return result;
     }
 

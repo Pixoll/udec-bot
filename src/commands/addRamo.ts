@@ -1,14 +1,30 @@
 import { Page } from 'puppeteer';
 import { TelegramClientType } from '../client';
-import { ArgumentOptions, ArgumentOptionsToResult, ArgumentType, Command, CommandContext, TelegramClient } from '../lib';
+import {
+    ArgumentOptions,
+    ArgumentOptionsToResult,
+    ArgumentType,
+    Command,
+    CommandContext,
+    TelegramClient,
+    capitalize,
+} from '../lib';
 import { getTabWithUrl, openTab } from '../puppeteer';
+import { stripIndent } from '../util';
 
 const subjectInfoBaseUrl = 'https://alumnos.udec.cl/?q=node/25&codasignatura=';
 let subjectInfoTab: Page | undefined;
-const subjectInfoQuerySelector = '#node-25 > div > div > div > div:nth-child(1)';
+const querySelectors = {
+    name: '#node-25 > div > div > div > div:nth-child(1)',
+    listWithCredits: '#node-25 > div > div > div > ul',
+} as const;
+
+const romanNumeralsRegex: readonly RegExp[] = ['I', 'II', 'III', 'IV', 'V']
+    .map(n => new RegExp(`^${n}$`));
 
 const args = [{
-    key: 'codigo',
+    key: 'code',
+    label: 'código',
     prompt: 'Código del ramo.',
     type: ArgumentType.Number,
     min: 0,
@@ -31,27 +47,92 @@ export default class AddRamoCommand extends Command<RawArgs> {
         });
     }
 
-    public async run(context: CommandContext, { codigo }: ArgsResult): Promise<void> {
-        subjectInfoTab ??= await getSubjectInfoTab(codigo);
-        
-        if (!subjectInfoTab.url().endsWith(codigo.toString())) {
-            await subjectInfoTab.goto(subjectInfoBaseUrl + codigo);
-        }
+    public async run(context: CommandContext, { code }: ArgsResult): Promise<void> {
+        const tab = await loadSubjectInfoTab(code);
 
-        const subjectInfo = await subjectInfoTab.waitForSelector(subjectInfoQuerySelector, {
-            timeout: 2_000,
-        }).catch(() => null);
-        if (!subjectInfo) {
-            await context.fancyReply(`No se pudo encontrar el ramo con código ${codigo}.`);
+        const name = await getSubjectName(tab, code);
+        if (!name) {
+            await context.fancyReply(`No se pudo encontrar el ramo con código ${code}.`);
             return;
         }
 
-        const subjectName = await subjectInfo.evaluate(div =>
-            (div.textContent as string).replace(new RegExp(` - ${codigo}$`), '')
-        );
+        const credits = await getSubjectCredits(tab);
+        if (!credits) {
+            await context.fancyReply('No se pudo encontrar los créditos del ramo.');
+            return;
+        }
+
+        await this.client.db.insert('udec_subjects', builder => builder.values({
+            code,
+            credits,
+            name,
+        }));
+
+        await context.fancyReply(stripIndent(`
+        *Añadido el ramo*:
+        
+        *Nombre*: ${name}
+        *Código*: ${code}
+        *Créditos*: ${credits}
+        `), {
+            'parse_mode': 'MarkdownV2',
+        });
     }
 }
 
-async function getSubjectInfoTab(codigo: number): Promise<Page> {
-    return await getTabWithUrl(subjectInfoBaseUrl) ?? await openTab(subjectInfoBaseUrl + codigo);
+async function getSubjectName(tab: Page, code: number): Promise<string | null> {
+    const nameElement = await tab.waitForSelector(querySelectors.name, {
+        timeout: 2_000,
+    }).catch(() => null);
+    if (!nameElement) return null;
+
+    const name = await nameElement.evaluate((div, c) => {
+        const text = div.textContent as string;
+        const codeRegex = new RegExp(` - ${c}$`);
+        return text.replace(codeRegex, '');
+    }, code);
+
+    return parseSubjectName(name);
+}
+
+function parseSubjectName(name: string): string {
+    return name.replace(/\?/g, 'Ñ').trim().split(/\s+/)
+        .map(w => {
+            const isNumeral = romanNumeralsRegex.some(r => r.test(w.replace(/[^\w]+/g, '')));
+            if (w === 'PARA' || (w.length <= 3 && !isNumeral)) {
+                return w.toLowerCase();
+            }
+
+            const restLower = w.length > 3 && !isNumeral;
+            return capitalize(w, restLower);
+        })
+        .join(' ');
+}
+
+async function getSubjectCredits(tab: Page): Promise<number | null> {
+    const listWithCredits = await tab.waitForSelector(querySelectors.listWithCredits, {
+        timeout: 2_000,
+    }).catch(() => null);
+    if (!listWithCredits) return null;
+
+    const credits = await listWithCredits.evaluate(ul => {
+        const creditsElement = [...ul.children].find((li): li is HTMLLIElement => {
+            const text = (li.textContent as string).toLowerCase();
+            return /^cr[eé]dito/.test(text);
+        });
+        const credits = creditsElement?.innerText.trim().match(/\d+$/)?.[0];
+        return credits ? +credits : null;
+    });
+
+    return credits;
+}
+
+async function loadSubjectInfoTab(code: number): Promise<Page> {
+    subjectInfoTab ??= await getTabWithUrl(subjectInfoBaseUrl) ?? await openTab(subjectInfoBaseUrl + code);
+
+    if (!subjectInfoTab.url().endsWith(code.toString())) {
+        await subjectInfoTab.goto(subjectInfoBaseUrl + code);
+    }
+
+    return subjectInfoTab;
 }
