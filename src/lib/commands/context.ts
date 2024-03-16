@@ -8,6 +8,7 @@ export declare class MessageContext extends Context<Update.MessageUpdate<Message
 
 export declare class CommandContext extends MessageContext {
     public readonly command: Command;
+    public readonly session: string;
     public fancyReply(text: string, extra?: ExtraReplyMessage | undefined): Promise<Message.TextMessage | null>;
 }
 
@@ -15,6 +16,7 @@ export function parseContext(ctx: MessageContext, command: Command): CommandCont
     const context = ctx as CommandContext;
     Object.assign<CommandContext, Partial<CommandContext>>(context, {
         command,
+        session: `${ctx.from.id}:${ctx.chat.id}`,
     });
     context.fancyReply = fancyReply.bind(context);
     return context;
