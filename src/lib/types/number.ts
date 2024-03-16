@@ -10,8 +10,8 @@ export class NumberArgumentTypeHandler extends ArgumentTypeHandler<ArgumentType.
 
     public validate(value: string, _: unknown, argument: Argument<ArgumentType.Number>): boolean | string {
         const { choices, max, min } = argument;
-        const number = +value;
-        if (isNaN(number)) return false;
+        if (isNaN(+value) || !/^\d+$/.test(value)) return false;
+        const number = parseInt(value);
 
         if (choices && !choices.includes(number)) {
             return `Ingrese una de las siguientes opciones: ${choices.map(c => `\`${c}\``).join(', ')}`;
