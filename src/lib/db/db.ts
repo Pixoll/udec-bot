@@ -214,7 +214,7 @@ export class Database<Tables extends TablesArray> implements DatabaseOptions<Tab
 
     private async checkTableExists(name: string): Promise<boolean> {
         const result = await this.query(`SHOW TABLES LIKE "${name}";`);
-        return Array.isArray(result) && result.length > 0;
+        return Array.isArray(result) && result[0].length > 0;
     }
 
     private async applyTableStructure(table: TableDescriptor): Promise<void> {
