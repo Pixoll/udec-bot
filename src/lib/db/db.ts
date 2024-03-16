@@ -7,11 +7,12 @@ import {
     SelectQueryBuilder,
     TableColumnValuePairs,
     UpdateQueryBuilder,
+    parseQueryValue,
 } from './queryBuilder';
-import { ValuesOf } from '../util';
+import { ValuesOf, xor } from '../util';
 
 export enum ColumnType {
-    Boolean = 'BOOLEAN',
+    Boolean = 'TINYINT(1)',
     Date = 'DATE',
     Enum = 'ENUM',
     Integer = 'INT',
@@ -28,9 +29,7 @@ export interface ColumnTypeMap {
     [ColumnType.Timestamp]: Date;
 }
 
-const sizeLimitedColumnTypes = [ColumnType.String] as const;
-
-export type SizeLimitedColumnTypes = (typeof sizeLimitedColumnTypes)[number];
+export type SizeLimitedColumnType = ColumnType.String;
 
 export type ColumnDescriptor = {
     readonly name: string;
@@ -39,9 +38,9 @@ export type ColumnDescriptor = {
     readonly unique?: boolean;
     readonly autoIncrement?: boolean;
 } & ({
-    readonly type: Exclude<ColumnType, SizeLimitedColumnTypes | ColumnType.Enum>;
+    readonly type: Exclude<ColumnType, SizeLimitedColumnType | ColumnType.Enum>;
 } | {
-    readonly type: SizeLimitedColumnTypes;
+    readonly type: SizeLimitedColumnType;
     readonly size: number;
 } | {
     readonly type: ColumnType.Enum;
@@ -66,10 +65,26 @@ export interface DatabaseOptions<Tables extends TablesArray> {
 }
 
 type RawQueryResult =
-    | ResultSetHeader[]
-    | RowDataPacket[]
-    | RowDataPacket[][]
+    | readonly [readonly DescribeTableResult[]]
+    | readonly ResultSetHeader[]
+    | readonly RowDataPacket[]
+    | ReadonlyArray<readonly RowDataPacket[]>
     | ProcedureCallPacket;
+
+type RawColumnType = ValuesOf<{
+    [T in ColumnType]: T extends SizeLimitedColumnType ? `${Lowercase<T>}(${number})`
+    : T extends ColumnType.Enum ? `${Lowercase<T>}(${string})`
+    : Lowercase<T>;
+}>;
+
+interface DescribeTableResult {
+    readonly Field: string;
+    readonly Type: RawColumnType;
+    readonly Null: 'NO' | 'YES';
+    readonly Key: 'PRI' | '';
+    readonly Default: NonNullable<unknown> | null;
+    readonly Extra: 'auto_increment' | '';
+}
 
 type TableNames<Tables extends TablesArray> = Tables[number]['name'];
 type TableFromName<Tables extends TablesArray, Name extends TableNames<Tables>> = ValuesOf<{
@@ -87,7 +102,7 @@ export class Database<Tables extends TablesArray> implements DatabaseOptions<Tab
     private declare connection: Connection;
 
     public constructor(options: DatabaseOptions<Tables>) {
-        const { DB_HOST, DB_PORT,  DB_SOCKET_PATH, DB_USERNAME, DB_PASSWORD, DB_NAME } = process.env;
+        const { DB_HOST, DB_PORT, DB_SOCKET_PATH, DB_USERNAME, DB_PASSWORD, DB_NAME } = process.env;
         Object.assign<Database<Tables>, Omit<DatabaseOptions<Tables>, 'tables'>, Partial<DatabaseOptions<Tables>>>(this, {
             host: DB_HOST,
             port: DB_PORT ? +DB_PORT : -1,
@@ -132,12 +147,13 @@ export class Database<Tables extends TablesArray> implements DatabaseOptions<Tab
         if (!r2) return;
 
         for (const table of this.tables) {
-            // eslint-disable-next-line no-await-in-loop
             const exists = await this.checkTableExists(table.name);
-            if (exists) continue;
+            if (exists) {
+                await this.applyTableStructure(table);
+                continue;
+            }
 
             const tableCreationQuery = this.getTableCreationQuery(table);
-            // eslint-disable-next-line no-await-in-loop
             const rt = await this.query(tableCreationQuery);
             if (!rt) return;
         }
@@ -201,22 +217,57 @@ export class Database<Tables extends TablesArray> implements DatabaseOptions<Tab
         return Array.isArray(result) && result.length > 0;
     }
 
-    private getTableCreationQuery(table: TableDescriptor): string {
-        const primaryKeys = table.columns.filter(c => c.primaryKey).map(c => c.name);
-        const uniques = table.columns.filter(c => c.unique).map(c => c.name);
+    private async applyTableStructure(table: TableDescriptor): Promise<void> {
+        const result = await this.query<[DescribeTableResult[]] | null>(`DESCRIBE ${table.name};`);
+        if (!result) return;
+        const isSameStructure = validateTableStructure(result[0], table.columns);
+        if (isSameStructure) return;
 
+        Logger.error('Non-matching structures:', table.columns, '=>', result[0]);
+    }
+
+    private getTableCreationQuery(table: TableDescriptor): string {
         return `CREATE TABLE ${this.name}.${table.name} (`
             + table.columns.map(column =>
                 `${column.name} ${column.type}`
                 + ('size' in column ? `(${column.size})` : '')
                 + ('values' in column ? `(${column.values.map(n => `"${n}"`).join(', ')})` : '')
+                + (column.primaryKey ? ' PRIMARY KEY' : '')
+                + (column.unique ? ' UNIQUE' : '')
                 + (column.nonNull ? ' NOT NULL' : '')
                 + (column.autoIncrement ? ' AUTO_INCREMENT' : '')
             ).join(', ')
-            + (primaryKeys.length > 0 ? `, PRIMARY KEY(${primaryKeys.join(', ')})` : '')
-            + (uniques.length > 0
-                ? `,${uniques.length > 1 ? `CONSTRAINT ${table.name}_UNIQUE` : ''} UNIQUE(${uniques.join(', ')})`
-                : '')
             + ');';
     }
+}
+
+function validateTableStructure(
+    currentColumns: readonly DescribeTableResult[],
+    columnsToMatch: readonly ColumnDescriptor[]
+): boolean {
+    if (currentColumns.length !== columnsToMatch.length) return false;
+
+    const namesUnion = new Set([...currentColumns.map(c => c.Field), ...columnsToMatch.map(c => c.name)]);
+    if (namesUnion.size !== columnsToMatch.length) return false;
+
+    for (const column of columnsToMatch) {
+        const currentColumn = currentColumns.find(c => c.Field === column.name);
+        if (!currentColumn) return false;
+
+        if (currentColumn.Default !== null) return false;
+        if (xor(!!column.autoIncrement, currentColumn.Extra === 'auto_increment')) return false;
+        if (xor(!!column.primaryKey, currentColumn.Key === 'PRI')) return false;
+        if (xor(!!column.nonNull, currentColumn.Null === 'NO')) return false;
+        if (xor(!!column.unique, ['PRI', 'UNI'].includes(currentColumn.Key))) return false;
+        if (getRawColumnType(column) !== currentColumn.Type) return false;
+    }
+
+    return true;
+}
+
+function getRawColumnType(column: ColumnDescriptor): string {
+    const lc = column.type.toLowerCase();
+    if ('size' in column) return `${lc}(${column.size})`;
+    if ('values' in column) return `${lc}(${column.values.map(parseQueryValue).join(',')})`;
+    return lc;
 }

@@ -137,10 +137,10 @@ export class UpdateQueryBuilder<
     }
 }
 
-function parseQueryValue(value: unknown): string {
+export function parseQueryValue(value: unknown): string {
     switch (typeof value) {
         case 'string':
-            return `"${value.replace(/"/g, '\\"')}"`;
+            return `'${value.replace(/'/g, '\\\'')}'`;
         case 'bigint':
             return value.toString().replace('n', '');
         default:

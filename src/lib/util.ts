@@ -1,6 +1,10 @@
 export type Awaitable<T> = T | Promise<T>;
 export type ValuesOf<T> = T[keyof T];
 
+export function xor(a: boolean | number, b: boolean | number): boolean {
+    return !!((+a) ^ (+b));
+}
+
 export function omit<T extends object, K extends keyof T>(obj: T, exclude: K[]): Omit<T, K> {
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     const res = {} as T;
