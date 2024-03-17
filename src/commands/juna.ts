@@ -61,13 +61,13 @@ export default class TestCommand extends Command<RawArgs> {
         const [day, month] = dateString.split('/').slice(0, 2).map(n => +n);
         const loaded = await loadMenuAtDate(menuTab, day, month);
         if (!loaded) {
-            await context.fancyReply('No se pudo encontrar el menú Junaeb.');
+            await context.fancyReply('No se pudo encontrar el menú Junaeb. Puede es que hoy no estén sirviendo.');
             return;
         }
 
         const menuTable = await getMenuTable(menuTab);
         if (!menuTable) {
-            await context.fancyReply('No se pudo encontrar el menú Junaeb.');
+            await context.fancyReply('No se pudo encontrar el menú Junaeb. Puede que hoy no estén sirviendo.');
             return;
         }
 
