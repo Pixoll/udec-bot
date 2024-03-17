@@ -112,12 +112,12 @@ export class UpdateQueryBuilder<
         this.filters = [];
     }
 
-    public values(pairs: TableColumnValuePairs<Table>): Omit<this, 'values'> {
+    public values(pairs: TableColumnValuePairs<Table>): this {
         this.pairs = pairs;
         return this;
     }
 
-    public where<Column extends Columns>(filter: TableColumnSelector<Table, Column>): Omit<this, 'values'> {
+    public where<Column extends Columns>(filter: TableColumnSelector<Table, Column>): this {
         this.filters.push(filter as unknown as TableColumnSelector<Table, Columns>);
         return this;
     }
@@ -134,6 +134,32 @@ export class UpdateQueryBuilder<
             : '';
 
         return `${this.instruction} ${this.table.name} SET ${set} ${where};`.replace(/ ;$/, ';');
+    }
+}
+
+export class DeleteQueryBuilder<
+    Table extends TableDescriptor,
+    Columns extends TableColumnName<Table> = TableColumnName<Table>
+> extends QueryBuilder<Table> {
+    private readonly filters: Array<TableColumnSelector<Table, Columns>>;
+
+    public constructor(table: Table) {
+        super('DELETE FROM', table);
+        this.filters = [];
+    }
+
+    public where<Column extends Columns>(filter: TableColumnSelector<Table, Column>): this {
+        this.filters.push(filter as unknown as TableColumnSelector<Table, Columns>);
+        return this;
+    }
+
+    public toString(): string {
+        if (this.filters.length === 0) {
+            throw new Error('At least one filter must be specified.');
+        }
+
+        const where = parseFilters(this.filters);
+        return `${this.instruction} ${this.table.name} WHERE ${where};`.replace(/ ;$/, ';');
     }
 }
 

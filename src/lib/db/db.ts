@@ -2,6 +2,7 @@ import { Connection, ProcedureCallPacket, ResultSetHeader, RowDataPacket, create
 import { Logger } from '../logger';
 import {
     ConstructableQueryBuilder,
+    DeleteQueryBuilder,
     InsertQueryBuilder,
     QueryBuilder,
     SelectQueryBuilder,
@@ -208,6 +209,13 @@ export class Database<Tables extends TablesArray> implements DatabaseOptions<Tab
         builder: (queryBuilder: UpdateQueryBuilder<Table>) => QueryBuilder
     ): Promise<unknown> {
         return await this.queryFromBuilder(UpdateQueryBuilder, tableName, builder);
+    }
+
+    public async delete<TableName extends TableNames<Tables>, Table extends TableFromName<Tables, TableName>>(
+        tableName: TableName,
+        builder: (queryBuilder: DeleteQueryBuilder<Table>) => QueryBuilder
+    ): Promise<unknown> {
+        return await this.queryFromBuilder(DeleteQueryBuilder, tableName, builder);
     }
 
     public async query<Result extends RawQueryResult>(sql: string): Promise<QueryResult<Result>> {
