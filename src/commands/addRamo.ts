@@ -26,7 +26,7 @@ const romanNumeralsRegex: readonly RegExp[] = ['I', 'II', 'III', 'IV', 'V']
 const args = [{
     key: 'code',
     label: 'código',
-    prompt: 'Código del ramo.',
+    description: 'Código del ramo.',
     type: ArgumentType.Number,
     min: 0,
     required: true,

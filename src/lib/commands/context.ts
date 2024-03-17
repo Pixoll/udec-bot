@@ -31,8 +31,8 @@ export function parseContext(ctx: MessageContext, client: TelegramClient): Comma
 
     Object.defineProperty(context.from, 'full_username', {
         get(this: MessageContext['from']): string {
-            if (this.username) return `@${this.username}`;
-            return [this.first_name, this.last_name].filter(n => n).join(', ');
+            return this.username
+                ?? [this.first_name, this.last_name].filter(n => n).join(', ');
         },
     });
 

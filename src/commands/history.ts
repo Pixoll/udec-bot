@@ -1,8 +1,19 @@
 import { TelegramClientType } from '../client';
-import { Command, CommandContext, TelegramClient } from '../lib';
-import { stripIndent } from '../util';
+import { ArgumentOptions, ArgumentOptionsToResult, ArgumentType, Command, CommandContext, TelegramClient } from '../lib';
+import { escapeMarkdown, stripIndent } from '../util';
 
-export default class HistoryCommand extends Command<[]> {
+const args = [{
+    key: 'amount',
+    label: 'cantidad',
+    description: 'Número de acciones a mostrar.',
+    type: ArgumentType.Number,
+    min: 1,
+}] as const satisfies ArgumentOptions[];
+
+type RawArgs = typeof args;
+type ArgsResult = ArgumentOptionsToResult<RawArgs>;
+
+export default class HistoryCommand extends Command<RawArgs> {
     // @ts-expect-error: type override
     public declare readonly client: TelegramClientType;
 
@@ -11,10 +22,11 @@ export default class HistoryCommand extends Command<[]> {
             name: 'history',
             description: 'Historial de acciones en el grupo.',
             groupOnly: true,
+            args,
         });
     }
 
-    public async run(context: CommandContext): Promise<void> {
+    public async run(context: CommandContext, { amount }: ArgsResult): Promise<void> {
         const query = await this.client.db.select('udec_actions_history', builder => builder.where({
             column: 'chat_id',
             equals: context.chat.id,
@@ -24,14 +36,20 @@ export default class HistoryCommand extends Command<[]> {
             return;
         }
 
-        const history = query.result.map(record =>
-            `• ${record.type} << ${record.username}`
+        const history = query.result.slice(0, amount ?? query.result.length).map(record =>
+            `• ${record.type} << ${escapeMarkdown(record.username)}`
         ).join('\n');
 
+        const footer = !amount
+            ? `Usa \`/${this.name} <${args[0].label}>\` para mostrar una cantidad específica de acciones\\.`
+            : '';
+
         await context.fancyReply(stripIndent(`
-        👁️ *Historial resumido de acciones:*
+        👁️ *Historial de acciones:*
 
         ${history}
+
+        ${footer}
         `), {
             'parse_mode': 'MarkdownV2',
         });

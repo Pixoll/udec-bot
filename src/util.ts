@@ -23,3 +23,10 @@ export function alphabetically<T>(key?: StringKeysOf<T> | boolean, ascending = t
         return 0;
     };
 }
+
+const markdownCharacters = ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!'];
+const markdownRegex = new RegExp(markdownCharacters.map(c => `\\${c}`).join('|'), 'g');
+
+export function escapeMarkdown(text: string): string {
+    return text.replace(markdownRegex, '\\$&');
+}

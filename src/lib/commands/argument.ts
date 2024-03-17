@@ -10,7 +10,7 @@ type ArgumentDefault<T extends ArgumentType> =
 export interface ArgumentOptions<T extends ArgumentType = ArgumentType> {
     readonly key: string;
     readonly label?: string | null;
-    readonly prompt: string;
+    readonly description: string;
     readonly type: T;
     readonly required?: boolean;
     readonly default?: ArgumentDefault<T> | null;
@@ -52,7 +52,7 @@ const defaultOptions = {
 export class Argument<T extends ArgumentType = ArgumentType> implements Omit<ArgumentOptions<T>, 'type'> {
     public declare readonly key: string;
     public declare readonly label: string | null;
-    public declare readonly prompt: string;
+    public declare readonly description: string;
     public readonly typeHandler: ArgumentTypeHandler<T>;
     public declare readonly required: boolean;
     public declare readonly default: ArgumentDefault<T> | null;
@@ -80,7 +80,7 @@ export class Argument<T extends ArgumentType = ArgumentType> implements Omit<Arg
     }
 
     public async obtain(value: string, context: CommandContext): Promise<ArgumentResult<T>> {
-        const { default: defaultValue, required, typeHandler, key, label } = this;
+        const { default: defaultValue, required, typeHandler, key, label, description } = this;
         const name = label ?? key;
         const type = typeHandler.type;
         const empty = this.isEmpty(value, context);
@@ -89,7 +89,7 @@ export class Argument<T extends ArgumentType = ArgumentType> implements Omit<Arg
                 return {
                     ok: false,
                     error: ArgumentResultErrorType.Empty,
-                    message: `Especifique argumento "${name}" de tipo ${type}`,
+                    message: `Especifique argumento "${name}" (${description}) de tipo ${type}`,
                 };
             }
 
@@ -107,7 +107,7 @@ export class Argument<T extends ArgumentType = ArgumentType> implements Omit<Arg
             return {
                 ok: false,
                 error: ArgumentResultErrorType.Invalid,
-                message: isValid || `Argumento inválido, "${name}" debe ser de tipo ${type}`,
+                message: isValid || `Argumento inválido, "${name}" (${description}) debe ser de tipo ${type}`,
             };
         }
 
