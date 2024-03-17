@@ -15,6 +15,9 @@ export declare class CommandContext extends MessageContext implements CommandCon
     public readonly args: string[];
     public readonly client: TelegramClient;
     public readonly session: SessionString;
+    public get from(): MessageContext['from'] & {
+        get full_username(): string;
+    };
     public fancyReply(text: string, extra?: ExtraReplyMessage | undefined): Promise<Message.TextMessage | null>;
 }
 
@@ -23,6 +26,13 @@ export function parseContext(ctx: MessageContext, client: TelegramClient): Comma
     Object.assign<CommandContext, Partial<CommandContext>>(context, {
         client,
         session: `${ctx.chat.id}:${ctx.from.id}`,
+    });
+    Object.assign<MessageContext['from'], Partial<CommandContext['from']>>(context.from, {
+        // eslint-disable-next-line camelcase
+        get full_username(): string {
+            if (this.username) return `@${this.username}`;
+            return [this.first_name, this.last_name].filter(n => n).join(', ');
+        },
     });
     context.fancyReply = fancyReply.bind(context);
     return context;

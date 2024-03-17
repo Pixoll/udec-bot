@@ -1,5 +1,6 @@
 export type Awaitable<T> = T | Promise<T>;
 export type ValuesOf<T> = T[keyof T];
+export type Partialize<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
 
 export function xor(a: boolean | number, b: boolean | number): boolean {
     return !!((+a) ^ (+b));

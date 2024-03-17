@@ -1,5 +1,5 @@
-import { ValuesOf } from '../util';
-import { ColumnTypeMap, TableDescriptor } from './db';
+import { Partialize, ValuesOf } from '../util';
+import { ColumnDescriptor, ColumnTypeMap, EnumColumnDescriptor, TableDescriptor } from './db';
 
 export abstract class QueryBuilder<Table extends TableDescriptor = TableDescriptor> {
     protected readonly instruction: string;
@@ -65,13 +65,22 @@ export class SelectQueryBuilder<
     }
 }
 
-export type TableColumnValuePairs<Table extends TableDescriptor> = {
-    [Column in Table['columns'][number] as Column['nonNull'] extends true ? Column['name'] : never]:
-    ColumnTypeMap[Column['type']];
-} & {
-        [Column in Table['columns'][number] as Column['nonNull'] extends true ? never : Column['name']]?:
-        ColumnTypeMap[Column['type']];
-    };
+type ColumnValueType<Column extends ColumnDescriptor> = Column extends EnumColumnDescriptor
+    ? Column['values'][number]
+    : ColumnTypeMap[Column['type']];
+
+type ColumnNameKey<Column extends ColumnDescriptor> = Column['autoIncrement'] extends true ? never
+    : Column['nonNull'] extends true ? Column['name']
+    : never;
+
+type TableNullableColumns<Table extends TableDescriptor> = keyof {
+    [Column in Table['columns'][number] as Column['nonNull'] extends true ? never : Column['name']]: never;
+};
+
+export type TableColumnValuePairs<Table extends TableDescriptor> = Partialize<{
+    [Column in Table['columns'][number] as ColumnNameKey<Column>]: ColumnValueType<Column>;
+// @ts-expect-error: this works
+}, TableNullableColumns<Table>>;
 
 export class InsertQueryBuilder<Table extends TableDescriptor> extends QueryBuilder<Table> {
     private pairs: TableColumnValuePairs<Table> | null;

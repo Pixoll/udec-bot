@@ -34,6 +34,11 @@ export interface ColumnTypeMap {
 
 export type SizeLimitedColumnType = ColumnType.String;
 
+export interface EnumColumnDescriptor {
+    readonly type: ColumnType.Enum;
+    readonly values: readonly string[];
+}
+
 export type ColumnDescriptor = {
     readonly name: string;
     readonly primaryKey?: boolean;
@@ -45,10 +50,7 @@ export type ColumnDescriptor = {
 } | {
     readonly type: SizeLimitedColumnType;
     readonly size: number;
-} | {
-    readonly type: ColumnType.Enum;
-    readonly values: readonly string[];
-});
+} | EnumColumnDescriptor);
 
 export interface TableDescriptor {
     readonly name: string;

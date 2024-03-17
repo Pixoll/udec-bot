@@ -3,7 +3,7 @@ import { ReplyKeyboardMarkup } from 'telegraf/typings/core/types/typegram';
 import { TelegramClientType } from '../client';
 import { Command, CommandContext, SessionString, TableColumnValuePairs, TelegramClient, parseContext } from '../lib';
 import { alphabetically, stripIndent } from '../util';
-import { SubjectsTable } from '../tables';
+import { ActionType, SubjectsTable } from '../tables';
 import { ExtraReplyMessage } from 'telegraf/typings/telegram-types';
 
 type SubjectObject = TableColumnValuePairs<SubjectsTable>;
@@ -67,7 +67,11 @@ export default class RemoveRamoCommand extends Command<[]> {
         this.subjects.set(context.session, subjects.result);
         this.client.activeMenus.set(context.session, this.name);
 
-        await context.fancyReply('Elige el ramo a eliminar desde el menú.', {
+        await context.fancyReply(stripIndent(`
+        Elige el ramo a eliminar desde el menú.
+
+        Usa /cancel para cancelar.
+        `), {
             'reply_markup': selectionMenu,
         });
     }
@@ -108,6 +112,13 @@ export default class RemoveRamoCommand extends Command<[]> {
             'parse_mode': 'MarkdownV2',
             ...removeKeyboard,
         });
+
+        await this.client.db.insert('udec_actions_history', builder => builder.values({
+            'chat_id': context.chat.id,
+            username: context.from.full_username,
+            type: ActionType.RemoveSubject,
+            timestamp: new Date(),
+        }));
     }
 }
 

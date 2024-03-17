@@ -11,6 +11,7 @@ import {
 } from '../lib';
 import { getTabWithUrl, openTab } from '../puppeteer';
 import { stripIndent } from '../util';
+import { ActionType } from '../tables';
 
 const subjectInfoBaseUrl = 'https://alumnos.udec.cl/?q=node/25&codasignatura=';
 let subjectInfoTab: Page | undefined;
@@ -107,6 +108,13 @@ export default class AddRamoCommand extends Command<RawArgs> {
         `), {
             'parse_mode': 'MarkdownV2',
         });
+
+        await this.client.db.insert('udec_actions_history', builder => builder.values({
+            'chat_id': chatId,
+            username: context.from.full_username,
+            type: ActionType.AddSubject,
+            timestamp: new Date(),
+        }));
     }
 }
 
