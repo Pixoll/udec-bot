@@ -25,16 +25,11 @@ export const subjectsTable = {
 } as const satisfies TableDescriptor;
 
 export enum AssignmentType {
-    Homework,
-    Test,
-    Exam,
-    Project,
-    _Length,
+    Homework = 'tarea',
+    Test = 'test',
+    Exam = 'certamen',
+    Project = 'proyecto',
 }
-
-export const assignmentTypeMap = ['tarea', 'test', 'certamen', 'proyecto'] as const satisfies {
-    length: AssignmentType._Length;
-};
 
 export const assignmentsTable = {
     name: 'udec_assignments',
@@ -56,7 +51,7 @@ export const assignmentsTable = {
     }, {
         name: 'type',
         type: ColumnType.Enum,
-        values: Object.values(AssignmentType).filter(v => !isNaN(+v)),
+        values: Object.values(AssignmentType) as readonly AssignmentType[],
         nonNull: true,
     }, {
         name: 'date_due',
@@ -66,16 +61,11 @@ export const assignmentsTable = {
 } as const satisfies TableDescriptor;
 
 export enum ActionType {
-    AddAssignment,
-    RemoveAssignment,
-    AddSubject,
-    RemoveSubject,
-    _Length,
+    AddAssignment = '/addcert',
+    RemoveAssignment = '/removecert',
+    AddSubject = '/addramo',
+    RemoveSubject = '/removeramo',
 }
-
-export const actionTypeMap = ['/addcert', '/removecert', '/addramo', '/removeramo'] as const satisfies {
-    length: ActionType._Length;
-};
 
 export const actionsHistoryTable = {
     name: 'udec_actions_history',
@@ -93,7 +83,7 @@ export const actionsHistoryTable = {
     }, {
         name: 'type',
         type: ColumnType.Enum,
-        values: Object.values(ActionType).filter(v => !isNaN(+v)),
+        values: Object.values(ActionType) as readonly ActionType[],
         nonNull: true,
     }, {
         name: 'username',
