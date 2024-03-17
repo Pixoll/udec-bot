@@ -41,7 +41,7 @@ export default class AddRamoCommand extends Command<RawArgs> {
     public constructor(client: TelegramClient) {
         super(client, {
             name: 'addramo',
-            description: 'Añadir un ramo.',
+            description: 'Añade un ramo al grupo.',
             groupOnly: true,
             args,
         });

@@ -46,7 +46,7 @@ export type ColumnDescriptor = {
     readonly size: number;
 } | {
     readonly type: ColumnType.Enum;
-    readonly values: readonly string[];
+    readonly values: readonly unknown[];
 });
 
 export interface TableDescriptor {
@@ -259,7 +259,7 @@ export class Database<Tables extends TablesArray> implements DatabaseOptions<Tab
             + table.columns.map(column =>
                 `${column.name} ${column.type}`
                 + ('size' in column ? `(${column.size})` : '')
-                + ('values' in column ? `(${column.values.map(n => `"${n}"`).join(', ')})` : '')
+                + ('values' in column ? `(${column.values.map(parseQueryValue).join(', ')})` : '')
                 + (column.primaryKey ? ' PRIMARY KEY' : '')
                 + (column.unique ? ' UNIQUE' : '')
                 + (column.nonNull ? ' NOT NULL' : '')
