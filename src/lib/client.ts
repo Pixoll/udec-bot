@@ -5,6 +5,7 @@ import { omit } from './util';
 import { Logger } from './logger';
 import { Database, DatabaseOptions, TablesArray } from './db';
 import { ExtraReplyMessage } from 'telegraf/typings/telegram-types';
+import { SessionString } from './commands';
 
 export class TelegramClient<Tables extends TablesArray = []>
     extends Telegraf
@@ -12,6 +13,7 @@ export class TelegramClient<Tables extends TablesArray = []>
     public declare readonly ownerId: number | null;
     public readonly registry: ClientRegistry;
     public readonly db: Database<Tables>;
+    public readonly activeMenus: Map<SessionString, string>;
     private ready: boolean;
 
     public constructor(options: TelegramClientOptions<Tables>) {
@@ -21,12 +23,12 @@ export class TelegramClient<Tables extends TablesArray = []>
         }
 
         super(TELEGRAM_TOKEN);
-
         Object.assign(this, omit(options, ['commandsDir', 'db']));
 
         this.db = new Database<Tables>(options.db);
-
+        this.activeMenus = new Map();
         this.ready = false;
+
         Logger.info('Registering commands and type handlers...');
         this.registry = new ClientRegistry(this as unknown as TelegramClient<[]>);
         this.registry.registerTypeHandlersIn(path.join(__dirname, './types'), 'base')

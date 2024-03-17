@@ -28,16 +28,25 @@ export default class RemoveRamoCommand extends Command<[]> {
 
         this.subjects = new Map();
 
-        client.hears(/^\[\d+\] .+ \(\d+ créditos\)$/, async (ctx) => {
+        client.hears(/^\[\d+\] .+ \(\d+ créditos\)$/, async (ctx, next) => {
             const context = parseContext(ctx, client);
             const subjects = this.subjects.get(context.session);
-            if (!subjects) return;
+            if (!subjects) {
+                next();
+                return;
+            }
+
             this.subjects.delete(context.session);
             await this.deleteSubject(context, subjects);
         });
     }
 
     public async run(context: CommandContext): Promise<void> {
+        if (this.client.activeMenus.has(context.session)) {
+            await context.fancyReply('Ya tienes un menú activo. Usa /cancel para cerrarlo.');
+            return;
+        }
+
         const subjects = await this.client.db.select('udec_subjects', builder => builder.where({
             column: 'chat_id',
             equals: context.chat.id,
@@ -56,8 +65,9 @@ export default class RemoveRamoCommand extends Command<[]> {
         const selectionMenu = createSelectionMenu(subjectStrings);
 
         this.subjects.set(context.session, subjects.result);
+        this.client.activeMenus.set(context.session, this.name);
 
-        await context.fancyReply('a', {
+        await context.fancyReply('Elige el ramo a eliminar desde el menú.', {
             'reply_markup': selectionMenu,
         });
     }
@@ -66,6 +76,7 @@ export default class RemoveRamoCommand extends Command<[]> {
         const code = +(context.text.match(/^\[(\d+)\]/)?.[1] ?? -1);
         const subject = subjects.find(s => s.code === code);
         if (!subject) {
+            this.client.activeMenus.delete(context.session);
             await context.fancyReply('No se pudo identificar el ramo que quieres remover.', removeKeyboard);
             return;
         }
@@ -81,10 +92,12 @@ export default class RemoveRamoCommand extends Command<[]> {
             })
         );
         if (!deleted.ok) {
+            this.client.activeMenus.delete(context.session);
             await this.client.catchError(deleted.error, context, removeKeyboard);
             return;
         }
 
+        this.client.activeMenus.delete(context.session);
         await context.fancyReply(stripIndent(`
         Removido el siguiente ramo:
 
