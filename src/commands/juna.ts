@@ -10,7 +10,7 @@ import {
 } from '../lib';
 import { ElementHandle, Page } from 'puppeteer';
 import { getTabWithUrl, openTab } from '../puppeteer';
-import { stripIndent } from '../util';
+import { escapeMarkdown, stripIndent } from '../util';
 
 const menuUrl = 'https://dise.udec.cl/node/171';
 let menuTab: Page | undefined;
@@ -28,7 +28,7 @@ const menusCache: Record<string, string> = {};
 const args = [{
     key: 'date',
     label: 'fecha',
-    prompt: 'La fecha del menú a buscar.',
+    description: 'La fecha del menú a buscar.',
     type: ArgumentType.Date,
 }] as const satisfies ArgumentOptions[];
 
@@ -101,8 +101,8 @@ async function parseMenu(menuTable: ElementHandle<HTMLTableSectionElement>): Pro
         .flatMap(menu => {
             menu = menu.replace(/\s*:\s*/, ': ');
             const name = menu.slice(0, menu.indexOf(':'));
-            const dish = menu.slice(menu.indexOf(':') + 2).replace(/-/g, '\\-');
-            return [`\\- *${name}*:`, `_${dish}_`, ''];
+            const dish = menu.slice(menu.indexOf(':') + 2);
+            return [`\\- *${name}*:`, `_${escapeMarkdown(dish)}_`, ''];
         });
     return menu.join('\n');
 }

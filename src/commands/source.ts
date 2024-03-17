@@ -2,7 +2,7 @@ import { readFileSync } from 'fs';
 import path from 'path';
 import { TelegramClientType } from '../client';
 import { Command, CommandContext, TelegramClient } from '../lib';
-import { stripIndent } from '../util';
+import { escapeMarkdown, stripIndent } from '../util';
 
 const packageJson = JSON.parse(readFileSync(path.join(__dirname, '../../package.json'), 'utf-8')) as PackageJson;
 
@@ -30,14 +30,11 @@ export default class SourceCommand extends Command<[]> {
 
     public async run(context: CommandContext): Promise<void> {
         await context.fancyReply(stripIndent(`
-        *UdeC Bot v${packageJson.version}*
+        *UdeC Bot v${escapeMarkdown(packageJson.version)}*
 
-        Código fuente: [GitHub](${packageJson.repository.url})
-        `).replace(/[.-]/g, '\\$&'), {
+        Código fuente: [GitHub](${escapeMarkdown(packageJson.repository.url)})
+        `), {
             'parse_mode': 'MarkdownV2',
-            'link_preview_options': {
-                'is_disabled': false,
-            },
         });
     }
 }
