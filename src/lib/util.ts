@@ -35,14 +35,9 @@ export function dateToString(date?: Date | null): string {
 
 export function getTimeZoneOffset(timeZone: string): number {
     const date = new Date();
-    const iso = date.toLocaleString('en-CA', { timeZone, hour12: false })
-        .replace(', ', 'T')
-        .replace('T24:', 'T00:')
-        + '.'
-        + date.getMilliseconds().toString().padStart(3, '0');
-
+    const iso = date.toLocaleString('en', { timeZone });
     const lie = new Date(iso);
-    return -(lie.getTime() - date.getTime()) / 60 / 1000;
+    return Math.round(-(lie.getTime() - date.getTime()) / 60_000);
 }
 
 const santiagoDateOffset = getTimeZoneOffset('America/Santiago');
