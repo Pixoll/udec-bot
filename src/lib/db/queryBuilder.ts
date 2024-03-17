@@ -181,7 +181,7 @@ export function parseQueryValue(value: unknown): string {
     }
 
     if (value instanceof Date) {
-        return value.toISOString().replace(/T|\.\d+Z$/g, ' ').trimEnd();
+        return `'${value.toISOString().replace(/T|\.\d+Z$/g, ' ').trimEnd()}'`;
     }
 
     return `${value}`;
