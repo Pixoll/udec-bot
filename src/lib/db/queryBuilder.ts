@@ -178,9 +178,13 @@ export function parseQueryValue(value: unknown): string {
             return `'${value.replace(/'/g, '\\\'')}'`;
         case 'bigint':
             return value.toString().replace('n', '');
-        default:
-            return `${value}`;
     }
+
+    if (value instanceof Date) {
+        return value.toISOString().replace(/T|\.\d+Z$/g, ' ').trimEnd();
+    }
+
+    return `${value}`;
 }
 
 function parseFilters<
