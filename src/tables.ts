@@ -24,6 +24,8 @@ export const subjectsTable = {
     }],
 } as const satisfies TableDescriptor;
 
+export type SubjectsTable = typeof subjectsTable;
+
 export enum AssignmentType {
     Homework = 'tarea',
     Test = 'test',
@@ -59,6 +61,8 @@ export const assignmentsTable = {
         nonNull: true,
     }],
 } as const satisfies TableDescriptor;
+
+export type AssignmentsTable = typeof assignmentsTable;
 
 export enum ActionType {
     AddAssignment = '/addcert',
@@ -96,3 +100,5 @@ export const actionsHistoryTable = {
         nonNull: true,
     }],
 } as const satisfies TableDescriptor;
+
+export type ActionsHistoryTable = typeof actionsHistoryTable;
