@@ -4,6 +4,7 @@ import path from 'path';
 import { omit } from './util';
 import { Logger } from './logger';
 import { Database, DatabaseOptions, TablesArray } from './db';
+import { ExtraReplyMessage } from 'telegraf/typings/telegram-types';
 
 export class TelegramClient<Tables extends TablesArray = []>
     extends Telegraf
@@ -34,7 +35,7 @@ export class TelegramClient<Tables extends TablesArray = []>
         this.catch((...args) => this.catchError(...args));
     }
 
-    public async catchError(error: unknown, context: Context): Promise<void> {
+    public async catchError(error: unknown, context: Context, extra: ExtraReplyMessage = {}): Promise<void> {
         const messageId = context.message?.message_id;
         Logger.error(error);
         context.reply('Ocurrió un error y ha sido notificado al mantenedor del bot.', {
@@ -44,6 +45,7 @@ export class TelegramClient<Tables extends TablesArray = []>
                     'allow_sending_without_reply': true,
                 },
             }),
+            ...extra,
         });
 
         const { ownerId } = this;
