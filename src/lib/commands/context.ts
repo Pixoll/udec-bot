@@ -23,17 +23,19 @@ export declare class CommandContext extends MessageContext implements CommandCon
 
 export function parseContext(ctx: MessageContext, client: TelegramClient): CommandContext {
     const context = ctx as CommandContext;
+
     Object.assign<CommandContext, Partial<CommandContext>>(context, {
         client,
         session: `${ctx.chat.id}:${ctx.from.id}`,
     });
-    Object.assign<MessageContext['from'], Partial<CommandContext['from']>>(context.from, {
-        // eslint-disable-next-line camelcase
-        get full_username(): string {
+
+    Object.defineProperty(context.from, 'full_username', {
+        get(this: MessageContext['from']): string {
             if (this.username) return `@${this.username}`;
             return [this.first_name, this.last_name].filter(n => n).join(', ');
         },
     });
+
     context.fancyReply = fancyReply.bind(context);
     return context;
 }
