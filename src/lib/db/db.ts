@@ -207,14 +207,14 @@ export class Database<Tables extends TablesArray> implements DatabaseOptions<Tab
     public async update<TableName extends TableNames<Tables>, Table extends TableFromName<Tables, TableName>>(
         tableName: TableName,
         builder: (queryBuilder: UpdateQueryBuilder<Table>) => QueryBuilder
-    ): Promise<unknown> {
+    ): Promise<QueryResult<unknown>> {
         return await this.queryFromBuilder(UpdateQueryBuilder, tableName, builder);
     }
 
     public async delete<TableName extends TableNames<Tables>, Table extends TableFromName<Tables, TableName>>(
         tableName: TableName,
         builder: (queryBuilder: DeleteQueryBuilder<Table>) => QueryBuilder
-    ): Promise<unknown> {
+    ): Promise<QueryResult<ResultSetHeader>> {
         return await this.queryFromBuilder(DeleteQueryBuilder, tableName, builder);
     }
 
