@@ -30,6 +30,11 @@ export default class RemoveRamoCommand extends Command<[]> {
 
         client.hears(/^\[\d+\] .+ \(\d+ créditos\)$/, async (ctx, next) => {
             const context = parseContext(ctx, client);
+            if (!client.activeMenus.has(context.session)) {
+                next();
+                return;
+            }
+
             const subjects = this.subjects.get(context.session);
             if (!subjects) {
                 next();
