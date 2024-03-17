@@ -113,7 +113,7 @@ export class ClientRegistry {
                 ctx.message.text = ctx.message.text.replace(/@\w+/, '');
             }
 
-            const context = parseContext(ctx, command);
+            const context = parseContext(ctx, client);
             const canRunHere = command.canRunHere(context);
             if (canRunHere !== true) {
                 await context.fancyReply(canRunHere || 'No se puede usar este comando aquí.');
