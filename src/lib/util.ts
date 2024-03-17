@@ -25,25 +25,10 @@ export function capitalize<S extends string>(text: S, restLower = false): Capita
 }
 
 export function dateToString(date?: Date | null): string {
-    return new Intl.DateTimeFormat('en-GB', {
+    return (date ?? new Date()).toLocaleString('en-GB', {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
         timeZone: 'America/Santiago',
-    }).format(date ?? new Date());
-}
-
-export function getTimeZoneOffset(timeZone: string): number {
-    const date = new Date();
-    const iso = date.toLocaleString('en', { timeZone });
-    const lie = new Date(iso);
-    return Math.round(-(lie.getTime() - date.getTime()) / 60_000);
-}
-
-const santiagoDateOffset = getTimeZoneOffset('America/Santiago');
-
-export function dateAtSantiago(date?: string): Date {
-    const dateObj = date ? new Date(date) : new Date();
-    const ms = dateObj.getTime();
-    return new Date(ms + santiagoDateOffset);
+    });
 }

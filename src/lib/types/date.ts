@@ -1,6 +1,6 @@
 import { TelegramClient } from '../client';
 import { Argument } from '../commands';
-import { dateAtSantiago, dateToString, isNullish } from '../util';
+import { dateToString, isNullish } from '../util';
 import { ArgumentType, ArgumentTypeHandler } from './base';
 
 const dateRegex = /^[0-3]?\d[/-][01]?\d((?:[/-]\d{4}))?$/;
@@ -37,10 +37,10 @@ function parseDate(input: string): Date | null {
     const match = input.match(dateRegex);
     if (!match) return null;
     if (!match[1]) {
-        input = input + '/' + dateAtSantiago().getFullYear();
+        input = input + '/' + new Date().getFullYear();
     }
 
     const parsedInput = input.replace(/-/g, '/').split('/').reverse().join('/');
-    const date = dateAtSantiago(parsedInput);
+    const date = new Date(parsedInput);
     return isNaN(date.getTime()) ? null : date;
 }
