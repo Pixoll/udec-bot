@@ -8,8 +8,9 @@ import {
     TelegramClient,
     dateToString,
 } from '../lib';
-import { Page } from 'puppeteer';
+import { ElementHandle, Page } from 'puppeteer';
 import { getTabWithUrl, openTab } from '../puppeteer';
+import { stripIndent } from '../util';
 
 const menuUrl = 'https://dise.udec.cl/node/171';
 let menuTab: Page | undefined;
@@ -47,54 +48,70 @@ export default class TestCommand extends Command<RawArgs> {
     }
 
     public async run(context: CommandContext, { date }: ArgsResult): Promise<void> {
-        const menu = await getJunaebMenu(date);
+        const dateString = dateToString(date);
+        const cached = menusCache[dateString];
+        if (cached) {
+            await context.fancyReply(cached, {
+                'parse_mode': 'MarkdownV2',
+            });
+            return;
+        }
+
+        menuTab ??= await getMenuTab();
+        const [day, month] = dateString.split('/').slice(0, 2).map(n => +n);
+        const loaded = await loadMenuAtDate(menuTab, day, month);
+        if (!loaded) {
+            await context.fancyReply('No se pudo encontrar el menú Junaeb.');
+            return;
+        }
+
+        const menuTable = await getMenuTable(menuTab);
+        if (!menuTable) {
+            await context.fancyReply('No se pudo encontrar el menú Junaeb.');
+            return;
+        }
+
+        const menu = stripIndent(`
+        🦆 *Menu Los Patos* 🦆
+        \\~ _${dateString}_
+
+        ${await parseMenu(menuTable)}
+        `);
+
+        menusCache[dateString] = menu;
         await context.fancyReply(menu, {
             'parse_mode': 'MarkdownV2',
         });
     }
 }
 
-async function getJunaebMenu(date: Date | null): Promise<string> {
-    const dateString = dateToString(date);
-    if (menusCache[dateString]) return menusCache[dateString];
+async function getMenuTable(tab: Page): Promise<ElementHandle<HTMLTableSectionElement> | null> {
+    const error = await tab.waitForSelector(querySelectors.error, { timeout: 2_000 }).catch(() => null);
+    if (error) return null;
 
-    menuTab ??= await getMenuTab();
-    const [day, month] = dateString.split('/').slice(0, 2).map(n => +n);
-    await getMenuAtDate(menuTab, day, month);
+    const menuTable = await tab.waitForSelector(querySelectors.menu).catch(() => null);
+    return menuTable;
+}
 
-    const error = await menuTab.waitForSelector(querySelectors.error, { timeout: 2_000 }).catch(() => null);
-    if (error) return 'No se pudo encontrar el menú Junaeb\\.';
-
-    const menuTable = await menuTab.waitForSelector(querySelectors.menu).catch(() => null);
-    if (!menuTable) return 'No se pudo encontrar el menú Junaeb\\.';
-
+async function parseMenu(menuTable: ElementHandle<HTMLTableSectionElement>): Promise<string> {
     const parsedMenu = await menuTable.evaluate(menu =>
         [...menu.children].map(child => child.textContent?.trim().replace(/\s+/g, ' ') ?? '')
     );
-    const mainMenu = parsedMenu.slice(1, parsedMenu.indexOf(''))
+    const menu = parsedMenu.slice(1, parsedMenu.indexOf(''))
         .flatMap(menu => {
             menu = menu.replace(/\s*:\s*/, ': ');
             const name = menu.slice(0, menu.indexOf(':'));
             const dish = menu.slice(menu.indexOf(':') + 2).replace(/-/g, '\\-');
             return [`\\- *${name}*:`, `_${dish}_`, ''];
         });
-
-    const menuString = [
-        '🦆 *Menu Los Patos* 🦆',
-        `\\~ _${dateString}_`,
-        '',
-        ...mainMenu,
-    ].join('\n');
-    menusCache[dateString] = menuString;
-
-    return menuString;
+    return menu.join('\n');
 }
 
 async function getMenuTab(): Promise<Page> {
     return await getTabWithUrl(menuUrl) ?? await openTab(menuUrl);
 }
 
-async function getMenuAtDate(tab: Page, day: number, month: number): Promise<boolean> {
+async function loadMenuAtDate(tab: Page, day: number, month: number): Promise<boolean> {
     const daySelector = await tab.waitForSelector(querySelectors.selectDay).catch(() => null);
     if (!daySelector) return false;
     const monthSelector = await tab.waitForSelector(querySelectors.selectMonth).catch(() => null);
