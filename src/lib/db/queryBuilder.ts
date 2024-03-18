@@ -25,10 +25,10 @@ export type TableColumnSelector<Table extends TableDescriptor, Column extends Ta
     equals?: TableColumnValueTypeFromName<Table, Column>;
     notEquals?: TableColumnValueTypeFromName<Table, Column>;
     isNull?: boolean;
-    lessThan?: number;
-    greaterThan?: number;
-    lessThanOrEqualTo?: number;
-    greaterThanOrEqualTo?: number;
+    lessThan?: TableColumnValueTypeFromName<Table, Column>;
+    greaterThan?: TableColumnValueTypeFromName<Table, Column>;
+    lessThanOrEqualTo?: TableColumnValueTypeFromName<Table, Column>;
+    greaterThanOrEqualTo?: TableColumnValueTypeFromName<Table, Column>;
 };
 
 export class SelectQueryBuilder<
