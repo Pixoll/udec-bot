@@ -1,5 +1,5 @@
 import { Partialize, ValuesOf } from '../util';
-import { ColumnDescriptor, ColumnTypeMap, EnumColumnDescriptor, TableDescriptor } from './db';
+import { ColumnDescriptor, ColumnType, ColumnTypeMap, EnumColumnDescriptor, TableDescriptor } from './db';
 
 export abstract class QueryBuilder<Table extends TableDescriptor = TableDescriptor> {
     protected readonly instruction: string;
@@ -59,7 +59,7 @@ export class SelectQueryBuilder<
     public toString(): string {
         const columns = this.columns.size > 0 ? [...this.columns].join(', ') : '*';
         const where = this.filters.length > 0
-            ? 'WHERE ' + parseFilters(this.filters)
+            ? 'WHERE ' + parseFilters(this.table, this.filters)
             : '';
         return `${this.instruction} ${columns} FROM ${this.table.name} ${where};`.replace(/ ;$/, ';');
     }
@@ -101,8 +101,11 @@ export class InsertQueryBuilder<Table extends TableDescriptor> extends QueryBuil
             throw new Error('At least one (column, value) pair must be specified.');
         }
 
-        const columns = pairs.map(p => p[0]).join(', ');
-        const values = pairs.map(p => parseQueryValue(p[1])).join(', ');
+        const columns = pairs.map(([k]) => k).join(', ');
+        const values = pairs.map(([k, v]) => {
+            const { type } = this.table.columns.find(c => c.name === k) as ColumnDescriptor;
+            return parseQueryValue(v, type);
+        }).join(', ');
 
         return `${this.instruction} ${this.table.name} (${columns}) VALUES (${values});`;
     }
@@ -137,9 +140,12 @@ export class UpdateQueryBuilder<
             throw new Error('At least one (column, value) pair must be specified.');
         }
 
-        const set = pairs.map(([k, v]) => `${k} = ${parseQueryValue(v)}`).join(', ');
+        const set = pairs.map(([k, v]) => {
+            const { type } = this.table.columns.find(c => c.name === k) as ColumnDescriptor;
+            return `${k} = ${parseQueryValue(v, type)}`;
+        }).join(', ');
         const where = this.filters.length > 0
-            ? 'WHERE ' + parseFilters(this.filters)
+            ? 'WHERE ' + parseFilters(this.table, this.filters)
             : '';
 
         return `${this.instruction} ${this.table.name} SET ${set} ${where};`.replace(/ ;$/, ';');
@@ -167,12 +173,12 @@ export class DeleteQueryBuilder<
             throw new Error('At least one filter must be specified.');
         }
 
-        const where = parseFilters(this.filters);
+        const where = parseFilters(this.table, this.filters);
         return `${this.instruction} ${this.table.name} WHERE ${where};`.replace(/ ;$/, ';');
     }
 }
 
-export function parseQueryValue(value: unknown): string {
+export function parseQueryValue(value: unknown, type?: ColumnType): string {
     switch (typeof value) {
         case 'string':
             return `'${value.replace(/'/g, '\\\'')}'`;
@@ -181,7 +187,9 @@ export function parseQueryValue(value: unknown): string {
     }
 
     if (value instanceof Date) {
-        return `'${value.toISOString().replace(/T|\.\d+Z$/g, ' ').trimEnd()}'`;
+        const dateString = `'${value.toISOString().replace(/T|\.\d+Z$/g, ' ').trimEnd()}'`;
+        if (type === ColumnType.Timestamp) return dateString;
+        return dateString.split(' ')[0] + '\'';
     }
 
     return `${value}`;
@@ -190,13 +198,14 @@ export function parseQueryValue(value: unknown): string {
 function parseFilters<
     Table extends TableDescriptor,
     Columns extends TableColumnName<Table>
->(filters: Array<TableColumnSelector<Table, Columns>>): string {
+>(table: Table, filters: Array<TableColumnSelector<Table, Columns>>): string {
     return filters.map(f => {
+        const { type } = table.columns.find(c => c.name === f.column) as ColumnDescriptor;
         const isNull = typeof f.isNull !== 'undefined'
             ? `IS${!f.isNull ? ' NOT' : ''} NULL`
             : null;
-        const equality = f.equals ? `= ${parseQueryValue(f.equals)}`
-            : f.notEquals ? `!= ${parseQueryValue(f.notEquals)}`
+        const equality = f.equals ? `= ${parseQueryValue(f.equals, type)}`
+            : f.notEquals ? `!= ${parseQueryValue(f.notEquals, type)}`
                 : null;
         const lessComp = f.lessThan ? `< ${f.lessThan}`
             : f.lessThanOrEqualTo ? `<= ${f.lessThanOrEqualTo}`

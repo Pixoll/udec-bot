@@ -306,6 +306,6 @@ function validateTableStructure(
 function getRawColumnType(column: ColumnDescriptor): string {
     const lc = column.type.toLowerCase();
     if ('size' in column) return `${lc}(${column.size})`;
-    if ('values' in column) return `${lc}(${column.values.map(parseQueryValue).join(',')})`;
+    if ('values' in column) return `${lc}(${column.values.map(v => parseQueryValue(v)).join(',')})`;
     return lc;
 }
