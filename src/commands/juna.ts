@@ -30,7 +30,7 @@ const args = [{
     label: 'fecha',
     description: 'La fecha del menú a buscar.',
     type: ArgumentType.Date,
-}] as const satisfies ArgumentOptions[];
+} as const satisfies ArgumentOptions<ArgumentType.Date>] as const;
 
 type RawArgs = typeof args;
 type ArgsResult = ArgumentOptionsToResult<RawArgs>;

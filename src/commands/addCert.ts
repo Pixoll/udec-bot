@@ -33,7 +33,7 @@ const args = [{
     type: ArgumentType.Date,
     required: true,
     futureDate: true,
-}] as const satisfies ArgumentOptions[];
+} as const satisfies ArgumentOptions<ArgumentType.Date>] as const;
 
 type RawArgs = typeof args;
 type ArgsResult = ArgumentOptionsToResult<RawArgs>;

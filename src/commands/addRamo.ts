@@ -30,7 +30,7 @@ const args = [{
     type: ArgumentType.Number,
     min: 0,
     required: true,
-}] as const satisfies ArgumentOptions[];
+} as const satisfies ArgumentOptions<ArgumentType.Number>] as const;
 
 type RawArgs = typeof args;
 type ArgsResult = ArgumentOptionsToResult<RawArgs>;
