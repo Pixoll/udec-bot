@@ -1,18 +1,9 @@
 import { Markup } from 'telegraf';
 import { ReplyKeyboardMarkup } from 'telegraf/typings/core/types/typegram';
 import { TelegramClientType } from '../client';
-import { Command, CommandContext, SessionString, TableColumnValuePairs, TelegramClient, parseContext } from '../lib';
-import { alphabetically, stripIndent } from '../util';
-import { ActionType, SubjectsTable } from '../tables';
-import { ExtraReplyMessage } from 'telegraf/typings/telegram-types';
-
-type SubjectObject = TableColumnValuePairs<SubjectsTable>;
-
-const removeKeyboard = {
-    'reply_markup': {
-        'remove_keyboard': true,
-    },
-} as const satisfies ExtraReplyMessage;
+import { Command, CommandContext, SessionString, TelegramClient, parseContext } from '../lib';
+import { alphabetically, removeKeyboard, stripIndent } from '../util';
+import { ActionType, SubjectObject } from '../tables';
 
 export default class RemoveRamoCommand extends Command<[]> {
     // @ts-expect-error: type override
@@ -24,6 +15,7 @@ export default class RemoveRamoCommand extends Command<[]> {
             name: 'removeramo',
             description: 'Remover un ramo del grupo.',
             groupOnly: true,
+            ensureInactiveMenus: true,
         });
 
         this.subjects = new Map();
@@ -47,11 +39,6 @@ export default class RemoveRamoCommand extends Command<[]> {
     }
 
     public async run(context: CommandContext): Promise<void> {
-        if (this.client.activeMenus.has(context.session)) {
-            await context.fancyReply('Ya tienes un menú activo. Usa /cancel para cerrarlo.');
-            return;
-        }
-
         const subjects = await this.client.db.select('udec_subjects', builder => builder.where({
             column: 'chat_id',
             equals: context.chat.id,
@@ -90,6 +77,7 @@ export default class RemoveRamoCommand extends Command<[]> {
             return;
         }
 
+        this.client.activeMenus.delete(context.session);
         const deleted = await this.client.db.delete('udec_subjects', builder => builder
             .where({
                 column: 'chat_id',
@@ -101,12 +89,11 @@ export default class RemoveRamoCommand extends Command<[]> {
             })
         );
         if (!deleted.ok) {
-            this.client.activeMenus.delete(context.session);
-            await this.client.catchError(deleted.error, context, removeKeyboard);
+            await context.fancyReply('Hubo un error al remover el ramo.', removeKeyboard);
+            await this.client.catchError(deleted.error, context);
             return;
         }
 
-        this.client.activeMenus.delete(context.session);
         await context.fancyReply(stripIndent(`
         Removido el siguiente ramo:
 
@@ -135,5 +122,6 @@ function createSelectionMenu(subjects: string[]): ReplyKeyboardMarkup {
         .oneTime()
         .resize()
         .selective()
+        .placeholder('/cancel para abortar.')
         .reply_markup;
 }

@@ -1,4 +1,4 @@
-import { ColumnType, TableDescriptor } from './lib';
+import { ColumnType, TableColumnValuePairs, TableDescriptor } from './lib';
 
 export const subjectsTable = {
     name: 'udec_subjects',
@@ -25,6 +25,7 @@ export const subjectsTable = {
 } as const satisfies TableDescriptor;
 
 export type SubjectsTable = typeof subjectsTable;
+export type SubjectObject = TableColumnValuePairs<SubjectsTable>;
 
 export enum AssignmentType {
     Homework = 'tarea',
@@ -63,6 +64,7 @@ export const assignmentsTable = {
 } as const satisfies TableDescriptor;
 
 export type AssignmentsTable = typeof assignmentsTable;
+export type AssignmentObject = TableColumnValuePairs<AssignmentsTable>;
 
 export enum ActionType {
     AddAssignment = '/addcert',
@@ -102,3 +104,4 @@ export const actionsHistoryTable = {
 } as const satisfies TableDescriptor;
 
 export type ActionsHistoryTable = typeof actionsHistoryTable;
+export type ActionHistoryObject = TableColumnValuePairs<ActionsHistoryTable>;

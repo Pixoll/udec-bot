@@ -95,6 +95,7 @@ export default class AddRamoCommand extends Command<RawArgs> {
             'chat_id': chatId,
         }));
         if (!inserted.ok) {
+            await context.fancyReply('Hubo un error al añadir el ramo.');
             await this.client.catchError(inserted.error, context);
             return;
         }

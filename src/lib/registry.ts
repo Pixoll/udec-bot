@@ -121,6 +121,13 @@ export class ClientRegistry {
                 return;
             }
 
+            const activeMenu = this.client.activeMenus.has(context.session);
+            if (command.ensureInactiveMenus && activeMenu) {
+                await context.fancyReply(`Ya tienes un menú activo para /${activeMenu}. Usa /cancel para cerrarlo.`);
+                next();
+                return;
+            }
+
             const args = await command.parseArgs(context);
             if (!args.ok) {
                 await context.fancyReply(args.message);

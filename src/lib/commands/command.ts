@@ -8,6 +8,7 @@ export type CommandOptions<Args extends readonly ArgumentOptions[] = readonly Ar
     readonly name: string;
     readonly description: string;
     readonly groupOnly?: boolean;
+    readonly ensureInactiveMenus?: boolean;
 } & (Args extends [] ? {
     readonly args?: Args;
 } : {
@@ -49,6 +50,7 @@ export abstract class Command<Args extends readonly ArgumentOptions[] = []> {
     public declare readonly name: string;
     public declare readonly description: string;
     public declare readonly groupOnly: boolean;
+    public declare readonly ensureInactiveMenus: boolean;
     public declare readonly args: ArgumentOptionsToClasses<Args>;
 
     protected constructor(client: TelegramClient, options: CommandOptions<Args>) {
@@ -56,6 +58,7 @@ export abstract class Command<Args extends readonly ArgumentOptions[] = []> {
         Object.assign(this, omit(options, ['args']));
 
         this.groupOnly ??= false;
+        this.ensureInactiveMenus ??= false;
         this.args = (options.args?.map(arg => new Argument(client, arg)) ?? []) as ArgumentOptionsToClasses<Args>;
     }
 

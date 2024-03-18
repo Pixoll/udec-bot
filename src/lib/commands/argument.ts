@@ -17,6 +17,7 @@ export interface ArgumentOptions<T extends ArgumentType = ArgumentType> {
     readonly choices?: ReadonlyArray<ArgumentTypeMap[T]> | null;
     readonly min?: number | null;
     readonly max?: number | null;
+    readonly futureDate?: boolean;
     parse?(value: string, context: CommandContext, argument: Argument<T>): Awaitable<ArgumentTypeMap[T]>;
     validate?(value: string, context: CommandContext, argument: Argument<T>): Awaitable<boolean | string>;
     isEmpty?(value: string, context: CommandContext, argument: Argument<T>): boolean;
@@ -47,6 +48,7 @@ const defaultOptions = {
     choices: null,
     min: null,
     max: null,
+    futureDate: false,
 } as const satisfies Partial<ArgumentOptions>;
 
 export class Argument<T extends ArgumentType = ArgumentType> implements Omit<ArgumentOptions<T>, 'type'> {
@@ -59,6 +61,7 @@ export class Argument<T extends ArgumentType = ArgumentType> implements Omit<Arg
     public declare readonly choices: ReadonlyArray<ArgumentTypeMap[T]> | null;
     public declare readonly min: number | null;
     public declare readonly max: number | null;
+    public declare readonly futureDate: boolean;
     public readonly parser: NonNullable<ArgumentOptions<T>['parse']> | null;
     public readonly validator: NonNullable<ArgumentOptions<T>['validate']> | null;
     public readonly emptyChecker: NonNullable<ArgumentOptions<T>['isEmpty']> | null;

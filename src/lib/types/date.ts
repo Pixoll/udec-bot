@@ -17,7 +17,10 @@ export class DateArgumentTypeHandler extends ArgumentTypeHandler<ArgumentType.Da
         }
 
         const time = date.getTime();
-        const { min, max } = argument;
+        const { min, max, futureDate } = argument;
+        if (futureDate && time < Date.now()) {
+            return 'Ingrese una fecha en el futuro.';
+        }
         if (!isNullish(min) && time < min) {
             return `Ingrese una fecha mayor o igual a ${dateToString(new Date(min))}.`;
         }

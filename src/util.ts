@@ -1,4 +1,10 @@
+import { Markup } from 'telegraf';
 import { ValuesOf } from './lib';
+import { ExtraReplyMessage } from 'telegraf/typings/telegram-types';
+
+export const removeKeyboard = {
+    'reply_markup': Markup.removeKeyboard().reply_markup,
+} as const satisfies ExtraReplyMessage;
 
 export function stripIndent(text: string): string {
     return text.trim().replace(/^[ \t]+/gm, '');
