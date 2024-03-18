@@ -52,6 +52,11 @@ export const assignmentsTable = {
         type: ColumnType.Integer,
         nonNull: true,
     }, {
+        name: 'subject_name',
+        type: ColumnType.String,
+        size: 150,
+        nonNull: true,
+    }, {
         name: 'type',
         type: ColumnType.Enum,
         values: Object.values(AssignmentType) as readonly AssignmentType[],

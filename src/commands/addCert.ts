@@ -111,7 +111,10 @@ export default class AddCertCommand extends Command<RawArgs> {
             return;
         }
 
-        assignment['subject_code'] = code;
+        Object.assign<AssignmentObject, Partial<AssignmentObject>>(assignment, {
+            'subject_code': code,
+            'subject_name': subject.name,
+        });
 
         await context.fancyReply('*Elige el tipo de evaluación: ⬇️*', {
             'parse_mode': 'MarkdownV2',
