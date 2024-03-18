@@ -1,5 +1,13 @@
 import { TelegramClientType } from '../client';
-import { ArgumentOptions, ArgumentOptionsToResult, ArgumentType, Command, CommandContext, TelegramClient } from '../lib';
+import {
+    ArgumentOptions,
+    ArgumentOptionsToResult,
+    ArgumentType,
+    Command,
+    CommandContext,
+    TelegramClient,
+    dateToString,
+} from '../lib';
 import { escapeMarkdown, stripIndent } from '../util';
 
 const args = [{
@@ -36,9 +44,13 @@ export default class HistoryCommand extends Command<RawArgs> {
             return;
         }
 
-        const history = query.result.slice(0, amount ?? query.result.length).map(record =>
-            `• ${record.type} << ${escapeMarkdown(record.username)}`
-        ).join('\n');
+        const history = query.result
+            .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+            .slice(0, amount ?? query.result.length)
+            .map(record =>
+                `• \`${dateToString(record.timestamp, true)}\` \\- ${record.type} \\- ${escapeMarkdown(record.username)}`
+            )
+            .join('\n');
 
         const footer = !amount
             ? `Usa \`/${this.name} <${args[0].label}>\` para mostrar una cantidad específica de acciones\\.`

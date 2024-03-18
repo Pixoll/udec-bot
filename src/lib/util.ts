@@ -25,12 +25,16 @@ export function capitalize<S extends string>(text: S, restLower = false): Capita
     return (text[0].toUpperCase() + (restLower ? rest.toLowerCase() : rest)) as Capitalize<S>;
 }
 
-export function dateToString(date?: Date | null): string {
+export function dateToString(date?: Date | null, includeTime = false): string {
     return (date ?? dateAtSantiago()).toLocaleString('en-GB', {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
-    });
+        ...includeTime && {
+            hour: '2-digit',
+            minute: '2-digit',
+        },
+    }).replace(',', '');
 }
 
 export function getTimeZoneOffset(timeZone: string): number {
