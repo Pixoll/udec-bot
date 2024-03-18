@@ -207,11 +207,11 @@ function parseFilters<
         const equality = f.equals ? `= ${parseQueryValue(f.equals, type)}`
             : f.notEquals ? `!= ${parseQueryValue(f.notEquals, type)}`
                 : null;
-        const lessComp = f.lessThan ? `< ${f.lessThan}`
-            : f.lessThanOrEqualTo ? `<= ${f.lessThanOrEqualTo}`
+        const lessComp = f.lessThan ? `< ${parseQueryValue(f.lessThan, type)}`
+            : f.lessThanOrEqualTo ? `<= ${parseQueryValue(f.lessThanOrEqualTo, type)}`
                 : null;
-        const greaterComp = f.greaterThan ? `> ${f.greaterThan}`
-            : f.greaterThanOrEqualTo ? `>= ${f.greaterThanOrEqualTo}`
+        const greaterComp = f.greaterThan ? `> ${parseQueryValue(f.greaterThan, type)}`
+            : f.greaterThanOrEqualTo ? `>= ${parseQueryValue(f.greaterThanOrEqualTo, type)}`
                 : null;
 
         const filters = [isNull, equality, lessComp, greaterComp].filter(f => f);
