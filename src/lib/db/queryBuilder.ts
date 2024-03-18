@@ -69,7 +69,10 @@ type ColumnValueType<Column extends ColumnDescriptor> = Column extends EnumColum
     ? Column['values'][number]
     : ColumnTypeMap[Column['type']];
 
-type ColumnNameKey<Column extends ColumnDescriptor> = Column['autoIncrement'] extends true ? never
+type ColumnNameKey<Column extends ColumnDescriptor, OmitAutoInc extends boolean>
+    = Column['autoIncrement'] extends true ? (
+        OmitAutoInc extends true ? never : Column['name']
+    )
     : Column['nonNull'] extends true ? Column['name']
     : never;
 
@@ -77,20 +80,20 @@ type TableNullableColumns<Table extends TableDescriptor> = keyof {
     [Column in Table['columns'][number] as Column['nonNull'] extends true ? never : Column['name']]: never;
 };
 
-export type TableColumnValuePairs<Table extends TableDescriptor> = Partialize<{
-    [Column in Table['columns'][number] as ColumnNameKey<Column>]: ColumnValueType<Column>;
+export type TableColumnValuePairs<Table extends TableDescriptor, OmitAutoInc extends boolean> = Partialize<{
+    [Column in Table['columns'][number] as ColumnNameKey<Column, OmitAutoInc>]: ColumnValueType<Column>;
 // @ts-expect-error: this works
 }, TableNullableColumns<Table>>;
 
 export class InsertQueryBuilder<Table extends TableDescriptor> extends QueryBuilder<Table> {
-    private pairs: TableColumnValuePairs<Table> | null;
+    private pairs: TableColumnValuePairs<Table, true> | null;
 
     public constructor(table: Table) {
         super('INSERT INTO', table);
         this.pairs = null;
     }
 
-    public values(pairs: TableColumnValuePairs<Table>): QueryBuilder {
+    public values(pairs: TableColumnValuePairs<Table, true>): QueryBuilder {
         this.pairs = pairs;
         return this;
     }
@@ -115,7 +118,7 @@ export class UpdateQueryBuilder<
     Table extends TableDescriptor,
     Columns extends TableColumnName<Table> = TableColumnName<Table>
 > extends QueryBuilder<Table> {
-    private pairs: TableColumnValuePairs<Table> | null;
+    private pairs: TableColumnValuePairs<Table, true> | null;
     private readonly filters: Array<TableColumnSelector<Table, Columns>>;
 
     public constructor(table: Table) {
@@ -124,7 +127,7 @@ export class UpdateQueryBuilder<
         this.filters = [];
     }
 
-    public values(pairs: TableColumnValuePairs<Table>): this {
+    public values(pairs: TableColumnValuePairs<Table, true>): this {
         this.pairs = pairs;
         return this;
     }

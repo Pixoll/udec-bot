@@ -181,14 +181,14 @@ export class Database<Tables extends TablesArray> implements DatabaseOptions<Tab
     public async select<TableName extends TableNames<Tables>, Table extends TableFromName<Tables, TableName>>(
         tableName: TableName,
         builder?: (queryBuilder: SelectQueryBuilder<Table>) => QueryBuilder
-    ): Promise<QueryResult<Array<TableColumnValuePairs<Table>>>> {
+    ): Promise<QueryResult<Array<TableColumnValuePairs<Table, false>>>> {
         const query = await this.queryFromBuilder<SelectQueryBuilder<Table>, [RowDataPacket[]]>(
             SelectQueryBuilder, tableName, builder
         );
         if (!query.ok) return query;
         return {
             ok: true,
-            result: query.result[0] as Array<TableColumnValuePairs<Table>>,
+            result: query.result[0] as Array<TableColumnValuePairs<Table, false>>,
         };
     }
 
