@@ -32,12 +32,14 @@ export type ArgumentOptionsToClasses<Args extends readonly ArgumentOptions[]>
 
 export type ArgumentOptionsToResult<Args extends readonly ArgumentOptions[]> = {
     [Arg in Args[number]as Arg['key']]: (
-        Arg['required'] extends true ? never : null
-    ) | (
-        Arg['default'] extends unknown ? never
-        : Arg['default'] extends (...args: infer A) => infer R
-        ? Awaited<R>
-        : Arg['default']
+        Arg['required'] extends true ? never
+        : (
+            Arg['default'] extends (...args: infer _) => infer R
+            ? Awaited<R>
+            : (Arg['default'] & null) extends never
+            ? Arg['default']
+            : null
+        )
     ) | (
         Arg['choices'] extends Array<infer U> | ReadonlyArray<infer U>
         ? U
