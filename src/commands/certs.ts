@@ -82,12 +82,15 @@ export default class CertsCommand extends Command<RawArgs> {
             return;
         }
 
-        const assignments = query.result.map(a => {
-            const daysUntil = getDaysUntil(a.date_due);
-            const marker = dueDateMarkers.find(m => daysUntil <= m.threshold) as DueDateMarker;
-            return `• ${marker.emoji} _${daysUntil} día${daysUntil === 1 ? '' : 's'} \\(${capitalize(a.type)}\\)_\n`
-                + `*\\[${a.subject_code}\\] ${a.subject_name}*`;
-        }).join('\n\n');
+        const assignments = query.result
+            .sort((a, b) => a.date_due.getTime() - b.date_due.getTime())
+            .map(a => {
+                const daysUntil = getDaysUntil(a.date_due);
+                const marker = dueDateMarkers.find(m => daysUntil <= m.threshold) as DueDateMarker;
+                return `• ${marker.emoji} _${daysUntil} día${daysUntil === 1 ? '' : 's'} \\(${capitalize(a.type)}\\)_\n`
+                    + `*\\[${a.subject_code}\\] ${a.subject_name}*`;
+            })
+            .join('\n\n');
 
         await context.fancyReply(stripIndent(`
         ✳️ *Fechas Relevantes* ✳️
