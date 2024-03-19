@@ -36,3 +36,27 @@ const markdownRegex = new RegExp(markdownCharacters.map(c => `\\${c}`).join('|')
 export function escapeMarkdown(text: string): string {
     return text.replace(markdownRegex, '\\$&');
 }
+
+export const daysMsConversionFactor = 86_400_000;
+
+export function getDaysUntil(date: Date): number {
+    return Math.floor((date.getTime() - Date.now()) / daysMsConversionFactor);
+}
+
+export function daysUntilToString(days: number): string {
+    if (days === 0) return 'Hoy';
+    if (days === 1) return 'Mañana';
+    if (days === 2) return 'Pasado mañana';
+    if (days < 6) return `${days} días`;
+
+    const weeks = days / 7;
+    const daysRest = days % 7;
+    const weeksString = weeks > 0 ? pluralize('semana', weeks) : '';
+    const daysString = daysRest > 0 ? pluralize('día', daysRest) : '';
+
+    return `${weeksString} ${daysString}`.trim();
+}
+
+function pluralize(text: string, amount: number): string {
+    return amount === 1 ? text : text + 's';
+}

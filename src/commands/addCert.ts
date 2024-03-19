@@ -24,6 +24,7 @@ const assignmentTypesKeyboard = Markup
     .oneTime()
     .resize()
     .selective()
+    .placeholder('/cancel para abortar.')
     .reply_markup;
 
 const args = [{
@@ -124,7 +125,6 @@ export default class AddCertCommand extends Command<RawArgs> {
 
     private async addAssignment(context: CommandContext, assignment: AssignmentObject): Promise<void> {
         assignment.type = context.text.toLowerCase() as AssignmentType;
-        this.client.activeMenus.delete(context.session);
 
         const exists = await this.client.db.select('udec_assignments', builder => builder
             .where({ column: 'chat_id', equals: assignment.chat_id })
@@ -195,6 +195,7 @@ export default class AddCertCommand extends Command<RawArgs> {
             return;
         }
 
+        this.client.activeMenus.delete(context.session);
         await this.addAssignment(context, assignment);
     }
 }

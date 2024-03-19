@@ -45,7 +45,7 @@ async function fancyReply(
 ): Promise<Message.TextMessage | null> {
     return await this.reply(text, {
         'reply_parameters': {
-            'message_id': this.message?.message_id,
+            'message_id': this.msgId,
             'allow_sending_without_reply': true,
         },
         ...extra,

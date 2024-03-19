@@ -37,7 +37,7 @@ export class TelegramClient<Tables extends TablesArray = []>
     }
 
     public async catchError(error: unknown, context: Context): Promise<void> {
-        const messageId = context.message?.message_id;
+        const messageId = context.msgId;
         Logger.error(error);
         context.reply('Ocurrió un error y ha sido notificado al mantenedor del bot.', {
             ...messageId && ({

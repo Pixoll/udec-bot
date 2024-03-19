@@ -8,9 +8,7 @@ import {
     TelegramClient,
     capitalize,
 } from '../lib';
-import { stripIndent } from '../util';
-
-const daysMsConversionFactor = 86_400_000;
+import { daysMsConversionFactor, daysUntilToString, getDaysUntil, stripIndent } from '../util';
 
 const dueDateMarkers = [{
     emoji: '🏳',
@@ -87,7 +85,7 @@ export default class CertsCommand extends Command<RawArgs> {
             .map(a => {
                 const daysUntil = getDaysUntil(a.date_due);
                 const marker = dueDateMarkers.find(m => daysUntil <= m.threshold) as DueDateMarker;
-                return `• ${marker.emoji} _${daysUntil} día${daysUntil === 1 ? '' : 's'} \\(${capitalize(a.type)}\\)_\n`
+                return `• ${marker.emoji} _${daysUntilToString(daysUntil)} \\(${capitalize(a.type)}\\)_\n`
                     + `*\\[${a.subject_code}\\] ${a.subject_name}*`;
             })
             .join('\n\n');
@@ -101,8 +99,4 @@ export default class CertsCommand extends Command<RawArgs> {
             'parse_mode': 'MarkdownV2',
         });
     }
-}
-
-function getDaysUntil(date: Date): number {
-    return Math.floor((date.getTime() - Date.now()) / daysMsConversionFactor);
 }

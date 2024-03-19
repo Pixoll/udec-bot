@@ -1,14 +1,24 @@
 import { Markup } from 'telegraf';
 import { ReplyKeyboardMarkup } from 'telegraf/typings/core/types/typegram';
 import { TelegramClientType } from '../client';
-import { Command, CommandContext, SessionString, TelegramClient, parseContext } from '../lib';
+import { Command, CommandContext, MessageContext, SessionString, TelegramClient, parseContext } from '../lib';
 import { alphabetically, removeKeyboard, stripIndent } from '../util';
 import { ActionType, SubjectObject } from '../tables';
+
+const confirmationRegex = /^(👍|❌)$/;
+const confirmationKeyboard = Markup
+    .keyboard([['👍', '❌']])
+    .oneTime()
+    .resize()
+    .selective()
+    .placeholder('/cancel para abortar.')
+    .reply_markup;
 
 export default class RemoveRamoCommand extends Command<[]> {
     // @ts-expect-error: type override
     public declare readonly client: TelegramClientType;
     private readonly subjects: Map<SessionString, SubjectObject[]>;
+    private readonly waitingConfirmation: Map<SessionString, SubjectObject>;
 
     public constructor(client: TelegramClient) {
         super(client, {
@@ -19,23 +29,10 @@ export default class RemoveRamoCommand extends Command<[]> {
         });
 
         this.subjects = new Map();
+        this.waitingConfirmation = new Map();
 
-        client.hears(/^\[\d+\] .+ \(\d+ créditos\)$/, async (ctx, next) => {
-            const context = parseContext(ctx, client);
-            if (!client.activeMenus.has(context.session)) {
-                next();
-                return;
-            }
-
-            const subjects = this.subjects.get(context.session);
-            if (!subjects) {
-                next();
-                return;
-            }
-
-            this.subjects.delete(context.session);
-            await this.deleteSubject(context, subjects);
-        });
+        client.hears(/^\[\d+\] .+ \(\d+ créditos\)$/, (...args) => this.subjectListener(...args));
+        client.hears(confirmationRegex, (...args) => this.confirmationListener(...args));
     }
 
     public async run(context: CommandContext): Promise<void> {
@@ -68,16 +65,31 @@ export default class RemoveRamoCommand extends Command<[]> {
         });
     }
 
-    private async deleteSubject(context: CommandContext, subjects: SubjectObject[]): Promise<void> {
+    private async confirmDeletion(context: CommandContext, subjects: SubjectObject[]): Promise<void> {
         const code = +(context.text.match(/^\[(\d+)\]/)?.[1] ?? -1);
         const subject = subjects.find(s => s.code === code);
         if (!subject) {
-            this.client.activeMenus.delete(context.session);
             await context.fancyReply('No se pudo identificar el ramo que quieres remover.', removeKeyboard);
             return;
         }
 
-        this.client.activeMenus.delete(context.session);
+        await context.fancyReply(stripIndent(`
+        *¿Estás seguro que quieres eliminar este ramo?*
+
+        *Nombre*: ${subject.name}
+        *Código*: ${subject.code}
+        *Créditos*: ${subject.credits}
+        `), {
+            'reply_markup': confirmationKeyboard,
+        });
+    }
+
+    private async deleteSubject(context: CommandContext, subject: SubjectObject): Promise<void> {
+        if (context.text === '❌') {
+            await context.fancyReply('El ramo no será removido.', removeKeyboard);
+            return;
+        }
+
         const deleted = await this.client.db.delete('udec_subjects', builder => builder
             .where({
                 column: 'chat_id',
@@ -85,7 +97,7 @@ export default class RemoveRamoCommand extends Command<[]> {
             })
             .where({
                 column: 'code',
-                equals: code,
+                equals: subject.code,
             })
         );
         if (!deleted.ok) {
@@ -94,13 +106,7 @@ export default class RemoveRamoCommand extends Command<[]> {
             return;
         }
 
-        await context.fancyReply(stripIndent(`
-        Removido el siguiente ramo:
-
-        *Nombre*: ${subject.name}
-        *Código*: ${code}
-        *Créditos*: ${subject.credits}
-        `), {
+        await context.fancyReply('🗑 *El ramo ha sido eliminado\\.*', {
             'parse_mode': 'MarkdownV2',
             ...removeKeyboard,
         });
@@ -111,6 +117,41 @@ export default class RemoveRamoCommand extends Command<[]> {
             type: ActionType.RemoveSubject,
             timestamp: new Date(),
         }));
+    }
+
+    private async subjectListener(ctx: MessageContext, next: () => Promise<void>): Promise<void> {
+        const context = parseContext(ctx, this.client as unknown as TelegramClient);
+        if (!this.client.activeMenus.has(context.session) || this.waitingConfirmation.has(context.session)) {
+            next();
+            return;
+        }
+
+        const subjects = this.subjects.get(context.session);
+        if (!subjects) {
+            next();
+            return;
+        }
+
+        this.subjects.delete(context.session);
+        await this.confirmDeletion(context, subjects);
+    }
+
+    private async confirmationListener(ctx: MessageContext, next: () => Promise<void>): Promise<void> {
+        const context = parseContext(ctx, this.client as unknown as TelegramClient);
+        if (!this.client.activeMenus.has(context.session) || this.subjects.has(context.session)) {
+            next();
+            return;
+        }
+
+        const subject = this.waitingConfirmation.get(context.session);
+        if (!subject) {
+            next();
+            return;
+        }
+
+        this.client.activeMenus.delete(context.session);
+        this.waitingConfirmation.delete(context.session);
+        await this.deleteSubject(context, subject);
     }
 }
 

@@ -1,8 +1,17 @@
 import { Markup } from 'telegraf';
 import { ReplyKeyboardMarkup } from 'telegraf/typings/core/types/typegram';
 import { TelegramClientType } from '../client';
-import { Command, CommandContext, SessionString, TelegramClient, capitalize, dateToString, parseContext } from '../lib';
-import { removeKeyboard, stripIndent } from '../util';
+import {
+    Command,
+    CommandContext,
+    MessageContext,
+    SessionString,
+    TelegramClient,
+    capitalize,
+    dateToString,
+    parseContext,
+} from '../lib';
+import { daysUntilToString, getDaysUntil, removeKeyboard, stripIndent } from '../util';
 import { ActionType, AssignmentObject, AssignmentType } from '../tables';
 
 const assignmentTypes = Object.values(AssignmentType).map(v => capitalize(v));
@@ -11,6 +20,15 @@ const assignmentStringRegex = new RegExp(
     + /(?<subjectCode>\d+) /.source
     + /\((?<dueDate>\d{2}\/\d{2}\/\d{4})\)/.source
 );
+
+const confirmationRegex = /^(👍|❌)$/;
+const confirmationKeyboard = Markup
+    .keyboard([['👍', '❌']])
+    .oneTime()
+    .resize()
+    .selective()
+    .placeholder('/cancel para abortar.')
+    .reply_markup;
 
 interface AssignmentMatchGroups {
     readonly type: string;
@@ -22,6 +40,7 @@ export default class RemoveCertCommand extends Command<[]> {
     // @ts-expect-error: type override
     public declare readonly client: TelegramClientType;
     private readonly assignments: Map<SessionString, AssignmentObject[]>;
+    private readonly waitingConfirmation: Map<SessionString, AssignmentObject>;
 
     public constructor(client: TelegramClient) {
         super(client, {
@@ -32,23 +51,10 @@ export default class RemoveCertCommand extends Command<[]> {
         });
 
         this.assignments = new Map();
+        this.waitingConfirmation = new Map();
 
-        client.hears(assignmentStringRegex, async (ctx, next) => {
-            const context = parseContext(ctx, client);
-            if (!client.activeMenus.has(context.session)) {
-                next();
-                return;
-            }
-
-            const assignments = this.assignments.get(context.session);
-            if (!assignments) {
-                next();
-                return;
-            }
-
-            this.assignments.delete(context.session);
-            await this.deleteAssignment(context, assignments);
-        });
+        client.hears(assignmentStringRegex, (...args) => this.assignmentListener(...args));
+        client.hears(confirmationRegex, (...args) => this.confirmationListener(...args));
     }
 
     public async run(context: CommandContext): Promise<void> {
@@ -81,7 +87,7 @@ export default class RemoveCertCommand extends Command<[]> {
         });
     }
 
-    private async deleteAssignment(context: CommandContext, assignments: AssignmentObject[]): Promise<void> {
+    private async confirmDeletion(context: CommandContext, assignments: AssignmentObject[]): Promise<void> {
         const { dueDate, subjectCode, type } = context.text
             .match(assignmentStringRegex)?.groups as unknown as AssignmentMatchGroups;
 
@@ -96,7 +102,23 @@ export default class RemoveCertCommand extends Command<[]> {
             return;
         }
 
-        this.client.activeMenus.delete(context.session);
+        await context.fancyReply(stripIndent(`
+        *¿Estás seguro que quieres eliminar esta evaluación?*
+
+        *Tipo*: ${capitalize(assignment.type)}
+        *Ramo*: \\[${assignment.subject_code}\\] ${assignment.subject_name}
+        *Fecha*: ${dateToString(assignment.date_due)} (${daysUntilToString(getDaysUntil(assignment.date_due))})
+        `), {
+            'reply_markup': confirmationKeyboard,
+        });
+    }
+
+    private async deleteAssignment(context: CommandContext, assignment: AssignmentObject): Promise<void> {
+        if (context.text === '❌') {
+            await context.fancyReply('La evaluación no será removida.', removeKeyboard);
+            return;
+        }
+
         const deleted = await this.client.db.delete('udec_assignments', builder => builder.where({
             column: 'id',
             equals: assignment.id,
@@ -107,13 +129,7 @@ export default class RemoveCertCommand extends Command<[]> {
             return;
         }
 
-        await context.fancyReply(stripIndent(`
-        Removida la siguiente evaluación:
-
-        *Tipo*: ${capitalize(assignment.type)}
-        *Ramo*: \\[${assignment.subject_code}\\] ${assignment.subject_name}
-        *Fecha*: ${dateToString(assignment.date_due)}
-        `), {
+        await context.fancyReply('🗑 *La evaluación ha sido eliminada\\.*', {
             'parse_mode': 'MarkdownV2',
             ...removeKeyboard,
         });
@@ -125,11 +141,46 @@ export default class RemoveCertCommand extends Command<[]> {
             timestamp: new Date(),
         }));
     }
+
+    private async assignmentListener(ctx: MessageContext, next: () => Promise<void>): Promise<void> {
+        const context = parseContext(ctx, this.client as unknown as TelegramClient);
+        if (!this.client.activeMenus.has(context.session) || this.waitingConfirmation.has(context.session)) {
+            next();
+            return;
+        }
+
+        const assignments = this.assignments.get(context.session);
+        if (!assignments) {
+            next();
+            return;
+        }
+
+        this.assignments.delete(context.session);
+        await this.confirmDeletion(context, assignments);
+    }
+
+    private async confirmationListener(ctx: MessageContext, next: () => Promise<void>): Promise<void> {
+        const context = parseContext(ctx, this.client as unknown as TelegramClient);
+        if (!this.client.activeMenus.has(context.session) || this.assignments.has(context.session)) {
+            next();
+            return;
+        }
+
+        const assignment = this.waitingConfirmation.get(context.session);
+        if (!assignment) {
+            next();
+            return;
+        }
+
+        this.client.activeMenus.delete(context.session);
+        this.waitingConfirmation.delete(context.session);
+        await this.deleteAssignment(context, assignment);
+    }
 }
 
-function createSelectionMenu(subjects: string[]): ReplyKeyboardMarkup {
+function createSelectionMenu(assignments: string[]): ReplyKeyboardMarkup {
     return Markup
-        .keyboard(subjects, {
+        .keyboard(assignments, {
             columns: 1,
         })
         .oneTime()

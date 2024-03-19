@@ -17,6 +17,12 @@ interface PackageJson {
     };
 }
 
+const sourceMessage = stripIndent(`
+*UdeC Bot v${escapeMarkdown(packageJson.version)}*
+
+Código fuente: [GitHub](${escapeMarkdown(packageJson.repository.url)})
+`);
+
 export default class SourceCommand extends Command<[]> {
     // @ts-expect-error: type override
     public declare readonly client: TelegramClientType;
@@ -29,11 +35,7 @@ export default class SourceCommand extends Command<[]> {
     }
 
     public async run(context: CommandContext): Promise<void> {
-        await context.fancyReply(stripIndent(`
-        *UdeC Bot v${escapeMarkdown(packageJson.version)}*
-
-        Código fuente: [GitHub](${escapeMarkdown(packageJson.repository.url)})
-        `), {
+        await context.fancyReply(sourceMessage, {
             'parse_mode': 'MarkdownV2',
         });
     }
