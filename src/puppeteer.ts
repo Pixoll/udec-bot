@@ -18,12 +18,6 @@ export async function openTab(url: string): Promise<Page> {
     return tab;
 }
 
-export async function getTabWithUrl(url: string): Promise<Page | null> {
-    if (!browserReady) await waitForBrowser();
-    const tabs = await browser.pages();
-    return tabs.find(page => page.url().startsWith(url)) ?? null;
-}
-
 function waitForBrowser(): Promise<void> {
     return new Promise(resolve => {
         const interval = setInterval(() => {
