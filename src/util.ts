@@ -58,5 +58,5 @@ export function daysUntilToString(days: number): string {
 }
 
 function pluralize(text: string, amount: number): string {
-    return amount === 1 ? text : text + 's';
+    return `${amount} ${text}` + (amount !== 1 ? 's' : '');
 }
