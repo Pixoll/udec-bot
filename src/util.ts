@@ -49,7 +49,7 @@ export function daysUntilToString(days: number): string {
     if (days === 2) return 'Pasado mañana';
     if (days < 6) return `${days} días`;
 
-    const weeks = days / 7;
+    const weeks = Math.trunc(days / 7);
     const daysRest = days % 7;
     const weeksString = weeks > 0 ? pluralize('semana', weeks) : '';
     const daysString = daysRest > 0 ? pluralize('día', daysRest) : '';
