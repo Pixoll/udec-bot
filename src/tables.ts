@@ -3,11 +3,16 @@ import { ColumnType, TableColumnValuePairs, TableDescriptor } from './lib';
 export const subjectsTable = {
     name: 'udec_subjects',
     columns: [{
-        name: 'code',
+        name: 'id',
         type: ColumnType.Integer,
         nonNull: true,
         primaryKey: true,
         unique: true,
+        autoIncrement: true,
+    }, {
+        name: 'code',
+        type: ColumnType.Integer,
+        nonNull: true,
     }, {
         name: 'chat_id',
         type: ColumnType.Bigint,
