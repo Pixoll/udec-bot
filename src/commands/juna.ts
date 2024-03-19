@@ -9,12 +9,10 @@ import {
     dateToString,
 } from '../lib';
 import { ElementHandle, Page } from 'puppeteer';
-import { getTabWithUrl, openTab } from '../puppeteer';
+import { openTab } from '../puppeteer';
 import { escapeMarkdown, stripIndent } from '../util';
 
 const menuUrl = 'https://dise.udec.cl/node/171';
-let menuTab: Page | undefined;
-
 const querySelectors = {
     error: 'div > section > div.alert.alert-block.alert-dismissible.alert-danger.messages.error',
     menu: '#node-171 > div > div > div > table > tbody',
@@ -57,17 +55,19 @@ export default class TestCommand extends Command<RawArgs> {
             return;
         }
 
-        menuTab ??= await getMenuTab();
+        const menuTab = await openTab(menuUrl);
         const [day, month] = dateString.split('/').slice(0, 2).map(n => +n);
         const loaded = await loadMenuAtDate(menuTab, day, month);
         if (!loaded) {
             await context.fancyReply('No se pudo encontrar el menú Junaeb. Puede es que hoy no estén sirviendo.');
+            await menuTab.close();
             return;
         }
 
         const menuTable = await getMenuTable(menuTab);
         if (!menuTable) {
             await context.fancyReply('No se pudo encontrar el menú Junaeb. Puede que hoy no estén sirviendo.');
+            await menuTab.close();
             return;
         }
 
@@ -82,6 +82,7 @@ export default class TestCommand extends Command<RawArgs> {
         await context.fancyReply(menu, {
             'parse_mode': 'MarkdownV2',
         });
+        await menuTab.close();
     }
 }
 
@@ -105,10 +106,6 @@ async function parseMenu(menuTable: ElementHandle<HTMLTableSectionElement>): Pro
             return [`\\- *${name}*:`, `_${escapeMarkdown(dish)}_`, ''];
         });
     return menu.join('\n');
-}
-
-async function getMenuTab(): Promise<Page> {
-    return await getTabWithUrl(menuUrl) ?? await openTab(menuUrl);
 }
 
 async function loadMenuAtDate(tab: Page, day: number, month: number): Promise<boolean> {

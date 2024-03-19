@@ -9,12 +9,11 @@ import {
     TelegramClient,
     capitalize,
 } from '../lib';
-import { getTabWithUrl, openTab } from '../puppeteer';
+import { openTab } from '../puppeteer';
 import { stripIndent } from '../util';
 import { ActionType } from '../tables';
 
 const subjectInfoBaseUrl = 'https://alumnos.udec.cl/?q=node/25&codasignatura=';
-let subjectInfoTab: Page | undefined;
 const querySelectors = {
     name: '#node-25 > div > div > div > div:nth-child(1)',
     listWithCredits: '#node-25 > div > div > div > ul',
@@ -74,17 +73,18 @@ export default class AddRamoCommand extends Command<RawArgs> {
             return;
         }
 
-        const tab = await loadSubjectInfoTab(code);
-
+        const tab = await openTab(subjectInfoBaseUrl + code);
         const name = await getSubjectName(tab, code);
         if (!name) {
             await context.fancyReply(`No se pudo encontrar el ramo con código ${code}.`);
+            await tab.close();
             return;
         }
 
         const credits = await getSubjectCredits(tab);
         if (!credits) {
             await context.fancyReply('No se pudo encontrar los créditos del ramo.');
+            await tab.close();
             return;
         }
 
@@ -97,6 +97,7 @@ export default class AddRamoCommand extends Command<RawArgs> {
         if (!inserted.ok) {
             await context.fancyReply('Hubo un error al añadir el ramo.');
             await this.client.catchError(inserted.error, context);
+            await tab.close();
             return;
         }
 
@@ -116,6 +117,7 @@ export default class AddRamoCommand extends Command<RawArgs> {
             type: ActionType.AddSubject,
             timestamp: new Date(),
         }));
+        await tab.close();
     }
 }
 
@@ -164,14 +166,4 @@ async function getSubjectCredits(tab: Page): Promise<number | null> {
     });
 
     return credits;
-}
-
-async function loadSubjectInfoTab(code: number): Promise<Page> {
-    subjectInfoTab ??= await getTabWithUrl(subjectInfoBaseUrl) ?? await openTab(subjectInfoBaseUrl + code);
-
-    if (!subjectInfoTab.url().endsWith(code.toString())) {
-        await subjectInfoTab.goto(subjectInfoBaseUrl + code);
-    }
-
-    return subjectInfoTab;
 }
