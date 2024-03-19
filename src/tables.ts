@@ -37,6 +37,7 @@ export enum AssignmentType {
     Test = 'test',
     Exam = 'certamen',
     Project = 'proyecto',
+    Report = 'informe',
 }
 
 export const assignmentsTable = {
