@@ -19,6 +19,7 @@ export interface ArgumentOptions<T extends ArgumentType = ArgumentType> {
     readonly max?: number | null;
     readonly futureDate?: boolean;
     readonly whenInvalid?: string | null;
+    readonly example?: string | null;
     parse?(value: string, context: CommandContext, argument: Argument<T>): Awaitable<ArgumentTypeMap[T]>;
     validate?(value: string, context: CommandContext, argument: Argument<T>): Awaitable<boolean | string>;
     isEmpty?(value: string, context: CommandContext, argument: Argument<T>): boolean;
@@ -52,6 +53,7 @@ const defaultOptions = {
     max: null,
     futureDate: false,
     whenInvalid: null,
+    example: null,
 } as const satisfies Partial<ArgumentOptions>;
 
 export class Argument<T extends ArgumentType = ArgumentType> implements Omit<ArgumentOptions<T>, 'type'> {
@@ -66,6 +68,7 @@ export class Argument<T extends ArgumentType = ArgumentType> implements Omit<Arg
     public declare readonly max: number | null;
     public declare readonly futureDate: boolean;
     public declare readonly whenInvalid: string | null;
+    public declare readonly example: string | null;
     public readonly parser: NonNullable<ArgumentOptions<T>['parse']> | null;
     public readonly validator: NonNullable<ArgumentOptions<T>['validate']> | null;
     public readonly emptyChecker: NonNullable<ArgumentOptions<T>['isEmpty']> | null;
@@ -87,7 +90,7 @@ export class Argument<T extends ArgumentType = ArgumentType> implements Omit<Arg
     }
 
     public async obtain(value: string, context: CommandContext): Promise<ArgumentResult<T>> {
-        const { default: defaultValue, required, typeHandler, key, label, prompt, whenInvalid } = this;
+        const { default: defaultValue, required, typeHandler, key, label, prompt, whenInvalid, example } = this;
         const name = label ?? key;
         const type = typeHandler.type;
         const empty = this.isEmpty(value, context);
@@ -96,7 +99,8 @@ export class Argument<T extends ArgumentType = ArgumentType> implements Omit<Arg
                 return {
                     ok: false,
                     error: ArgumentResultErrorType.Empty,
-                    message: prompt ?? escapeMarkdown(`Ingrese el argumento "${name}" de tipo ${type}.`),
+                    message: (prompt ?? escapeMarkdown(`Ingrese el argumento "${name}" de tipo ${type}.`))
+                        + (example ? `\n\n${example}` : ''),
                 };
             }
 
@@ -114,10 +118,10 @@ export class Argument<T extends ArgumentType = ArgumentType> implements Omit<Arg
             return {
                 ok: false,
                 error: ArgumentResultErrorType.Invalid,
-                message: whenInvalid ?? (isValid
+                message: (whenInvalid ?? (isValid
                     ? escapeMarkdown(isValid)
                     : escapeMarkdown(`Argumento inválido, "${name}" debe ser de tipo ${type}.`)
-                ),
+                )) + (example ? `\n\n${example}` : ''),
             };
         }
 

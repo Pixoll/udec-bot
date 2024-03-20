@@ -31,13 +31,11 @@ const assignmentTypesKeyboard = Markup
 const args = [{
     key: 'date',
     label: 'fecha',
-    prompt: escapeMarkdown('Ingrese la fecha de la evaluación.\n\nEjemplo: `/addcert DD-MM`.', '`'),
+    prompt: escapeMarkdown('Ingrese la fecha de la evaluación.'),
     type: ArgumentType.Date,
     required: true,
     futureDate: true,
-    whenInvalid: escapeMarkdown(
-        'Formato de fecha inválido. Debe ser DD-MM o DD-MM-YYYY.\n\nEjemplo: `/addcert DD-MM`.', '`'
-    ),
+    example: escapeMarkdown('Ejemplo: `/addcert DD-MM`, `/addcert 03-05`.', '`'),
 } as const satisfies ArgumentOptions<ArgumentType.Date>] as const;
 
 type RawArgs = typeof args;

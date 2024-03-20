@@ -29,7 +29,7 @@ const args = [{
     key: 'date',
     label: 'fecha',
     type: ArgumentType.Date,
-    whenInvalid: escapeMarkdown('Formato de fecha inválido. Debe ser DD-MM o DD-MM-YYYY.\n\nEjemplo: `/juna DD-MM`.', '`'),
+    example: escapeMarkdown('Ejemplo: `/juna DD-MM`, `/juna 03-05`.', '`'),
 } as const satisfies ArgumentOptions<ArgumentType.Date>] as const;
 
 type RawArgs = typeof args;

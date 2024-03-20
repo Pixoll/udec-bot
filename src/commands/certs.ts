@@ -31,10 +31,11 @@ const dueDateMarkers = [{
 const args = [{
     key: 'days',
     label: 'días',
-    prompt: escapeMarkdown('Ingrese la cantidad de días en el futuro a mostrar.\n\nEjemplo: `/certs 120`.', '`'),
+    prompt: escapeMarkdown('Ingrese la cantidad de días en el futuro a mostrar.'),
     type: ArgumentType.Number,
     max: 120,
     default: 45 * daysMsConversionFactor,
+    example: escapeMarkdown('Ejemplo: `/certs 120`.', '`'),
     parse(value): number {
         return parseInt(value) * daysMsConversionFactor; // days -> ms
     },

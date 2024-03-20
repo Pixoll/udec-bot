@@ -28,14 +28,15 @@ const romanNumeralsRegex: readonly RegExp[] = ['I', 'II', 'III', 'IV', 'V']
 const args = [{
     key: 'code',
     label: 'código',
-    prompt: escapeMarkdown('Ingrese el código del ramo.\n\nEjemplo: `/addramo 123456`.', '`'),
+    prompt: escapeMarkdown('Ingrese el código del ramo.'),
     type: ArgumentType.Number,
     min: 0,
     required: true,
+    example: escapeMarkdown('Ejemplo: `/addramo 123456`.', '`'),
     // @ts-expect-error: makes no difference
     validate(value, context, argument: Argument) {
         if (value.length !== 6) {
-            return 'El código debe tener 6 dígitos.\n\nEjemplo: `/addramo 123456`.';
+            return 'El código debe tener 6 dígitos.';
         }
         return argument.typeHandler.validate(value, context, argument);
     },
