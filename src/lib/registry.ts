@@ -126,7 +126,9 @@ export class ClientRegistry {
 
             const args = await command.parseArgs(context);
             if (!args.ok) {
-                await context.fancyReply(args.message);
+                await context.fancyReply(args.message, {
+                    'parse_mode': 'MarkdownV2',
+                });
                 next();
                 return;
             }

@@ -9,8 +9,9 @@ import {
     CommandContext,
     TelegramClient,
     dateToString,
+    escapeMarkdown,
 } from '../lib';
-import { escapeMarkdown, stripIndent } from '../util';
+import { stripIndent } from '../util';
 import { URLSearchParams } from 'url';
 
 const menuErrorList = 'alert alert-block alert-danger alert-dismissible error messages';
@@ -28,7 +29,7 @@ const args = [{
     key: 'date',
     label: 'fecha',
     type: ArgumentType.Date,
-    whenInvalid: 'Formato de fecha inválido. Debe ser DD-MM o DD-MM-YYYY.\n\nEjemplo: `/juna DD-MM`.',
+    whenInvalid: escapeMarkdown('Formato de fecha inválido. Debe ser DD-MM o DD-MM-YYYY.\n\nEjemplo: `/juna DD-MM`.', '`'),
 } as const satisfies ArgumentOptions<ArgumentType.Date>] as const;
 
 type RawArgs = typeof args;

@@ -7,8 +7,9 @@ import {
     CommandContext,
     TelegramClient,
     dateToString,
+    escapeMarkdown,
 } from '../lib';
-import { escapeMarkdown, stripIndent } from '../util';
+import { stripIndent } from '../util';
 
 const args = [{
     key: 'amount',

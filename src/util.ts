@@ -30,13 +30,6 @@ export function alphabetically<T>(key?: StringKeysOf<T> | boolean, ascending = t
     };
 }
 
-const markdownCharacters = ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!'];
-const markdownRegex = new RegExp(markdownCharacters.map(c => `\\${c}`).join('|'), 'g');
-
-export function escapeMarkdown(text: string): string {
-    return text.replace(markdownRegex, '\\$&');
-}
-
 export const daysMsConversionFactor = 86_400_000;
 
 export function getDaysUntil(date: Date): number {

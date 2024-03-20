@@ -1,8 +1,8 @@
 import { readFileSync } from 'fs';
 import path from 'path';
 import { TelegramClientType } from '../client';
-import { Command, CommandContext, TelegramClient } from '../lib';
-import { escapeMarkdown, stripIndent } from '../util';
+import { Command, CommandContext, TelegramClient, escapeMarkdown } from '../lib';
+import { stripIndent } from '../util';
 
 const packageJson = JSON.parse(readFileSync(path.join(__dirname, '../../package.json'), 'utf-8')) as PackageJson;
 

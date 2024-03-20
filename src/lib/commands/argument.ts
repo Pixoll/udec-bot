@@ -1,7 +1,7 @@
 import { CommandContext } from './context';
 import { TelegramClient } from '../client';
 import { ArgumentTypeHandler, ArgumentType, ArgumentTypeMap } from '../types';
-import { Awaitable, omit } from '../util';
+import { Awaitable, escapeMarkdown, omit } from '../util';
 
 type ArgumentDefault<T extends ArgumentType> =
     | ArgumentTypeMap[T]
@@ -96,7 +96,7 @@ export class Argument<T extends ArgumentType = ArgumentType> implements Omit<Arg
                 return {
                     ok: false,
                     error: ArgumentResultErrorType.Empty,
-                    message: prompt ?? `Ingrese el argumento "${name}" de tipo ${type}.`,
+                    message: prompt ?? escapeMarkdown(`Ingrese el argumento "${name}" de tipo ${type}.`),
                 };
             }
 
@@ -114,7 +114,8 @@ export class Argument<T extends ArgumentType = ArgumentType> implements Omit<Arg
             return {
                 ok: false,
                 error: ArgumentResultErrorType.Invalid,
-                message: (isValid || whenInvalid) ?? `Argumento inválido, "${name}" debe ser de tipo ${type}.`,
+                message: (isValid || whenInvalid)
+                    ?? escapeMarkdown(`Argumento inválido, "${name}" debe ser de tipo ${type}.`),
             };
         }
 

@@ -10,6 +10,7 @@ import {
     CommandContext,
     TelegramClient,
     capitalize,
+    escapeMarkdown,
 } from '../lib';
 import { ActionType } from '../tables';
 import { stripIndent } from '../util';
@@ -27,13 +28,15 @@ const romanNumeralsRegex: readonly RegExp[] = ['I', 'II', 'III', 'IV', 'V']
 const args = [{
     key: 'code',
     label: 'código',
-    prompt: 'Ingrese el código del ramo.\n\nEjemplo: `/addramo 123456`.',
+    prompt: escapeMarkdown('Ingrese el código del ramo.\n\nEjemplo: `/addramo 123456`.', '`'),
     type: ArgumentType.Number,
     min: 0,
     required: true,
     // @ts-expect-error: makes no difference
     validate(value, context, argument: Argument) {
-        if (value.length !== 6) return 'El código debe tener 6 dígitos.\n\nEjemplo: `/addramo 123456`.';
+        if (value.length !== 6) {
+            return escapeMarkdown('El código debe tener 6 dígitos.\n\nEjemplo: `/addramo 123456`.', '`');
+        }
         return argument.typeHandler.validate(value, context, argument);
     },
 } as const satisfies ArgumentOptions<ArgumentType.Number>] as const;

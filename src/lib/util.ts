@@ -51,3 +51,15 @@ export function dateAtSantiago(date?: string): Date {
     const ms = dateObj.getTime();
     return new Date(ms + santiagoDateOffset);
 }
+
+const markdownCharacters = [
+    '_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!',
+] as const;
+type MarkdownCharacter = typeof markdownCharacters[number];
+const markdownRegex = new RegExp(markdownCharacters.map(c => `\\${c}`).join('|'), 'g');
+
+export function escapeMarkdown(text: string, ...exclude: MarkdownCharacter[]): string {
+    if (exclude.length === 0) return text.replace(markdownRegex, '\\$&');
+    const regex = RegExp(markdownCharacters.filter(c => !exclude.includes(c)).map(c => `\\${c}`).join('|'), 'g');
+    return text.replace(regex, '\\$&');
+}
