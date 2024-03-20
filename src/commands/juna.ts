@@ -29,7 +29,7 @@ const args = [{
     key: 'date',
     label: 'fecha',
     type: ArgumentType.Date,
-    example: escapeMarkdown('Ejemplo: `/juna DD-MM`, `/juna 03-05`.', '`'),
+    examples: ['/addcert DD-MM', '/addcert 03-05'],
 } as const satisfies ArgumentOptions<ArgumentType.Date>] as const;
 
 type RawArgs = typeof args;

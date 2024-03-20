@@ -35,7 +35,7 @@ const args = [{
     type: ArgumentType.Date,
     required: true,
     futureDate: true,
-    example: escapeMarkdown('Ejemplo: `/addcert DD-MM`, `/addcert 03-05`.', '`'),
+    examples: ['/addcert DD-MM', '/addcert 03-05'],
 } as const satisfies ArgumentOptions<ArgumentType.Date>] as const;
 
 type RawArgs = typeof args;

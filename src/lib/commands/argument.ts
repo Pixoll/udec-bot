@@ -19,7 +19,7 @@ export interface ArgumentOptions<T extends ArgumentType = ArgumentType> {
     readonly max?: number | null;
     readonly futureDate?: boolean;
     readonly whenInvalid?: string | null;
-    readonly example?: string | null;
+    readonly examples?: string[];
     parse?(value: string, context: CommandContext, argument: Argument<T>): Awaitable<ArgumentTypeMap[T]>;
     validate?(value: string, context: CommandContext, argument: Argument<T>): Awaitable<boolean | string>;
     isEmpty?(value: string, context: CommandContext, argument: Argument<T>): boolean;
@@ -53,7 +53,7 @@ const defaultOptions = {
     max: null,
     futureDate: false,
     whenInvalid: null,
-    example: null,
+    examples: [],
 } as const satisfies Partial<ArgumentOptions>;
 
 export class Argument<T extends ArgumentType = ArgumentType> implements Omit<ArgumentOptions<T>, 'type'> {
@@ -68,7 +68,7 @@ export class Argument<T extends ArgumentType = ArgumentType> implements Omit<Arg
     public declare readonly max: number | null;
     public declare readonly futureDate: boolean;
     public declare readonly whenInvalid: string | null;
-    public declare readonly example: string | null;
+    public declare readonly examples: string[];
     public readonly parser: NonNullable<ArgumentOptions<T>['parse']> | null;
     public readonly validator: NonNullable<ArgumentOptions<T>['validate']> | null;
     public readonly emptyChecker: NonNullable<ArgumentOptions<T>['isEmpty']> | null;
@@ -90,17 +90,19 @@ export class Argument<T extends ArgumentType = ArgumentType> implements Omit<Arg
     }
 
     public async obtain(value: string, context: CommandContext): Promise<ArgumentResult<T>> {
-        const { default: defaultValue, required, typeHandler, key, label, prompt, whenInvalid, example } = this;
+        const { default: defaultValue, required, typeHandler, key, label, prompt, whenInvalid, examples } = this;
         const name = label ?? key;
         const type = typeHandler.type;
         const empty = this.isEmpty(value, context);
+        const parsedExamples = examples.length > 0
+            ? `\n\nEjemplos: ${examples.map(e => `\`${escapeMarkdown(e)}\``).join(', ')}.`
+            : '';
         if (empty) {
             if (required) {
                 return {
                     ok: false,
                     error: ArgumentResultErrorType.Empty,
-                    message: (prompt ?? escapeMarkdown(`Ingrese el argumento "${name}" de tipo ${type}.`))
-                        + (example ? `\n\n${example}` : ''),
+                    message: (prompt ?? escapeMarkdown(`Ingrese el argumento "${name}" de tipo ${type}.`)) + parsedExamples,
                 };
             }
 
@@ -121,7 +123,7 @@ export class Argument<T extends ArgumentType = ArgumentType> implements Omit<Arg
                 message: (whenInvalid ?? (isValid
                     ? escapeMarkdown(isValid)
                     : escapeMarkdown(`Argumento inválido, "${name}" debe ser de tipo ${type}.`)
-                )) + (example ? `\n\n${example}` : ''),
+                )) + parsedExamples,
             };
         }
 

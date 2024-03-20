@@ -32,7 +32,7 @@ const args = [{
     type: ArgumentType.Number,
     min: 0,
     required: true,
-    example: escapeMarkdown('Ejemplo: `/addramo 123456`.', '`'),
+    examples: ['/addramo 123456'],
     // @ts-expect-error: makes no difference
     validate(value, context, argument: Argument) {
         if (value.length !== 6) {

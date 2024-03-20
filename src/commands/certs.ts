@@ -35,7 +35,7 @@ const args = [{
     type: ArgumentType.Number,
     max: 120,
     default: 45 * daysMsConversionFactor,
-    example: escapeMarkdown('Ejemplo: `/certs 120`.', '`'),
+    examples: ['/certs 120'],
     parse(value): number {
         return parseInt(value) * daysMsConversionFactor; // days -> ms
     },
