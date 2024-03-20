@@ -162,10 +162,8 @@ export default class AddCertCommand extends Command<RawArgs> {
 
     private async subjectListener(ctx: MessageContext, next: () => Promise<void>): Promise<void> {
         const context = parseContext(ctx, this.client as unknown as TelegramClient);
-        if (!this.client.activeMenus.has(context.session)
-            && this.subjects.has(context.session)
-            && this.assignments.has(context.session)
-        ) {
+        const activeMenu = this.client.activeMenus.get(context.session);
+        if (activeMenu !== this.name || !this.subjects.has(context.session) || !this.assignments.has(context.session)) {
             next();
             return;
         }
@@ -184,7 +182,8 @@ export default class AddCertCommand extends Command<RawArgs> {
 
     private async assignmentTypeListener(ctx: MessageContext, next: () => Promise<void>): Promise<void> {
         const context = parseContext(ctx, this.client as unknown as TelegramClient);
-        if (!this.client.activeMenus.has(context.session) && this.assignments.has(context.session)) {
+        const activeMenu = this.client.activeMenus.get(context.session);
+        if (activeMenu !== this.name || !this.assignments.has(context.session)) {
             next();
             return;
         }

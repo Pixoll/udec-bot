@@ -29,12 +29,14 @@ export function parseContext(ctx: MessageContext, client: TelegramClient): Comma
         session: `${ctx.chat.id}:${ctx.from.id}`,
     });
 
-    Object.defineProperty(context.from, 'full_username', {
-        get(this: MessageContext['from']): string {
-            return this.username
-                ?? [this.first_name, this.last_name].filter(n => n).join(', ');
-        },
-    });
+    if (!('full_username' in context.from)) {
+        Object.defineProperty(context.from, 'full_username', {
+            get(this: MessageContext['from']): string {
+                return this.username
+                    ?? [this.first_name, this.last_name].filter(n => n).join(', ');
+            },
+        });
+    }
 
     context.fancyReply = fancyReply.bind(context);
     return context;

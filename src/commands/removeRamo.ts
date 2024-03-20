@@ -73,6 +73,8 @@ export default class RemoveRamoCommand extends Command<[]> {
             return;
         }
 
+        this.waitingConfirmation.set(context.session, subject);
+
         await context.fancyReply(stripIndent(`
         *¿Estás seguro que quieres eliminar este ramo?*
 
@@ -80,6 +82,7 @@ export default class RemoveRamoCommand extends Command<[]> {
         *Código*: ${subject.code}
         *Créditos*: ${subject.credits}
         `), {
+            'parse_mode': 'MarkdownV2',
             'reply_markup': confirmationKeyboard,
         });
     }
@@ -121,7 +124,8 @@ export default class RemoveRamoCommand extends Command<[]> {
 
     private async subjectListener(ctx: MessageContext, next: () => Promise<void>): Promise<void> {
         const context = parseContext(ctx, this.client as unknown as TelegramClient);
-        if (!this.client.activeMenus.has(context.session) || this.waitingConfirmation.has(context.session)) {
+        const activeMenu = this.client.activeMenus.get(context.session);
+        if (activeMenu !== this.name || this.waitingConfirmation.has(context.session)) {
             next();
             return;
         }
@@ -138,7 +142,8 @@ export default class RemoveRamoCommand extends Command<[]> {
 
     private async confirmationListener(ctx: MessageContext, next: () => Promise<void>): Promise<void> {
         const context = parseContext(ctx, this.client as unknown as TelegramClient);
-        if (!this.client.activeMenus.has(context.session) || this.subjects.has(context.session)) {
+        const activeMenu = this.client.activeMenus.get(context.session);
+        if (activeMenu !== this.name || this.subjects.has(context.session)) {
             next();
             return;
         }

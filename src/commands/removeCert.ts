@@ -102,13 +102,16 @@ export default class RemoveCertCommand extends Command<[]> {
             return;
         }
 
+        this.waitingConfirmation.set(context.session, assignment);
+
         await context.fancyReply(stripIndent(`
         *¿Estás seguro que quieres eliminar esta evaluación?*
 
         *Tipo*: ${capitalize(assignment.type)}
         *Ramo*: \\[${assignment.subject_code}\\] ${assignment.subject_name}
-        *Fecha*: ${dateToString(assignment.date_due)} (${daysUntilToString(getDaysUntil(assignment.date_due))})
+        *Fecha*: ${dateToString(assignment.date_due)} \\(${daysUntilToString(getDaysUntil(assignment.date_due))}\\)
         `), {
+            'parse_mode': 'MarkdownV2',
             'reply_markup': confirmationKeyboard,
         });
     }
@@ -144,7 +147,8 @@ export default class RemoveCertCommand extends Command<[]> {
 
     private async assignmentListener(ctx: MessageContext, next: () => Promise<void>): Promise<void> {
         const context = parseContext(ctx, this.client as unknown as TelegramClient);
-        if (!this.client.activeMenus.has(context.session) || this.waitingConfirmation.has(context.session)) {
+        const activeMenu = this.client.activeMenus.get(context.session);
+        if (activeMenu !== this.name || this.waitingConfirmation.has(context.session)) {
             next();
             return;
         }
@@ -161,7 +165,8 @@ export default class RemoveCertCommand extends Command<[]> {
 
     private async confirmationListener(ctx: MessageContext, next: () => Promise<void>): Promise<void> {
         const context = parseContext(ctx, this.client as unknown as TelegramClient);
-        if (!this.client.activeMenus.has(context.session) || this.assignments.has(context.session)) {
+        const activeMenu = this.client.activeMenus.get(context.session);
+        if (activeMenu !== this.name || this.assignments.has(context.session)) {
             next();
             return;
         }
