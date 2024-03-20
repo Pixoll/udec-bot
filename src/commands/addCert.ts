@@ -34,7 +34,7 @@ const args = [{
     type: ArgumentType.Date,
     required: true,
     futureDate: true,
-    whenInvalid: 'Formato de fecha inválido. Debe ser DD-MM o DD-MM-YYYY.',
+    whenInvalid: 'Formato de fecha inválido. Debe ser DD-MM o DD-MM-YYYY.\n\nEjemplo: `/addcert DD-MM`.',
 } as const satisfies ArgumentOptions<ArgumentType.Date>] as const;
 
 type RawArgs = typeof args;
