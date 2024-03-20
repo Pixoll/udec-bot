@@ -2,6 +2,7 @@ import axios from 'axios';
 import parseHtml from 'node-html-parser';
 import { TelegramClientType } from '../client';
 import {
+    Argument,
     ArgumentOptions,
     ArgumentOptionsToResult,
     ArgumentType,
@@ -26,10 +27,15 @@ const romanNumeralsRegex: readonly RegExp[] = ['I', 'II', 'III', 'IV', 'V']
 const args = [{
     key: 'code',
     label: 'código',
-    description: 'Código del ramo.',
+    prompt: 'Ingrese el código del ramo.\n\nEjemplo: /addramo 123456',
     type: ArgumentType.Number,
     min: 0,
     required: true,
+    // @ts-expect-error: makes no difference
+    validate(value, context, argument: Argument) {
+        if (value.length !== 6) return 'El código debe tener 6 dígitos.';
+        return argument.typeHandler.validate(value, context, argument);
+    },
 } as const satisfies ArgumentOptions<ArgumentType.Number>] as const;
 
 type RawArgs = typeof args;

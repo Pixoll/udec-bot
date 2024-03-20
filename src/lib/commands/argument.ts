@@ -10,7 +10,7 @@ type ArgumentDefault<T extends ArgumentType> =
 export interface ArgumentOptions<T extends ArgumentType = ArgumentType> {
     readonly key: string;
     readonly label?: string | null;
-    readonly description: string;
+    readonly prompt?: string | null;
     readonly type: T;
     readonly required?: boolean;
     readonly default?: ArgumentDefault<T> | null;
@@ -18,6 +18,7 @@ export interface ArgumentOptions<T extends ArgumentType = ArgumentType> {
     readonly min?: number | null;
     readonly max?: number | null;
     readonly futureDate?: boolean;
+    readonly whenInvalid?: string | null;
     parse?(value: string, context: CommandContext, argument: Argument<T>): Awaitable<ArgumentTypeMap[T]>;
     validate?(value: string, context: CommandContext, argument: Argument<T>): Awaitable<boolean | string>;
     isEmpty?(value: string, context: CommandContext, argument: Argument<T>): boolean;
@@ -43,18 +44,20 @@ export interface ArgumentResultError {
 
 const defaultOptions = {
     label: null,
+    prompt: null,
     required: false,
     default: null,
     choices: null,
     min: null,
     max: null,
     futureDate: false,
+    whenInvalid: null,
 } as const satisfies Partial<ArgumentOptions>;
 
 export class Argument<T extends ArgumentType = ArgumentType> implements Omit<ArgumentOptions<T>, 'type'> {
     public declare readonly key: string;
     public declare readonly label: string | null;
-    public declare readonly description: string;
+    public declare readonly prompt: string | null;
     public readonly typeHandler: ArgumentTypeHandler<T>;
     public declare readonly required: boolean;
     public declare readonly default: ArgumentDefault<T> | null;
@@ -62,6 +65,7 @@ export class Argument<T extends ArgumentType = ArgumentType> implements Omit<Arg
     public declare readonly min: number | null;
     public declare readonly max: number | null;
     public declare readonly futureDate: boolean;
+    public declare readonly whenInvalid: string | null;
     public readonly parser: NonNullable<ArgumentOptions<T>['parse']> | null;
     public readonly validator: NonNullable<ArgumentOptions<T>['validate']> | null;
     public readonly emptyChecker: NonNullable<ArgumentOptions<T>['isEmpty']> | null;
@@ -83,7 +87,7 @@ export class Argument<T extends ArgumentType = ArgumentType> implements Omit<Arg
     }
 
     public async obtain(value: string, context: CommandContext): Promise<ArgumentResult<T>> {
-        const { default: defaultValue, required, typeHandler, key, label, description } = this;
+        const { default: defaultValue, required, typeHandler, key, label, prompt, whenInvalid } = this;
         const name = label ?? key;
         const type = typeHandler.type;
         const empty = this.isEmpty(value, context);
@@ -92,7 +96,7 @@ export class Argument<T extends ArgumentType = ArgumentType> implements Omit<Arg
                 return {
                     ok: false,
                     error: ArgumentResultErrorType.Empty,
-                    message: `Especifique argumento "${name}" (${description}) de tipo ${type}`,
+                    message: prompt ?? `Ingrese el argumento "${name}" de tipo ${type}.`,
                 };
             }
 
@@ -110,7 +114,7 @@ export class Argument<T extends ArgumentType = ArgumentType> implements Omit<Arg
             return {
                 ok: false,
                 error: ArgumentResultErrorType.Invalid,
-                message: isValid || `Argumento inválido, "${name}" (${description}) debe ser de tipo ${type}`,
+                message: (isValid || whenInvalid) ?? `Argumento inválido, "${name}" debe ser de tipo ${type}.`,
             };
         }
 

@@ -13,7 +13,7 @@ import { escapeMarkdown, stripIndent } from '../util';
 const args = [{
     key: 'amount',
     label: 'cantidad',
-    description: 'Número de acciones a mostrar.',
+    prompt: 'Número de acciones a mostrar.',
     type: ArgumentType.Number,
     min: 1,
 }] as const satisfies ArgumentOptions[];

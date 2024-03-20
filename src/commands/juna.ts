@@ -27,8 +27,8 @@ const menusCache: Record<string, string> = {};
 const args = [{
     key: 'date',
     label: 'fecha',
-    description: 'La fecha del menú a buscar.',
     type: ArgumentType.Date,
+    whenInvalid: 'Formato de fecha inválido. Debe ser DD-MM o DD-MM-YYYY.',
 } as const satisfies ArgumentOptions<ArgumentType.Date>] as const;
 
 type RawArgs = typeof args;

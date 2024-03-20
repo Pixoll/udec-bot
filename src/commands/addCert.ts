@@ -30,10 +30,11 @@ const assignmentTypesKeyboard = Markup
 const args = [{
     key: 'date',
     label: 'fecha',
-    description: 'La fecha de la evaluación.',
+    prompt: 'Ingrese la fecha de la evaluación.\n\nEjemplo: `/addcert DD-MM`.',
     type: ArgumentType.Date,
     required: true,
     futureDate: true,
+    whenInvalid: 'Formato de fecha inválido. Debe ser DD-MM o DD-MM-YYYY.',
 } as const satisfies ArgumentOptions<ArgumentType.Date>] as const;
 
 type RawArgs = typeof args;

@@ -30,7 +30,7 @@ const dueDateMarkers = [{
 const args = [{
     key: 'days',
     label: 'días',
-    description: 'Cantidad de días en el futuro a mostrar.',
+    prompt: 'Cantidad de días en el futuro a mostrar.',
     type: ArgumentType.Number,
     max: 120,
     default: 3_888_000_000, // 45 days
