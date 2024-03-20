@@ -7,6 +7,7 @@ import {
     CommandContext,
     TelegramClient,
     capitalize,
+    escapeMarkdown,
 } from '../lib';
 import { daysMsConversionFactor, daysUntilToString, getDaysUntil, stripIndent } from '../util';
 
@@ -30,10 +31,10 @@ const dueDateMarkers = [{
 const args = [{
     key: 'days',
     label: 'días',
-    prompt: 'Cantidad de días en el futuro a mostrar.',
+    prompt: escapeMarkdown('Ingrese la cantidad de días en el futuro a mostrar.\n\nEjemplo: `/certs 120`.', '`'),
     type: ArgumentType.Number,
     max: 120,
-    default: 3_888_000_000, // 45 days
+    default: 45 * daysMsConversionFactor,
     parse(value): number {
         return parseInt(value) * daysMsConversionFactor; // days -> ms
     },
