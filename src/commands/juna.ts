@@ -1,3 +1,5 @@
+import axios from 'axios';
+import parseHtml, { HTMLElement } from 'node-html-parser';
 import { TelegramClientType } from '../client';
 import {
     ArgumentOptions,
@@ -8,17 +10,16 @@ import {
     TelegramClient,
     dateToString,
 } from '../lib';
-import { ElementHandle, Page } from 'puppeteer';
-import { openTab } from '../puppeteer';
 import { escapeMarkdown, stripIndent } from '../util';
+import { URLSearchParams } from 'url';
+
+const menuErrorList = 'alert alert-block alert-danger alert-dismissible error messages';
 
 const menuUrl = 'https://dise.udec.cl/node/171';
 const querySelectors = {
-    error: 'div > section > div.alert.alert-block.alert-dismissible.alert-danger.messages.error',
-    menu: '#node-171 > div > div > div > table > tbody',
-    selectDay: 'form#form1 > select#dia',
-    selectMonth: 'form#form1 > select#mes',
-    viewMenuAtDate: 'form#form1 > input',
+    menuId: 'node-171',
+    menuTable: 'div > div > div > table',
+    error: 'div > section > div',
 } as const;
 
 const menusCache: Record<string, string> = {};
@@ -55,19 +56,10 @@ export default class TestCommand extends Command<RawArgs> {
             return;
         }
 
-        const menuTab = await openTab(menuUrl);
         const [day, month] = dateString.split('/').slice(0, 2).map(n => +n);
-        const loaded = await loadMenuAtDate(menuTab, day, month);
-        if (!loaded) {
-            await context.fancyReply('No se pudo encontrar el menú Junaeb. Puede es que hoy no estén sirviendo.');
-            await menuTab.close();
-            return;
-        }
-
-        const menuTable = await getMenuTable(menuTab);
+        const menuTable = await getMenuAtDate(day, month);
         if (!menuTable) {
             await context.fancyReply('No se pudo encontrar el menú Junaeb. Puede que hoy no estén sirviendo.');
-            await menuTab.close();
             return;
         }
 
@@ -82,44 +74,37 @@ export default class TestCommand extends Command<RawArgs> {
         await context.fancyReply(menu, {
             'parse_mode': 'MarkdownV2',
         });
-        await menuTab.close();
     }
 }
 
-async function getMenuTable(tab: Page): Promise<ElementHandle<HTMLTableSectionElement> | null> {
-    const error = await tab.waitForSelector(querySelectors.error, { timeout: 2_000 }).catch(() => null);
-    if (error) return null;
-
-    const menuTable = await tab.waitForSelector(querySelectors.menu).catch(() => null);
-    return menuTable;
-}
-
-async function parseMenu(menuTable: ElementHandle<HTMLTableSectionElement>): Promise<string> {
-    const parsedMenu = await menuTable.evaluate(menu =>
-        [...menu.children].map(child => child.textContent?.trim().replace(/\s+/g, ' ') ?? '')
-    );
-    const menu = parsedMenu.slice(1, parsedMenu.indexOf(''))
+async function parseMenu(menuTable: HTMLElement): Promise<string> {
+    return [...menuTable.childNodes]
+        .filter(n => n.nodeType === 1)
+        .map(c => c.innerText?.trim().replace(/\s+/g, ' '))
+        .slice(1, 6)
         .flatMap(menu => {
             menu = menu.replace(/\s*:\s*/, ': ');
             const name = menu.slice(0, menu.indexOf(':'));
             const dish = menu.slice(menu.indexOf(':') + 2);
             return [`\\- *${name}*:`, `_${escapeMarkdown(dish)}_`, ''];
-        });
-    return menu.join('\n');
+        })
+        .join('\n')
+        .trimEnd();
 }
 
-async function loadMenuAtDate(tab: Page, day: number, month: number): Promise<boolean> {
-    const daySelector = await tab.waitForSelector(querySelectors.selectDay).catch(() => null);
-    if (!daySelector) return false;
-    const monthSelector = await tab.waitForSelector(querySelectors.selectMonth).catch(() => null);
-    if (!monthSelector) return false;
-    const submitButton = await tab.waitForSelector(querySelectors.viewMenuAtDate).catch(() => null);
-    if (!submitButton) return false;
+async function getMenuAtDate(day: number, month: number): Promise<HTMLElement | null> {
+    const response = await axios.post(menuUrl, new URLSearchParams({
+        dia: day.toString(),
+        mes: month.toString(),
+        Submit: 'Ver Menú',
+    }).toString());
 
-    await daySelector.select(day.toString());
-    await monthSelector.select(month.toString());
-    await submitButton.click();
-    const reloaded = await tab.waitForNavigation();
+    const html = parseHtml(response.data);
+    const error = html.querySelectorAll(querySelectors.error).find(div =>
+        div.classList.value.sort().join(' ') === menuErrorList
+    );
+    if (error) return null;
 
-    return !!reloaded;
+    const table = html.getElementById(querySelectors.menuId)?.querySelector(querySelectors.menuTable);
+    return table ?? null;
 }
