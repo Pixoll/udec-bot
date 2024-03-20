@@ -114,7 +114,7 @@ export class Argument<T extends ArgumentType = ArgumentType> implements Omit<Arg
             return {
                 ok: false,
                 error: ArgumentResultErrorType.Invalid,
-                message: (isValid || whenInvalid)
+                message: (isValid ? escapeMarkdown(isValid) : whenInvalid)
                     ?? escapeMarkdown(`Argumento inválido, "${name}" debe ser de tipo ${type}.`),
             };
         }
