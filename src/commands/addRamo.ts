@@ -35,7 +35,7 @@ const args = [{
     // @ts-expect-error: makes no difference
     validate(value, context, argument: Argument) {
         if (value.length !== 6) {
-            return escapeMarkdown('El código debe tener 6 dígitos.\n\nEjemplo: `/addramo 123456`.', '`');
+            return 'El código debe tener 6 dígitos.\n\nEjemplo: `/addramo 123456`.';
         }
         return argument.typeHandler.validate(value, context, argument);
     },
