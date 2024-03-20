@@ -85,7 +85,7 @@ export default class CertsCommand extends Command<RawArgs> {
             .map(a => {
                 const daysUntil = getDaysUntil(a.date_due);
                 const marker = dueDateMarkers.find(m => daysUntil <= m.threshold) as DueDateMarker;
-                return `• ${marker.emoji} _${daysUntilToString(daysUntil)} \\(${capitalize(a.type)}\\)_\n`
+                return `• ${marker.emoji} *${capitalize(a.type)}* \\- _${daysUntilToString(daysUntil)}_\n`
                     + `*\\[${a.subject_code}\\] ${a.subject_name}*`;
             })
             .join('\n\n');
