@@ -95,7 +95,7 @@ export class Argument<T extends ArgumentType = ArgumentType> implements Omit<Arg
         const type = typeHandler.type;
         const empty = this.isEmpty(value, context);
         const parsedExamples = examples.length > 0
-            ? `\n\nEjemplos: ${examples.map(e => `\`${escapeMarkdown(e)}\``).join(', ')}.`
+            ? escapeMarkdown(`\n\nEjemplos: ${examples.map(e => `\`${e}\``).join(', ')}.`, '`')
             : '';
         if (empty) {
             if (required) {

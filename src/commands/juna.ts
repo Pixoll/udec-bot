@@ -29,7 +29,7 @@ const args = [{
     key: 'date',
     label: 'fecha',
     type: ArgumentType.Date,
-    examples: ['/addcert DD-MM', '/addcert 03-05'],
+    examples: ['/juna DD-MM', '/juna 03-05'],
 } as const satisfies ArgumentOptions<ArgumentType.Date>] as const;
 
 type RawArgs = typeof args;
