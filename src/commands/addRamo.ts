@@ -1,4 +1,5 @@
-import { Page } from 'puppeteer';
+import axios from 'axios';
+import parseHtml from 'node-html-parser';
 import { TelegramClientType } from '../client';
 import {
     ArgumentOptions,
@@ -9,14 +10,14 @@ import {
     TelegramClient,
     capitalize,
 } from '../lib';
-import { openTab } from '../puppeteer';
-import { stripIndent } from '../util';
 import { ActionType } from '../tables';
+import { stripIndent } from '../util';
 
 const subjectInfoBaseUrl = 'https://alumnos.udec.cl/?q=node/25&codasignatura=';
 const querySelectors = {
-    name: '#node-25 > div > div > div > div:nth-child(1)',
-    listWithCredits: '#node-25 > div > div > div > ul',
+    infoId: 'node-25',
+    name: 'div > div > div > div',
+    listWithCredits: 'div > div > div > ul',
 } as const;
 
 const romanNumeralsRegex: readonly RegExp[] = ['I', 'II', 'III', 'IV', 'V']
@@ -33,6 +34,11 @@ const args = [{
 
 type RawArgs = typeof args;
 type ArgsResult = ArgumentOptionsToResult<RawArgs>;
+
+interface SubjectInfo {
+    readonly name: string;
+    readonly credits: number;
+}
 
 export default class AddRamoCommand extends Command<RawArgs> {
     // @ts-expect-error: type override
@@ -73,40 +79,29 @@ export default class AddRamoCommand extends Command<RawArgs> {
             return;
         }
 
-        const tab = await openTab(subjectInfoBaseUrl + code);
-        const name = await getSubjectName(tab, code);
-        if (!name) {
-            await context.fancyReply(`No se pudo encontrar el ramo con código ${code}.`);
-            await tab.close();
-            return;
-        }
-
-        const credits = await getSubjectCredits(tab);
-        if (!credits) {
-            await context.fancyReply('No se pudo encontrar los créditos del ramo.');
-            await tab.close();
+        const subjectInfo = await getSubjectInfo(code);
+        if (!subjectInfo) {
+            await context.fancyReply('No se pudo encontrar información sobre el ramo.');
             return;
         }
 
         const inserted = await this.client.db.insert('udec_subjects', builder => builder.values({
             code,
-            credits,
-            name,
+            ...subjectInfo,
             'chat_id': chatId,
         }));
         if (!inserted.ok) {
             await context.fancyReply('Hubo un error al añadir el ramo.');
             await this.client.catchError(inserted.error, context);
-            await tab.close();
             return;
         }
 
         await context.fancyReply(stripIndent(`
         ¡Ramo registrado\\! 🎉
 
-        *Nombre*: ${name}
+        *Nombre*: ${subjectInfo.name}
         *Código*: ${code}
-        *Créditos*: ${credits}
+        *Créditos*: ${subjectInfo.credits}
         `), {
             'parse_mode': 'MarkdownV2',
         });
@@ -117,23 +112,31 @@ export default class AddRamoCommand extends Command<RawArgs> {
             type: ActionType.AddSubject,
             timestamp: new Date(),
         }));
-        await tab.close();
     }
 }
 
-async function getSubjectName(tab: Page, code: number): Promise<string | null> {
-    const nameElement = await tab.waitForSelector(querySelectors.name, {
-        timeout: 2_000,
-    }).catch(() => null);
-    if (!nameElement) return null;
+async function getSubjectInfo(code: number): Promise<SubjectInfo | null> {
+    const response = await axios.get(subjectInfoBaseUrl + code);
+    if (response.status < 200 || response.status >= 300) return null;
 
-    const name = await nameElement.evaluate((div, c) => {
-        const text = div.textContent as string;
-        const codeRegex = new RegExp(` - ${c}$`);
-        return text.replace(codeRegex, '');
-    }, code);
+    const html = parseHtml(response.data);
+    const infoSection = html.getElementById(querySelectors.infoId);
+    if (!infoSection) return null;
 
-    return parseSubjectName(name);
+    const name = infoSection.querySelector(querySelectors.name)?.innerText
+        .replace(new RegExp(` - ${code}$`), '');
+    if (!name) return null;
+
+    const credits = [...(infoSection.querySelector(querySelectors.listWithCredits)?.childNodes ?? [])]
+        .find(li => /^cr[eé]dito/.test(li.innerText.toLowerCase()))?.innerText
+        .trim()
+        .match(/\d+$/)?.[0];
+    if (!credits) return null;
+
+    return {
+        name: parseSubjectName(name),
+        credits: +credits,
+    };
 }
 
 function parseSubjectName(name: string): string {
@@ -148,22 +151,4 @@ function parseSubjectName(name: string): string {
             return capitalize(w, restLower);
         })
         .join(' ');
-}
-
-async function getSubjectCredits(tab: Page): Promise<number | null> {
-    const listWithCredits = await tab.waitForSelector(querySelectors.listWithCredits, {
-        timeout: 2_000,
-    }).catch(() => null);
-    if (!listWithCredits) return null;
-
-    const credits = await listWithCredits.evaluate(ul => {
-        const creditsElement = [...ul.children].find((li): li is HTMLLIElement => {
-            const text = (li.textContent as string).toLowerCase();
-            return /^cr[eé]dito/.test(text);
-        });
-        const credits = creditsElement?.innerText.trim().match(/\d+$/)?.[0];
-        return credits ? +credits : null;
-    });
-
-    return credits;
 }

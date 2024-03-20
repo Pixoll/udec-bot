@@ -59,7 +59,8 @@ export default class TestCommand extends Command<RawArgs> {
         const [day, month] = dateString.split('/').slice(0, 2).map(n => +n);
         const menuTable = await getMenuAtDate(day, month);
         if (!menuTable) {
-            await context.fancyReply('No se pudo encontrar el menú Junaeb. Puede que hoy no estén sirviendo.');
+            const day = date ? 'ese día' : 'hoy';
+            await context.fancyReply(`No se pudo encontrar el menú Junaeb. Puede que no estén sirviendo ${day}.`);
             return;
         }
 
@@ -98,6 +99,7 @@ async function getMenuAtDate(day: number, month: number): Promise<HTMLElement | 
         mes: month.toString(),
         Submit: 'Ver Menú',
     }).toString());
+    if (response.status < 200 || response.status >= 300) return null;
 
     const html = parseHtml(response.data);
     const error = html.querySelectorAll(querySelectors.error).find(div =>

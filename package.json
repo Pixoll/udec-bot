@@ -19,7 +19,6 @@
     "dotenv": "^16.4.5",
     "mysql2": "^3.9.2",
     "node-html-parser": "^6.1.12",
-    "puppeteer": "^22.4.1",
     "require-all": "^3.0.0",
     "telegraf": "^4.16.3"
   },
