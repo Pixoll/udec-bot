@@ -52,12 +52,19 @@ export type ColumnDescriptor = {
     readonly size: number;
 } | EnumColumnDescriptor);
 
-export interface TableDescriptor {
-    readonly name: string;
-    readonly columns: readonly ColumnDescriptor[] | ColumnDescriptor[];
+export interface ForeignKey<L extends number = number> {
+    readonly keys: readonly string[] & { length: L };
+    readonly references: string;
+    readonly referenceKeys: readonly string[] & { length: L };
 }
 
-export type TablesArray = readonly TableDescriptor[] | TableDescriptor[];
+export interface TableDescriptor {
+    readonly name: string;
+    readonly columns: readonly ColumnDescriptor[];
+    readonly foreignKeys?: readonly ForeignKey[];
+}
+
+export type TablesArray = readonly TableDescriptor[];
 
 export interface DatabaseOptions<Tables extends TablesArray> {
     readonly host?: string;
@@ -164,15 +171,10 @@ export class Database<Tables extends TablesArray> implements DatabaseOptions<Tab
         if (!r2) return;
 
         for (const table of this.tables) {
-            const exists = await this.checkTableExists(table.name);
-            if (exists) {
-                await this.applyTableStructure(table);
-                continue;
-            }
+            const success = await this.createTableIfNotExists(table);
+            if (!success) return;
 
-            const tableCreationQuery = this.getTableCreationQuery(table);
-            const rt = await this.query(tableCreationQuery);
-            if (!rt) return;
+            await this.checkTableStructureIntegrity(table);
         }
 
         Logger.info('Database is ready.');
@@ -249,12 +251,7 @@ export class Database<Tables extends TablesArray> implements DatabaseOptions<Tab
         return await this.query(sqlBuilder.toString());
     }
 
-    private async checkTableExists(name: string): Promise<boolean> {
-        const query = await this.query(`SHOW TABLES LIKE "${name}";`);
-        return !query.ok || (Array.isArray(query.result) && query.result[0].length > 0);
-    }
-
-    private async applyTableStructure(table: TableDescriptor): Promise<void> {
+    private async checkTableStructureIntegrity(table: TableDescriptor): Promise<void> {
         const query = await this.query<[DescribeTableResult[]]>(`DESCRIBE ${table.name};`);
         if (!query.ok) return;
         const currentStructure = query.result[0];
@@ -264,18 +261,27 @@ export class Database<Tables extends TablesArray> implements DatabaseOptions<Tab
         Logger.error('Non-matching structures:', table.columns, '=>', currentStructure);
     }
 
-    private getTableCreationQuery(table: TableDescriptor): string {
-        return `CREATE TABLE ${this.name}.${table.name} (`
+    private async createTableIfNotExists(table: TableDescriptor): Promise<boolean> {
+        const primaryKeys = table.columns.filter(c => c.primaryKey).map(c => c.name);
+        const foreignKeys = table.foreignKeys?.map(fk =>
+            `FOREIGN KEY (${fk.keys.join(', ')}) REFERENCES ${fk.references}(${fk.referenceKeys.join(', ')})`
+        ).join(', ');
+
+        const createTable = `CREATE TABLE IF NOT EXISTS ${this.name}.${table.name} (`
             + table.columns.map(column =>
                 `${column.name} ${column.type}`
                 + ('size' in column ? `(${column.size})` : '')
                 + ('values' in column ? `(${column.values.map(n => `"${n}"`).join(', ')})` : '')
-                + (column.primaryKey ? ' PRIMARY KEY' : '')
                 + (column.unique ? ' UNIQUE' : '')
                 + (column.nonNull ? ' NOT NULL' : '')
                 + (column.autoIncrement ? ' AUTO_INCREMENT' : '')
             ).join(', ')
+            + (primaryKeys.length > 0 ? `, PRIMARY KEY (${primaryKeys.join(', ')})` : '')
+            + (foreignKeys ? `, ${foreignKeys}` : '')
             + ');';
+
+        const result = await this.query(createTable);
+        return result.ok;
     }
 }
 
@@ -294,9 +300,8 @@ function validateTableStructure(
 
         if (currentColumn.Default !== null) return false;
         if (xor(!!column.autoIncrement, currentColumn.Extra === 'auto_increment')) return false;
-        if (xor(!!column.primaryKey, currentColumn.Key === 'PRI')) return false;
+        if (xor(!!(column.unique || column.primaryKey), ['PRI', 'UNI'].includes(currentColumn.Key))) return false;
         if (xor(!!column.nonNull, currentColumn.Null === 'NO')) return false;
-        if (xor(!!column.unique, ['PRI', 'UNI'].includes(currentColumn.Key))) return false;
         if (getRawColumnType(column) !== currentColumn.Type) return false;
     }
 

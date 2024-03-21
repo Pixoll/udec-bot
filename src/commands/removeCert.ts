@@ -13,6 +13,7 @@ import {
 } from '../lib';
 import { daysUntilToString, getDaysUntil, removeKeyboard, stripIndent } from '../util';
 import { ActionType, AssignmentObject, AssignmentType } from '../tables';
+import { getSubjectName } from './certs';
 
 const assignmentTypes = Object.values(AssignmentType).map(v => capitalize(v));
 const assignmentStringRegex = new RegExp(
@@ -104,11 +105,13 @@ export default class RemoveCertCommand extends Command<[]> {
 
         this.waitingConfirmation.set(context.session, assignment);
 
+        const subjectName = await getSubjectName(this.client.db, assignment.subject_code, context.chat.id);
+
         await context.fancyReply(stripIndent(`
         *¿Estás seguro que quieres eliminar esta evaluación?*
 
         *Tipo*: ${capitalize(assignment.type)}
-        *Ramo*: \\[${assignment.subject_code}\\] ${assignment.subject_name}
+        *Ramo*: \\[${assignment.subject_code}\\] ${subjectName ?? 'ERROR'}
         *Fecha*: ${dateToString(assignment.date_due)} \\(${daysUntilToString(getDaysUntil(assignment.date_due))}\\)
         `), {
             'parse_mode': 'MarkdownV2',
