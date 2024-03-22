@@ -10,7 +10,6 @@ import {
     TelegramClient,
     capitalize,
     dateToString,
-    escapeMarkdown,
     parseContext,
 } from '../lib';
 import { ActionType, AssignmentObject, AssignmentType, SubjectObject } from '../tables';
@@ -31,7 +30,7 @@ const assignmentTypesKeyboard = Markup
 const args = [{
     key: 'date',
     label: 'fecha',
-    prompt: escapeMarkdown('Ingrese la fecha de la evaluación.'),
+    prompt: 'Ingrese la fecha de la evaluación.',
     type: ArgumentType.Date,
     required: true,
     futureDate: true,

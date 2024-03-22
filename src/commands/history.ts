@@ -14,7 +14,7 @@ import { stripIndent } from '../util';
 const args = [{
     key: 'amount',
     label: 'cantidad',
-    prompt: 'Número de acciones a mostrar.',
+    prompt: 'Ingrese la cantidad de acciones a mostrar.',
     type: ArgumentType.Number,
     min: 1,
 }] as const satisfies ArgumentOptions[];

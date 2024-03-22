@@ -10,7 +10,6 @@ import {
     CommandContext,
     TelegramClient,
     capitalize,
-    escapeMarkdown,
 } from '../lib';
 import { ActionType } from '../tables';
 import { stripIndent } from '../util';
@@ -28,7 +27,7 @@ const romanNumeralsRegex: readonly RegExp[] = ['I', 'II', 'III', 'IV', 'V']
 const args = [{
     key: 'code',
     label: 'código',
-    prompt: escapeMarkdown('Ingrese el código del ramo.'),
+    prompt: 'Ingrese el código del ramo.',
     type: ArgumentType.Number,
     min: 0,
     required: true,

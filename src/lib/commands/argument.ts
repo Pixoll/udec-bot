@@ -102,7 +102,7 @@ export class Argument<T extends ArgumentType = ArgumentType> implements Omit<Arg
                 return {
                     ok: false,
                     error: ArgumentResultErrorType.Empty,
-                    message: (prompt ?? escapeMarkdown(`Ingrese el argumento "${name}" de tipo ${type}.`)) + parsedExamples,
+                    message: escapeMarkdown(prompt ?? `Ingrese el argumento "${name}" de tipo ${type}.`) + parsedExamples,
                 };
             }
 
@@ -120,7 +120,7 @@ export class Argument<T extends ArgumentType = ArgumentType> implements Omit<Arg
             return {
                 ok: false,
                 error: ArgumentResultErrorType.Invalid,
-                message: (whenInvalid ?? escapeMarkdown(isValid
+                message: escapeMarkdown(whenInvalid ?? (isValid
                     ? isValid
                     : `Argumento inválido, "${name}" debe ser de tipo ${type}.`
                 )) + parsedExamples,
