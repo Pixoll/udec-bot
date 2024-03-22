@@ -1,7 +1,16 @@
 import { Markup } from 'telegraf';
 import { ReplyKeyboardMarkup } from 'telegraf/typings/core/types/typegram';
 import { TelegramClientType } from '../client';
-import { Command, CommandContext, MessageContext, SessionString, TelegramClient, parseContext } from '../lib';
+import {
+    Command,
+    CommandContext,
+    MessageContext,
+    QueryError,
+    QueryErrorNumber,
+    SessionString,
+    TelegramClient,
+    parseContext,
+} from '../lib';
 import { alphabetically, removeKeyboard, stripIndent } from '../util';
 import { ActionType, SubjectObject } from '../tables';
 
@@ -104,6 +113,18 @@ export default class RemoveRamoCommand extends Command<[]> {
             })
         );
         if (!deleted.ok) {
+            if ((deleted.error as QueryError).errno === QueryErrorNumber.CannotDeleteParent) {
+                await context.fancyReply(stripIndent(`
+                *No se puede eliminar este ramo\\.*
+
+                Aún existen evaluaciones vigentes vinculadas a este ramo\\. Elimina esas primero con /removecert\\.
+                `), {
+                    'parse_mode': 'MarkdownV2',
+                    ...removeKeyboard,
+                });
+                return;
+            }
+
             await context.fancyReply('Hubo un error al remover el ramo.', removeKeyboard);
             await this.client.catchError(deleted.error, context);
             return;

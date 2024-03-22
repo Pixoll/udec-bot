@@ -1,4 +1,11 @@
-import { Connection, ProcedureCallPacket, ResultSetHeader, RowDataPacket, createConnection } from 'mysql2/promise';
+import {
+    Connection,
+    ProcedureCallPacket,
+    QueryError as MySQLQueryError,
+    ResultSetHeader,
+    RowDataPacket,
+    createConnection,
+} from 'mysql2/promise';
 import { Logger } from '../logger';
 import {
     ConstructableQueryBuilder,
@@ -20,6 +27,14 @@ export enum ColumnType {
     Integer = 'INT',
     String = 'VARCHAR',
     Timestamp = 'TIMESTAMP',
+}
+
+export enum QueryErrorNumber {
+    CannotDeleteParent = 1451,
+}
+
+export interface QueryError extends MySQLQueryError {
+    readonly errno: QueryErrorNumber;
 }
 
 export interface ColumnTypeMap {
