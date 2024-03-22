@@ -5,7 +5,6 @@ import {
     Command,
     CommandContext,
     MessageContext,
-    QueryError,
     QueryErrorNumber,
     SessionString,
     TelegramClient,
@@ -113,7 +112,7 @@ export default class RemoveRamoCommand extends Command<[]> {
             })
         );
         if (!deleted.ok) {
-            if ((deleted.error as QueryError).errno === QueryErrorNumber.CannotDeleteParent) {
+            if (deleted.error.errno === QueryErrorNumber.CannotDeleteParent) {
                 await context.fancyReply(stripIndent(`
                 *No se puede eliminar este ramo\\.*
 

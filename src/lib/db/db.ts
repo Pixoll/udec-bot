@@ -100,7 +100,7 @@ interface QueryResultOk<T> {
 
 interface QueryResultError {
     ok: false;
-    error: unknown;
+    error: QueryError;
 }
 
 type RawQueryResult =
@@ -250,7 +250,7 @@ export class Database<Tables extends TablesArray> implements DatabaseOptions<Tab
             Logger.error(error);
             return {
                 ok: false,
-                error,
+                error: error as QueryError,
             };
         }
     }
