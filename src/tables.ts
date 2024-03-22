@@ -46,7 +46,7 @@ export const assignmentsTable = {
         name: 'id',
         type: ColumnType.Integer,
         nonNull: true,
-        unique: true,
+        primaryKey: true,
         autoIncrement: true,
     }, {
         name: 'chat_id',
