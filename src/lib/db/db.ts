@@ -157,6 +157,7 @@ export class Database<Tables extends TablesArray> implements DatabaseOptions<Tab
     }
 
     public async isConnected(): Promise<boolean> {
+        if (!this.connection) return false;
         return await this.connection.query('SELECT 1;').catch(() => null).then(v => !!v);
     }
 
