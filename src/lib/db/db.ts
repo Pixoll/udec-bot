@@ -156,7 +156,13 @@ export class Database<Tables extends TablesArray> implements DatabaseOptions<Tab
         }
     }
 
+    public async isConnected(): Promise<boolean> {
+        return await this.connection.query('SELECT 1;').catch(() => null).then(v => !!v);
+    }
+
     public async connect(): Promise<void> {
+        if (await this.isConnected()) return;
+
         Logger.info('Connecting to database...');
 
         this.connection = await createConnection({
@@ -238,6 +244,7 @@ export class Database<Tables extends TablesArray> implements DatabaseOptions<Tab
     }
 
     public async query<Result extends RawQueryResult>(sql: string): Promise<QueryResult<Result>> {
+        await this.connect();
         Logger.info('MySQL instruction:', sql);
         try {
             const result = await this.connection.query(sql) as unknown as Result;
