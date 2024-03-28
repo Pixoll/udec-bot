@@ -10,6 +10,8 @@ import {
 } from '../lib';
 import { daysMsConversionFactor, daysUntilToString, getDaysUntil, stripIndent } from '../util';
 
+const subjectNames = new Map<number, string>();
+
 const dueDateMarkers = [{
     emoji: '🏳',
     threshold: 2,
@@ -103,6 +105,9 @@ export default class CertsCommand extends Command<RawArgs> {
 }
 
 export async function getSubjectName(db: TelegramClientType['db'], code: number, chatId: number): Promise<string | null> {
+    const existing = subjectNames.get(code);
+    if (existing) return existing;
+
     const query = await db.select('udec_subjects', builder => builder
         .where({
             column: 'chat_id',
@@ -113,5 +118,9 @@ export async function getSubjectName(db: TelegramClientType['db'], code: number,
             equals: code,
         })
     );
-    return query.ok ? query.result[0]?.name ?? null : null;
+
+    const result = query.ok ? query.result[0]?.name ?? null : null;
+    if (result) subjectNames.set(code, result);
+
+    return result;
 }
