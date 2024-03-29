@@ -72,8 +72,13 @@ export default class RemoveCertCommand extends Command<[]> {
             return;
         }
 
-        const assignmentsStrings = query.result.sort((a, b) => a.date_due.getTime() - b.date_due.getTime())
-            .map(s => `[${capitalize(s.type)}] ${s.subject_code} (${dateToString(s.date_due)})`);
+        const assignmentsStrings = await Promise.all(query.result
+            .sort((a, b) => a.date_due.getTime() - b.date_due.getTime())
+            .map(async (s) => {
+                const subjectName = await getSubjectName(this.client.db, s.subject_code, context.chat.id);
+                return `${capitalize(s.type)} - [${s.subject_code}] ${subjectName} (${dateToString(s.date_due)})`;
+            })
+        );
         const selectionMenu = createSelectionMenu(assignmentsStrings);
 
         this.assignments.set(context.session, query.result);
