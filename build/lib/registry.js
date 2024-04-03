@@ -99,7 +99,7 @@ class ClientRegistry {
                 next();
                 return;
             }
-            const activeMenu = this.client.activeMenus.has(context.session);
+            const activeMenu = this.client.activeMenus.get(context.session);
             if (command.ensureInactiveMenus && activeMenu) {
                 await context.fancyReply(`Ya tienes un menú activo para /${activeMenu}. Usa /cancel para cerrarlo.`);
                 next();
