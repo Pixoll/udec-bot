@@ -33,7 +33,7 @@ export function alphabetically<T>(key?: StringKeysOf<T> | boolean, ascending = t
 export const daysMsConversionFactor = 86_400_000;
 
 export function getDaysUntil(date: Date): number {
-    return Math.floor((date.getTime() - Date.now()) / daysMsConversionFactor);
+    return Math.ceil((date.getTime() - Date.now()) / daysMsConversionFactor);
 }
 
 export function daysUntilToString(days: number): string {
