@@ -8,6 +8,7 @@ import {
     TelegramClient,
     capitalize,
     dateToString,
+    escapeMarkdown,
 } from '../lib';
 import { daysMsConversionFactor, daysUntilToString, getDaysUntil, stripIndent } from '../util';
 
@@ -91,7 +92,7 @@ export default class CertsCommand extends Command<RawArgs> {
                 const daysUntil = getDaysUntil(a.date_due);
                 const marker = dueDateMarkers.find(m => daysUntil <= m.threshold) as DueDateMarker;
                 return `• ${marker.emoji} *${capitalize(a.type)}* \\- `
-                    + `_${daysUntilToString(daysUntil)} (${dateToString(a.date_due)})_\n`
+                    + `_${daysUntilToString(daysUntil)} (${escapeMarkdown(dateToString(a.date_due))})_\n`
                     + `*\\[${a.subject_code}\\] ${subjectName ?? 'ERROR'}*`;
             }));
 
