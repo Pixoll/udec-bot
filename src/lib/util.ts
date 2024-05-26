@@ -38,10 +38,10 @@ export function dateToString(date?: Date | null, includeTime = false): string {
 }
 
 export function getTimeZoneOffset(timeZone: string): number {
-    const date = new Date();
+    const date = new Date(new Date().toLocaleString('en'));
     const iso = date.toLocaleString('en', { timeZone });
     const lie = new Date(iso);
-    return Math.round(-(lie.getTime() - date.getTime()) / 60_000);
+    return lie.getTime() - date.getTime();
 }
 
 const santiagoDateOffset = getTimeZoneOffset('America/Santiago');
