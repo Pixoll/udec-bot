@@ -1,10 +1,10 @@
-import requireAll from 'require-all';
-import { TelegramClient } from './client';
-import { Collection } from './collection';
-import { Command, ConstructableCommand, parseContext } from './commands';
-import { ArgumentTypeHandler, ArgumentType, ConstructableArgumentType as BuildableArgumentTypeHandler } from './types';
-import { capitalize, isNullish } from './util';
-import { Logger } from './logger';
+import requireAll from "require-all";
+import { TelegramClient } from "./client";
+import { Collection } from "./collection";
+import { Command, ConstructableCommand, parseContext } from "./commands";
+import { ArgumentTypeHandler, ArgumentType, ConstructableArgumentType as BuildableArgumentTypeHandler } from "./types";
+import { capitalize, isNullish } from "./util";
+import { Logger } from "./logger";
 
 type NodeModuleOf<T> = T | {
     [k: string]: T;
@@ -13,14 +13,14 @@ type NodeModuleOf<T> = T | {
 export class ClientRegistry {
     public readonly client: TelegramClient;
     public readonly commands: Collection<string, Command>;
-    public readonly types: Omit<Collection<ArgumentType, ArgumentTypeHandler<ArgumentType>>, 'get'> & {
+    public readonly types: Omit<Collection<ArgumentType, ArgumentTypeHandler<ArgumentType>>, "get"> & {
         get<T extends ArgumentType>(type: T): ArgumentTypeHandler<T>;
     };
 
     public constructor(client: TelegramClient) {
         this.client = client;
         this.commands = new Collection();
-        this.types = new Collection() as ClientRegistry['types'];
+        this.types = new Collection() as ClientRegistry["types"];
     }
 
     public registerCommandsIn(path: string, ...exclude: string[]): this {
@@ -28,10 +28,10 @@ export class ClientRegistry {
         const commands = Object.entries(commandsFolder)
             .filter(([fileName]) => !exclude.includes(fileName))
             .map(([fileName, commandModule]) => {
-                if ('prototype' in commandModule && commandModule.prototype instanceof Command) {
+                if ("prototype" in commandModule && commandModule.prototype instanceof Command) {
                     return commandModule;
                 }
-                if ('default' in commandModule) {
+                if ("default" in commandModule) {
                     return commandModule.default;
                 }
                 const mod = commandModule as Record<string, typeof Command>;
@@ -47,10 +47,10 @@ export class ClientRegistry {
         const typeHandlers = Object.entries(typeHandlersFolder)
             .filter(([fileName]) => !exclude.includes(fileName))
             .map(([fileName, typeHandlerModule]) => {
-                if ('prototype' in typeHandlerModule && typeHandlerModule.prototype instanceof ArgumentTypeHandler) {
+                if ("prototype" in typeHandlerModule && typeHandlerModule.prototype instanceof ArgumentTypeHandler) {
                     return typeHandlerModule;
                 }
-                if ('default' in typeHandlerModule) {
+                if ("default" in typeHandlerModule) {
                     return typeHandlerModule.default;
                 }
                 const mod = typeHandlerModule as Record<string, typeof ArgumentTypeHandler>;
@@ -74,7 +74,7 @@ export class ClientRegistry {
             registered++;
         }
 
-        Logger.info('Registered', registered, 'commands.');
+        Logger.info("Registered", registered, "commands.");
         return this;
     }
 
@@ -83,7 +83,7 @@ export class ClientRegistry {
         for (const type of types) {
             const isValid = type && type.prototype instanceof ArgumentTypeHandler;
             if (!isValid) {
-                Logger.warn('warn', `Attempting to register an invalid argument type object: ${type}... skipping.`);
+                Logger.warn("warn", `Attempting to register an invalid argument type object: ${type}... skipping.`);
                 continue;
             }
 
@@ -91,7 +91,7 @@ export class ClientRegistry {
             registered++;
         }
 
-        Logger.info('Registered', registered, 'type handlers.');
+        Logger.info("Registered", registered, "type handlers.");
         return this;
     }
 
@@ -112,7 +112,7 @@ export class ClientRegistry {
             const context = parseContext(ctx, client);
             const canRunHere = command.canRunHere(context);
             if (canRunHere !== true) {
-                await context.fancyReply(canRunHere || 'No se puede usar este comando aquí.');
+                await context.fancyReply(canRunHere || "No se puede usar este comando aquí.");
                 next();
                 return;
             }
@@ -127,13 +127,13 @@ export class ClientRegistry {
             const args = await command.parseArgs(context);
             if (!args.ok) {
                 await context.fancyReply(args.message, {
-                    'parse_mode': 'MarkdownV2',
+                    "parse_mode": "MarkdownV2",
                 });
                 next();
                 return;
             }
 
-            await context.react('👍').catch(() => null);
+            await context.react("👍").catch(() => null);
             command.run(context, args.values);
             next();
         });
@@ -146,7 +146,7 @@ export class ClientRegistry {
         const { type } = typeHandler;
 
         if (types.has(type)) {
-            Logger.warn('warn', `An argument type handler with the type "${type}" is already registered. Skipping...`);
+            Logger.warn("warn", `An argument type handler with the type "${type}" is already registered. Skipping...`);
             return this;
         }
 

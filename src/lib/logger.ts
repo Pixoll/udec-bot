@@ -1,4 +1,4 @@
-const logPrefix = '[TGBot]';
+const logPrefix = "[TGBot]";
 
 export const Logger = {
     info(...args: unknown[]): void {

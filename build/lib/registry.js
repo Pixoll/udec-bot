@@ -24,10 +24,10 @@ class ClientRegistry {
         const commands = Object.entries(commandsFolder)
             .filter(([fileName]) => !exclude.includes(fileName))
             .map(([fileName, commandModule]) => {
-            if ('prototype' in commandModule && commandModule.prototype instanceof commands_1.Command) {
+            if ("prototype" in commandModule && commandModule.prototype instanceof commands_1.Command) {
                 return commandModule;
             }
-            if ('default' in commandModule) {
+            if ("default" in commandModule) {
                 return commandModule.default;
             }
             const mod = commandModule;
@@ -41,10 +41,10 @@ class ClientRegistry {
         const typeHandlers = Object.entries(typeHandlersFolder)
             .filter(([fileName]) => !exclude.includes(fileName))
             .map(([fileName, typeHandlerModule]) => {
-            if ('prototype' in typeHandlerModule && typeHandlerModule.prototype instanceof types_1.ArgumentTypeHandler) {
+            if ("prototype" in typeHandlerModule && typeHandlerModule.prototype instanceof types_1.ArgumentTypeHandler) {
                 return typeHandlerModule;
             }
-            if ('default' in typeHandlerModule) {
+            if ("default" in typeHandlerModule) {
                 return typeHandlerModule.default;
             }
             const mod = typeHandlerModule;
@@ -64,7 +64,7 @@ class ClientRegistry {
             this.registerCommand(command);
             registered++;
         }
-        logger_1.Logger.info('Registered', registered, 'commands.');
+        logger_1.Logger.info("Registered", registered, "commands.");
         return this;
     }
     registerTypeHandlers(types) {
@@ -72,13 +72,13 @@ class ClientRegistry {
         for (const type of types) {
             const isValid = type && type.prototype instanceof types_1.ArgumentTypeHandler;
             if (!isValid) {
-                logger_1.Logger.warn('warn', `Attempting to register an invalid argument type object: ${type}... skipping.`);
+                logger_1.Logger.warn("warn", `Attempting to register an invalid argument type object: ${type}... skipping.`);
                 continue;
             }
             this.registerTypeHandler(type);
             registered++;
         }
-        logger_1.Logger.info('Registered', registered, 'type handlers.');
+        logger_1.Logger.info("Registered", registered, "type handlers.");
         return this;
     }
     registerCommand(NewCommand) {
@@ -95,7 +95,7 @@ class ClientRegistry {
             const context = (0, commands_1.parseContext)(ctx, client);
             const canRunHere = command.canRunHere(context);
             if (canRunHere !== true) {
-                await context.fancyReply(canRunHere || 'No se puede usar este comando aquí.');
+                await context.fancyReply(canRunHere || "No se puede usar este comando aquí.");
                 next();
                 return;
             }
@@ -108,12 +108,12 @@ class ClientRegistry {
             const args = await command.parseArgs(context);
             if (!args.ok) {
                 await context.fancyReply(args.message, {
-                    'parse_mode': 'MarkdownV2',
+                    "parse_mode": "MarkdownV2",
                 });
                 next();
                 return;
             }
-            await context.react('👍').catch(() => null);
+            await context.react("👍").catch(() => null);
             command.run(context, args.values);
             next();
         });
@@ -124,7 +124,7 @@ class ClientRegistry {
         const typeHandler = new NewArgumentType(client);
         const { type } = typeHandler;
         if (types.has(type)) {
-            logger_1.Logger.warn('warn', `An argument type handler with the type "${type}" is already registered. Skipping...`);
+            logger_1.Logger.warn("warn", `An argument type handler with the type "${type}" is already registered. Skipping...`);
             return this;
         }
         types.set(type, typeHandler);

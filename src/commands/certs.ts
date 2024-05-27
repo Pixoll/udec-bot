@@ -1,4 +1,4 @@
-import { TelegramClientType } from '../client';
+import { TelegramClientType } from "../client";
 import {
     ArgumentOptions,
     ArgumentOptionsToResult,
@@ -8,36 +8,36 @@ import {
     TelegramClient,
     capitalize,
     dateToString,
-} from '../lib';
-import { daysMsConversionFactor, daysUntilToString, getDaysUntil, stripIndent } from '../util';
+} from "../lib";
+import { daysMsConversionFactor, daysUntilToString, getDaysUntil, stripIndent } from "../util";
 
 const subjectNames = new Map<number, string>();
 
 const dueDateMarkers = [{
-    emoji: '🏳',
+    emoji: "🏳",
     threshold: 2,
 }, {
-    emoji: '🔴',
+    emoji: "🔴",
     threshold: 7,
 }, {
-    emoji: '🟠',
+    emoji: "🟠",
     threshold: 14,
 }, {
-    emoji: '🟡',
+    emoji: "🟡",
     threshold: 21,
 }, {
-    emoji: '🟢',
+    emoji: "🟢",
     threshold: Infinity,
 }] as const satisfies DueDateMarker[];
 
 const args = [{
-    key: 'days',
-    label: 'días',
-    prompt: 'Ingrese la cantidad de días en el futuro a mostrar.',
+    key: "days",
+    label: "días",
+    prompt: "Ingrese la cantidad de días en el futuro a mostrar.",
     type: ArgumentType.Number,
     max: 120,
     default: 45 * daysMsConversionFactor,
-    examples: ['/certs 120'],
+    examples: ["/certs 120"],
     parse(value): number {
         return parseInt(value) * daysMsConversionFactor; // days -> ms
     },
@@ -57,21 +57,21 @@ export default class CertsCommand extends Command<RawArgs> {
 
     public constructor(client: TelegramClient) {
         super(client, {
-            name: 'certs',
-            description: 'Próximas evaluaciones.',
+            name: "certs",
+            description: "Próximas evaluaciones.",
             groupOnly: true,
             args,
         });
     }
 
     public async run(context: CommandContext, { days }: ArgsResult): Promise<void> {
-        const query = await this.client.db.select('udec_assignments', builder => builder
+        const query = await this.client.db.select("udec_assignments", builder => builder
             .where({
-                column: 'chat_id',
+                column: "chat_id",
                 equals: context.chat.id,
             })
             .where({
-                column: 'date_due',
+                column: "date_due",
                 lessThanOrEqualTo: new Date(Date.now() + days),
             })
         );
@@ -92,31 +92,31 @@ export default class CertsCommand extends Command<RawArgs> {
                 const marker = dueDateMarkers.find(m => daysUntil <= m.threshold) as DueDateMarker;
                 return `• ${marker.emoji} *${capitalize(a.type)}* \\- `
                     + `_${daysUntilToString(daysUntil)} \\(${dateToString(a.date_due)}\\)_\n`
-                    + `*\\[${a.subject_code}\\] ${subjectName ?? 'ERROR'}*`;
+                    + `*\\[${a.subject_code}\\] ${subjectName ?? "ERROR"}*`;
             }));
 
         await context.fancyReply(stripIndent(`
         ✳️ *Fechas Relevantes* ✳️
         \\~ Rango: ${Math.floor(days / daysMsConversionFactor)} días
 
-        ${assignments.join('\n\n')}
+        ${assignments.join("\n\n")}
         `), {
-            'parse_mode': 'MarkdownV2',
+            "parse_mode": "MarkdownV2",
         });
     }
 }
 
-export async function getSubjectName(db: TelegramClientType['db'], code: number, chatId: number): Promise<string | null> {
+export async function getSubjectName(db: TelegramClientType["db"], code: number, chatId: number): Promise<string | null> {
     const existing = subjectNames.get(code);
     if (existing) return existing;
 
-    const query = await db.select('udec_subjects', builder => builder
+    const query = await db.select("udec_subjects", builder => builder
         .where({
-            column: 'chat_id',
+            column: "chat_id",
             equals: chatId,
         })
         .where({
-            column: 'code',
+            column: "code",
             equals: code,
         })
     );

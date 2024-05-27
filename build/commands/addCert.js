@@ -5,30 +5,30 @@ const tables_1 = require("../tables");
 const util_1 = require("../util");
 const telegraf_1 = require("telegraf");
 const assignmentTypes = Object.values(tables_1.AssignmentType).map(t => (0, lib_1.capitalize)(t));
-const assignmentTypeRegex = new RegExp(`^(?:${assignmentTypes.join('|')})$`);
+const assignmentTypeRegex = new RegExp(`^(?:${assignmentTypes.join("|")})$`);
 const assignmentTypesKeyboard = telegraf_1.Markup
     .keyboard(assignmentTypes)
     .oneTime()
     .resize()
     .selective()
-    .placeholder('/cancel para abortar.')
+    .placeholder("/cancel para abortar.")
     .reply_markup;
 const args = [{
-        key: 'date',
-        label: 'fecha',
-        prompt: 'Ingrese la fecha de la evaluación.',
+        key: "date",
+        label: "fecha",
+        prompt: "Ingrese la fecha de la evaluación.",
         type: lib_1.ArgumentType.Date,
         required: true,
         futureDate: true,
-        examples: ['/addcert DD-MM', '/addcert 03-05'],
+        examples: ["/addcert DD-MM", "/addcert 03-05"],
     }];
 class AddCertCommand extends lib_1.Command {
     assignments;
     subjects;
     constructor(client) {
         super(client, {
-            name: 'addcert',
-            description: 'Añade una evaluación al grupo.',
+            name: "addcert",
+            description: "Añade una evaluación al grupo.",
             groupOnly: true,
             ensureInactiveMenus: true,
             args,
@@ -39,8 +39,8 @@ class AddCertCommand extends lib_1.Command {
         client.hears(assignmentTypeRegex, (...args) => this.assignmentTypeListener(...args));
     }
     async run(context, { date }) {
-        const query = await this.client.db.select('udec_subjects', builder => builder.where({
-            column: 'chat_id',
+        const query = await this.client.db.select("udec_subjects", builder => builder.where({
+            column: "chat_id",
             equals: context.chat.id,
         }));
         if (!query.ok || query.result.length === 0) {
@@ -58,18 +58,18 @@ class AddCertCommand extends lib_1.Command {
             .oneTime()
             .resize()
             .selective()
-            .placeholder('/cancel para abortar.')
+            .placeholder("/cancel para abortar.")
             .reply_markup;
         this.assignments.set(context.session, {
-            'chat_id': context.chat.id,
-            'date_due': date,
+            "chat_id": context.chat.id,
+            "date_due": date,
         });
         await context.fancyReply((0, util_1.stripIndent)(`
         _Fecha de evaluación registrada: ${(0, lib_1.dateToString)(date)}_
         \n*Selecciona la asignatura a evaluar: ⬇️*
         `), {
-            'parse_mode': 'MarkdownV2',
-            'reply_markup': subjectsKeyboard,
+            "parse_mode": "MarkdownV2",
+            "reply_markup": subjectsKeyboard,
         });
     }
     async setSubject(context, subjects, assignment) {
@@ -78,41 +78,41 @@ class AddCertCommand extends lib_1.Command {
         if (!subject) {
             this.client.activeMenus.delete(context.session);
             this.assignments.delete(context.session);
-            await context.fancyReply('No se pudo identificar la asignatura de la evaluación.', util_1.removeKeyboard);
+            await context.fancyReply("No se pudo identificar la asignatura de la evaluación.", util_1.removeKeyboard);
             return;
         }
-        assignment['subject_code'] = code;
-        await context.fancyReply('*Elige el tipo de evaluación: ⬇️*', {
-            'parse_mode': 'MarkdownV2',
-            'reply_markup': assignmentTypesKeyboard,
+        assignment["subject_code"] = code;
+        await context.fancyReply("*Elige el tipo de evaluación: ⬇️*", {
+            "parse_mode": "MarkdownV2",
+            "reply_markup": assignmentTypesKeyboard,
         });
     }
     async addAssignment(context, assignment) {
         assignment.type = context.text.toLowerCase();
-        const exists = await this.client.db.select('udec_assignments', builder => builder
-            .where({ column: 'chat_id', equals: assignment.chat_id })
-            .where({ column: 'date_due', equals: assignment.date_due })
-            .where({ column: 'subject_code', equals: assignment.subject_code })
-            .where({ column: 'type', equals: assignment.type }));
+        const exists = await this.client.db.select("udec_assignments", builder => builder
+            .where({ column: "chat_id", equals: assignment.chat_id })
+            .where({ column: "date_due", equals: assignment.date_due })
+            .where({ column: "subject_code", equals: assignment.subject_code })
+            .where({ column: "type", equals: assignment.type }));
         if (exists.ok && exists.result.length > 0) {
-            await context.fancyReply('*La evaluación que intentas agregar ya está registrada\\.*', {
-                'parse_mode': 'MarkdownV2',
+            await context.fancyReply("*La evaluación que intentas agregar ya está registrada\\.*", {
+                "parse_mode": "MarkdownV2",
                 ...util_1.removeKeyboard,
             });
             return;
         }
-        const inserted = await this.client.db.insert('udec_assignments', builder => builder.values(assignment));
+        const inserted = await this.client.db.insert("udec_assignments", builder => builder.values(assignment));
         if (!inserted.ok) {
-            await context.fancyReply('Hubo un error al añadir la evaluación.', util_1.removeKeyboard);
+            await context.fancyReply("Hubo un error al añadir la evaluación.", util_1.removeKeyboard);
             await this.client.catchError(inserted.error, context);
             return;
         }
-        await context.fancyReply('*🎉 ¡La fecha de evaluación ha sido agregada\\!*', {
-            'parse_mode': 'MarkdownV2',
+        await context.fancyReply("*🎉 ¡La fecha de evaluación ha sido agregada\\!*", {
+            "parse_mode": "MarkdownV2",
             ...util_1.removeKeyboard,
         });
-        await this.client.db.insert('udec_actions_history', builder => builder.values({
-            'chat_id': context.chat.id,
+        await this.client.db.insert("udec_actions_history", builder => builder.values({
+            "chat_id": context.chat.id,
             timestamp: new Date(),
             type: tables_1.ActionType.AddAssignment,
             username: context.from.full_username,

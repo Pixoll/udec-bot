@@ -1,4 +1,4 @@
-import { TelegramClientType } from '../client';
+import { TelegramClientType } from "../client";
 import {
     ArgumentOptions,
     ArgumentOptionsToResult,
@@ -8,13 +8,13 @@ import {
     TelegramClient,
     dateToString,
     escapeMarkdown,
-} from '../lib';
-import { stripIndent } from '../util';
+} from "../lib";
+import { stripIndent } from "../util";
 
 const args = [{
-    key: 'amount',
-    label: 'cantidad',
-    prompt: 'Ingrese la cantidad de acciones a mostrar.',
+    key: "amount",
+    label: "cantidad",
+    prompt: "Ingrese la cantidad de acciones a mostrar.",
     type: ArgumentType.Number,
     min: 1,
 }] as const satisfies ArgumentOptions[];
@@ -28,20 +28,20 @@ export default class HistoryCommand extends Command<RawArgs> {
 
     public constructor(client: TelegramClient) {
         super(client, {
-            name: 'history',
-            description: 'Historial de acciones en el grupo.',
+            name: "history",
+            description: "Historial de acciones en el grupo.",
             groupOnly: true,
             args,
         });
     }
 
     public async run(context: CommandContext, { amount }: ArgsResult): Promise<void> {
-        const query = await this.client.db.select('udec_actions_history', builder => builder.where({
-            column: 'chat_id',
+        const query = await this.client.db.select("udec_actions_history", builder => builder.where({
+            column: "chat_id",
             equals: context.chat.id,
         }));
         if (!query.ok || query.result.length === 0) {
-            await context.fancyReply('El historial de acciones está vacío.');
+            await context.fancyReply("El historial de acciones está vacío.");
             return;
         }
 
@@ -51,11 +51,11 @@ export default class HistoryCommand extends Command<RawArgs> {
             .map(record =>
                 `• \`${dateToString(record.timestamp, true)}\` \\- ${record.type} \\- ${escapeMarkdown(record.username)}`
             )
-            .join('\n');
+            .join("\n");
 
         const footer = !amount
             ? `Usa \`/${this.name} <${args[0].label}>\` para mostrar una cantidad específica de acciones\\.`
-            : '';
+            : "";
 
         await context.fancyReply(stripIndent(`
         👁️ *Historial de acciones:*
@@ -64,7 +64,7 @@ export default class HistoryCommand extends Command<RawArgs> {
 
         ${footer}
         `), {
-            'parse_mode': 'MarkdownV2',
+            "parse_mode": "MarkdownV2",
         });
     }
 }

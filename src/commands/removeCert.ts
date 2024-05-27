@@ -1,6 +1,6 @@
-import { Markup } from 'telegraf';
-import { ReplyKeyboardMarkup } from 'telegraf/typings/core/types/typegram';
-import { TelegramClientType } from '../client';
+import { Markup } from "telegraf";
+import { ReplyKeyboardMarkup } from "telegraf/typings/core/types/typegram";
+import { TelegramClientType } from "../client";
 import {
     Command,
     CommandContext,
@@ -10,25 +10,25 @@ import {
     capitalize,
     dateToString,
     parseContext,
-} from '../lib';
-import { daysUntilToString, getDaysUntil, removeKeyboard, stripIndent } from '../util';
-import { ActionType, AssignmentObject, AssignmentType } from '../tables';
-import { getSubjectName } from './certs';
+} from "../lib";
+import { daysUntilToString, getDaysUntil, removeKeyboard, stripIndent } from "../util";
+import { ActionType, AssignmentObject, AssignmentType } from "../tables";
+import { getSubjectName } from "./certs";
 
 const assignmentTypes = Object.values(AssignmentType).map(v => capitalize(v));
 const assignmentStringRegex = new RegExp(
-    `^(?<type>${assignmentTypes.join('|')}) - `
+    `^(?<type>${assignmentTypes.join("|")}) - `
     + /\[(?<subjectCode>\d+)\] [\w ]+ /.source
     + /\((?<dueDate>\d{2}\/\d{2}\/\d{4})\)/.source
 );
 
 const confirmationRegex = /^(👍|❌)$/;
 const confirmationKeyboard = Markup
-    .keyboard([['👍', '❌']])
+    .keyboard([["👍", "❌"]])
     .oneTime()
     .resize()
     .selective()
-    .placeholder('/cancel para abortar.')
+    .placeholder("/cancel para abortar.")
     .reply_markup;
 
 interface AssignmentMatchGroups {
@@ -45,8 +45,8 @@ export default class RemoveCertCommand extends Command<[]> {
 
     public constructor(client: TelegramClient) {
         super(client, {
-            name: 'removecert',
-            description: 'Remover un ramo del grupo.',
+            name: "removecert",
+            description: "Remover un ramo del grupo.",
             groupOnly: true,
             ensureInactiveMenus: true,
         });
@@ -59,8 +59,8 @@ export default class RemoveCertCommand extends Command<[]> {
     }
 
     public async run(context: CommandContext): Promise<void> {
-        const query = await this.client.db.select('udec_assignments', builder => builder.where({
-            column: 'chat_id',
+        const query = await this.client.db.select("udec_assignments", builder => builder.where({
+            column: "chat_id",
             equals: context.chat.id,
         }));
         if (!query.ok || (query.ok && query.result.length === 0)) {
@@ -89,7 +89,7 @@ export default class RemoveCertCommand extends Command<[]> {
 
         Usa /cancel para cancelar.
         `), {
-            'reply_markup': selectionMenu,
+            "reply_markup": selectionMenu,
         });
     }
 
@@ -104,7 +104,7 @@ export default class RemoveCertCommand extends Command<[]> {
         );
         if (!assignment) {
             this.client.activeMenus.delete(context.session);
-            await context.fancyReply('No se pudo identificar la evaluación que quieres remover.', removeKeyboard);
+            await context.fancyReply("No se pudo identificar la evaluación que quieres remover.", removeKeyboard);
             return;
         }
 
@@ -116,37 +116,37 @@ export default class RemoveCertCommand extends Command<[]> {
         *¿Estás seguro que quieres eliminar esta evaluación?*
 
         *Tipo*: ${capitalize(assignment.type)}
-        *Ramo*: \\[${assignment.subject_code}\\] ${subjectName ?? 'ERROR'}
+        *Ramo*: \\[${assignment.subject_code}\\] ${subjectName ?? "ERROR"}
         *Fecha*: ${dateToString(assignment.date_due)} \\(${daysUntilToString(getDaysUntil(assignment.date_due))}\\)
         `), {
-            'parse_mode': 'MarkdownV2',
-            'reply_markup': confirmationKeyboard,
+            "parse_mode": "MarkdownV2",
+            "reply_markup": confirmationKeyboard,
         });
     }
 
     private async deleteAssignment(context: CommandContext, assignment: AssignmentObject): Promise<void> {
-        if (context.text === '❌') {
-            await context.fancyReply('La evaluación no será removida.', removeKeyboard);
+        if (context.text === "❌") {
+            await context.fancyReply("La evaluación no será removida.", removeKeyboard);
             return;
         }
 
-        const deleted = await this.client.db.delete('udec_assignments', builder => builder.where({
-            column: 'id',
+        const deleted = await this.client.db.delete("udec_assignments", builder => builder.where({
+            column: "id",
             equals: assignment.id,
         }));
         if (!deleted.ok) {
-            await context.fancyReply('Hubo un error al remover la evaluación.', removeKeyboard);
+            await context.fancyReply("Hubo un error al remover la evaluación.", removeKeyboard);
             await this.client.catchError(deleted.error, context);
             return;
         }
 
-        await context.fancyReply('🗑 *La evaluación ha sido eliminada\\.*', {
-            'parse_mode': 'MarkdownV2',
+        await context.fancyReply("🗑 *La evaluación ha sido eliminada\\.*", {
+            "parse_mode": "MarkdownV2",
             ...removeKeyboard,
         });
 
-        await this.client.db.insert('udec_actions_history', builder => builder.values({
-            'chat_id': context.chat.id,
+        await this.client.db.insert("udec_actions_history", builder => builder.values({
+            "chat_id": context.chat.id,
             username: context.from.full_username,
             type: ActionType.RemoveAssignment,
             timestamp: new Date(),
@@ -199,6 +199,6 @@ function createSelectionMenu(assignments: string[]): ReplyKeyboardMarkup {
         .oneTime()
         .resize()
         .selective()
-        .placeholder('/cancel para abortar.')
+        .placeholder("/cancel para abortar.")
         .reply_markup;
 }

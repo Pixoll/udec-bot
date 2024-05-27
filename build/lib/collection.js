@@ -6,7 +6,7 @@ class Collection extends Map {
         super(iterable);
     }
     find(fn, thisArg) {
-        if (typeof fn !== 'function')
+        if (typeof fn !== "function")
             throw new TypeError(`${fn} is not a function`);
         if (thisArg !== undefined)
             fn = fn.bind(thisArg);

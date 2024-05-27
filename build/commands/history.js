@@ -3,38 +3,38 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const lib_1 = require("../lib");
 const util_1 = require("../util");
 const args = [{
-        key: 'amount',
-        label: 'cantidad',
-        prompt: 'Ingrese la cantidad de acciones a mostrar.',
+        key: "amount",
+        label: "cantidad",
+        prompt: "Ingrese la cantidad de acciones a mostrar.",
         type: lib_1.ArgumentType.Number,
         min: 1,
     }];
 class HistoryCommand extends lib_1.Command {
     constructor(client) {
         super(client, {
-            name: 'history',
-            description: 'Historial de acciones en el grupo.',
+            name: "history",
+            description: "Historial de acciones en el grupo.",
             groupOnly: true,
             args,
         });
     }
     async run(context, { amount }) {
-        const query = await this.client.db.select('udec_actions_history', builder => builder.where({
-            column: 'chat_id',
+        const query = await this.client.db.select("udec_actions_history", builder => builder.where({
+            column: "chat_id",
             equals: context.chat.id,
         }));
         if (!query.ok || query.result.length === 0) {
-            await context.fancyReply('El historial de acciones está vacío.');
+            await context.fancyReply("El historial de acciones está vacío.");
             return;
         }
         const history = query.result
             .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
             .slice(0, amount ?? query.result.length)
             .map(record => `• \`${(0, lib_1.dateToString)(record.timestamp, true)}\` \\- ${record.type} \\- ${(0, lib_1.escapeMarkdown)(record.username)}`)
-            .join('\n');
+            .join("\n");
         const footer = !amount
             ? `Usa \`/${this.name} <${args[0].label}>\` para mostrar una cantidad específica de acciones\\.`
-            : '';
+            : "";
         await context.fancyReply((0, util_1.stripIndent)(`
         👁️ *Historial de acciones:*
 
@@ -42,7 +42,7 @@ class HistoryCommand extends lib_1.Command {
 
         ${footer}
         `), {
-            'parse_mode': 'MarkdownV2',
+            "parse_mode": "MarkdownV2",
         });
     }
 }

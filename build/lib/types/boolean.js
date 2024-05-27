@@ -2,8 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.BooleanArgumentTypeHandler = void 0;
 const base_1 = require("./base");
-const truthy = new Set(['true', 't', 'yes', 'y', 'on', 'enable', 'enabled', '1', '+']);
-const falsy = new Set(['false', 'f', 'no', 'n', 'off', 'disable', 'disabled', '0', '-']);
+const truthy = new Set(["true", "t", "yes", "y", "on", "enable", "enabled", "1", "+"]);
+const falsy = new Set(["false", "f", "no", "n", "off", "disable", "disabled", "0", "-"]);
 class BooleanArgumentTypeHandler extends base_1.ArgumentTypeHandler {
     constructor(client) {
         super(client, base_1.ArgumentType.Boolean);
@@ -18,7 +18,7 @@ class BooleanArgumentTypeHandler extends base_1.ArgumentTypeHandler {
             return true;
         if (falsy.has(lc))
             return false;
-        throw new RangeError('Unknown boolean value.');
+        throw new RangeError("Unknown boolean value.");
     }
 }
 exports.BooleanArgumentTypeHandler = BooleanArgumentTypeHandler;

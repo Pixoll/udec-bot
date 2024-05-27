@@ -11,7 +11,7 @@ export class Collection<K, V> extends Map<K, V> {
     ): V2 | undefined;
     public find<This>(fn: (this: This, value: V, key: K, collection: this) => unknown, thisArg: This): V | undefined;
     public find(fn: (value: V, key: K, collection: this) => unknown, thisArg?: unknown): V | undefined {
-        if (typeof fn !== 'function') throw new TypeError(`${fn} is not a function`);
+        if (typeof fn !== "function") throw new TypeError(`${fn} is not a function`);
         if (thisArg !== undefined) fn = fn.bind(thisArg);
         for (const [key, val] of this) {
             if (fn(val, key, this)) return val;

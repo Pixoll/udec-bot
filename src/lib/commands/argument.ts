@@ -1,7 +1,7 @@
-import { CommandContext } from './context';
-import { TelegramClient } from '../client';
-import { ArgumentTypeHandler, ArgumentType, ArgumentTypeMap } from '../types';
-import { Awaitable, escapeMarkdown, omit } from '../util';
+import { CommandContext } from "./context";
+import { TelegramClient } from "../client";
+import { ArgumentTypeHandler, ArgumentType, ArgumentTypeMap } from "../types";
+import { Awaitable, escapeMarkdown, omit } from "../util";
 
 type ArgumentDefault<T extends ArgumentType> =
     | ArgumentTypeMap[T]
@@ -56,7 +56,7 @@ const defaultOptions = {
     examples: [],
 } as const satisfies Partial<ArgumentOptions>;
 
-export class Argument<T extends ArgumentType = ArgumentType> implements Omit<ArgumentOptions<T>, 'type'> {
+export class Argument<T extends ArgumentType = ArgumentType> implements Omit<ArgumentOptions<T>, "type"> {
     public declare readonly key: string;
     public declare readonly label: string | null;
     public declare readonly prompt: string | null;
@@ -69,15 +69,15 @@ export class Argument<T extends ArgumentType = ArgumentType> implements Omit<Arg
     public declare readonly futureDate: boolean;
     public declare readonly whenInvalid: string | null;
     public declare readonly examples: string[];
-    public readonly parser: NonNullable<ArgumentOptions<T>['parse']> | null;
-    public readonly validator: NonNullable<ArgumentOptions<T>['validate']> | null;
-    public readonly emptyChecker: NonNullable<ArgumentOptions<T>['isEmpty']> | null;
+    public readonly parser: NonNullable<ArgumentOptions<T>["parse"]> | null;
+    public readonly validator: NonNullable<ArgumentOptions<T>["validate"]> | null;
+    public readonly emptyChecker: NonNullable<ArgumentOptions<T>["isEmpty"]> | null;
     public readonly client: TelegramClient;
 
     public constructor(client: TelegramClient, options: ArgumentOptions<T>) {
         this.client = client;
 
-        Object.assign(this, defaultOptions, omit(options, ['parse', 'validate', 'isEmpty']));
+        Object.assign(this, defaultOptions, omit(options, ["parse", "validate", "isEmpty"]));
 
         this.parser = options.parse ?? null;
         this.validator = options.validate ?? null;
@@ -95,8 +95,8 @@ export class Argument<T extends ArgumentType = ArgumentType> implements Omit<Arg
         const type = typeHandler.type;
         const empty = this.isEmpty(value, context);
         const parsedExamples = examples.length > 0
-            ? escapeMarkdown(`\n\nEjemplos: ${examples.map(e => `\`${e}\``).join(', ')}.`, '`')
-            : '';
+            ? escapeMarkdown(`\n\nEjemplos: ${examples.map(e => `\`${e}\``).join(", ")}.`, "`")
+            : "";
         if (empty) {
             if (required) {
                 return {
@@ -106,7 +106,7 @@ export class Argument<T extends ArgumentType = ArgumentType> implements Omit<Arg
                 };
             }
 
-            const resolvedValue = typeof defaultValue === 'function'
+            const resolvedValue = typeof defaultValue === "function"
                 ? await defaultValue(value, context, this)
                 : defaultValue;
             return {

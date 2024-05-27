@@ -13,7 +13,7 @@ class NumberArgumentTypeHandler extends base_1.ArgumentTypeHandler {
             return false;
         const number = parseInt(value);
         if (choices && !choices.includes(number)) {
-            return `Ingrese una de las siguientes opciones: ${choices.map(c => `\`${c}\``).join(', ')}`;
+            return `Ingrese una de las siguientes opciones: ${choices.map(c => `\`${c}\``).join(", ")}`;
         }
         if (!(0, util_1.isNullish)(min) && number < min) {
             return `Ingrese un número mayor o igual a ${min}.`;

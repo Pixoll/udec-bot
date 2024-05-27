@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Logger = void 0;
-const logPrefix = '[TGBot]';
+const logPrefix = "[TGBot]";
 exports.Logger = {
     info(...args) {
         console.log(logPrefix, ...args);

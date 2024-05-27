@@ -1,7 +1,7 @@
-import { Argument } from '../commands/argument';
-import { TelegramClient } from '../client';
-import { isNullish } from '../util';
-import { ArgumentTypeHandler, ArgumentType } from './base';
+import { Argument } from "../commands/argument";
+import { TelegramClient } from "../client";
+import { isNullish } from "../util";
+import { ArgumentTypeHandler, ArgumentType } from "./base";
 
 export class NumberArgumentTypeHandler extends ArgumentTypeHandler<ArgumentType.Number> {
     public constructor(client: TelegramClient) {
@@ -14,7 +14,7 @@ export class NumberArgumentTypeHandler extends ArgumentTypeHandler<ArgumentType.
         const number = parseInt(value);
 
         if (choices && !choices.includes(number)) {
-            return `Ingrese una de las siguientes opciones: ${choices.map(c => `\`${c}\``).join(', ')}`;
+            return `Ingrese una de las siguientes opciones: ${choices.map(c => `\`${c}\``).join(", ")}`;
         }
         if (!isNullish(min) && number < min) {
             return `Ingrese un número mayor o igual a ${min}.`;

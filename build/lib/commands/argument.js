@@ -27,7 +27,7 @@ class Argument {
     client;
     constructor(client, options) {
         this.client = client;
-        Object.assign(this, defaultOptions, (0, util_1.omit)(options, ['parse', 'validate', 'isEmpty']));
+        Object.assign(this, defaultOptions, (0, util_1.omit)(options, ["parse", "validate", "isEmpty"]));
         this.parser = options.parse ?? null;
         this.validator = options.validate ?? null;
         this.emptyChecker = options.isEmpty ?? null;
@@ -43,8 +43,8 @@ class Argument {
         const type = typeHandler.type;
         const empty = this.isEmpty(value, context);
         const parsedExamples = examples.length > 0
-            ? (0, util_1.escapeMarkdown)(`\n\nEjemplos: ${examples.map(e => `\`${e}\``).join(', ')}.`, '`')
-            : '';
+            ? (0, util_1.escapeMarkdown)(`\n\nEjemplos: ${examples.map(e => `\`${e}\``).join(", ")}.`, "`")
+            : "";
         if (empty) {
             if (required) {
                 return {
@@ -53,7 +53,7 @@ class Argument {
                     message: (0, util_1.escapeMarkdown)(prompt ?? `Ingrese el argumento "${name}" de tipo ${type}.`) + parsedExamples,
                 };
             }
-            const resolvedValue = typeof defaultValue === 'function'
+            const resolvedValue = typeof defaultValue === "function"
                 ? await defaultValue(value, context, this)
                 : defaultValue;
             return {

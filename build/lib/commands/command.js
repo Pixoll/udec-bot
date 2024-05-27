@@ -7,14 +7,14 @@ class Command {
     client;
     constructor(client, options) {
         this.client = client;
-        Object.assign(this, (0, util_1.omit)(options, ['args']));
+        Object.assign(this, (0, util_1.omit)(options, ["args"]));
         this.groupOnly ??= false;
         this.ensureInactiveMenus ??= false;
         this.args = (options.args?.map(arg => new argument_1.Argument(client, arg)) ?? []);
     }
     canRunHere(context) {
-        if (this.groupOnly && context.chat.type === 'private') {
-            return 'Este comando solo puede ser usado en chats grupales.';
+        if (this.groupOnly && context.chat.type === "private") {
+            return "Este comando solo puede ser usado en chats grupales.";
         }
         return true;
     }
@@ -29,7 +29,7 @@ class Command {
         const argsStrings = context.args;
         for (let i = 0; i < this.args.length; i++) {
             const arg = this.args[i];
-            const value = i === this.args.length - 1 ? argsStrings.slice(i).join(' ') : argsStrings[i];
+            const value = i === this.args.length - 1 ? argsStrings.slice(i).join(" ") : argsStrings[i];
             const result = await arg.obtain(value, context);
             if (!result.ok)
                 return result;

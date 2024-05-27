@@ -1,10 +1,10 @@
-import { readFileSync } from 'fs';
-import path from 'path';
-import { TelegramClientType } from '../client';
-import { Command, CommandContext, TelegramClient, escapeMarkdown } from '../lib';
-import { stripIndent } from '../util';
+import { readFileSync } from "fs";
+import path from "path";
+import { TelegramClientType } from "../client";
+import { Command, CommandContext, TelegramClient, escapeMarkdown } from "../lib";
+import { stripIndent } from "../util";
 
-const packageJson = JSON.parse(readFileSync(path.join(__dirname, '../../package.json'), 'utf-8')) as PackageJson;
+const packageJson = JSON.parse(readFileSync(path.join(__dirname, "../../package.json"), "utf-8")) as PackageJson;
 
 interface PackageJson {
     readonly name: string;
@@ -29,14 +29,14 @@ export default class SourceCommand extends Command<[]> {
 
     public constructor(client: TelegramClient) {
         super(client, {
-            name: 'source',
-            description: 'Vínculo al código fuente.',
+            name: "source",
+            description: "Vínculo al código fuente.",
         });
     }
 
     public async run(context: CommandContext): Promise<void> {
         await context.fancyReply(sourceMessage, {
-            'parse_mode': 'MarkdownV2',
+            "parse_mode": "MarkdownV2",
         });
     }
 }

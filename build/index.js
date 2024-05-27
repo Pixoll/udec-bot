@@ -6,8 +6,8 @@ const client_1 = require("./client");
 const lib_1 = require("./lib");
 void async function () {
     await client_1.client.login();
-    const expired = await client_1.client.db.select('udec_assignments', builder => builder.where({
-        column: 'date_due',
+    const expired = await client_1.client.db.select("udec_assignments", builder => builder.where({
+        column: "date_due",
         lessThan: new Date(),
     }));
     if (expired.ok && expired.result.length > 0) {
@@ -15,13 +15,13 @@ void async function () {
     }
 }();
 async function deleteExpiredAssignment(id, chatId) {
-    const deleted = await client_1.client.db.delete('udec_assignments', builder => builder
+    const deleted = await client_1.client.db.delete("udec_assignments", builder => builder
         .where({
-        column: 'id',
+        column: "id",
         equals: id,
     })
         .where({
-        column: 'chat_id',
+        column: "chat_id",
         equals: chatId,
     }));
     lib_1.Logger.warn(deleted.ok

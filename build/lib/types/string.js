@@ -10,7 +10,7 @@ class StringArgumentTypeHandler extends base_1.ArgumentTypeHandler {
     validate(value, _, argument) {
         const { choices, max, min, key } = argument;
         if (choices && !choices.map(c => c.toLowerCase()).includes(value.toLowerCase())) {
-            return `Ingrese una de las siguientes opciones: ${choices.map(c => `\`${c}\``).join(', ')}`;
+            return `Ingrese una de las siguientes opciones: ${choices.map(c => `\`${c}\``).join(", ")}`;
         }
         if (!(0, util_1.isNullish)(min) && value.length < min) {
             return `"${key}" debe tener al menos ${min} caracteres.`;

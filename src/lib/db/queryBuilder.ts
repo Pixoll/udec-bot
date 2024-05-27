@@ -1,5 +1,5 @@
-import { Partialize, ValuesOf } from '../util';
-import { ColumnDescriptor, ColumnType, ColumnTypeMap, EnumColumnDescriptor, TableDescriptor } from './db';
+import { Partialize, ValuesOf } from "../util";
+import { ColumnDescriptor, ColumnType, ColumnTypeMap, EnumColumnDescriptor, TableDescriptor } from "./db";
 
 export abstract class QueryBuilder<Table extends TableDescriptor = TableDescriptor> {
     protected readonly instruction: string;
@@ -15,9 +15,9 @@ export abstract class QueryBuilder<Table extends TableDescriptor = TableDescript
 
 export type ConstructableQueryBuilder = new (table: TableDescriptor) => QueryBuilder;
 
-type TableColumnName<Table extends TableDescriptor> = Table['columns'][number]['name'];
+type TableColumnName<Table extends TableDescriptor> = Table["columns"][number]["name"];
 type TableColumnValueTypeFromName<Table extends TableDescriptor, Column extends TableColumnName<Table>> = ValuesOf<{
-    [C in Table['columns'][number] as C['name'] extends Column ? string : never]: ColumnTypeMap[C['type']];
+    [C in Table["columns"][number] as C["name"] extends Column ? string : never]: ColumnTypeMap[C["type"]];
 }>;
 
 export type TableColumnSelector<Table extends TableDescriptor, Column extends TableColumnName<Table>> = {
@@ -39,7 +39,7 @@ export class SelectQueryBuilder<
     private readonly filters: Array<TableColumnSelector<Table, Columns>>;
 
     public constructor(table: Table) {
-        super('SELECT', table);
+        super("SELECT", table);
         this.columns = new Set();
         this.filters = [];
     }
@@ -57,31 +57,31 @@ export class SelectQueryBuilder<
     }
 
     public toString(): string {
-        const columns = this.columns.size > 0 ? [...this.columns].join(', ') : '*';
+        const columns = this.columns.size > 0 ? [...this.columns].join(", ") : "*";
         const where = this.filters.length > 0
-            ? 'WHERE ' + parseFilters(this.table, this.filters)
-            : '';
-        return `${this.instruction} ${columns} FROM ${this.table.name} ${where};`.replace(/ ;$/, ';');
+            ? "WHERE " + parseFilters(this.table, this.filters)
+            : "";
+        return `${this.instruction} ${columns} FROM ${this.table.name} ${where};`.replace(/ ;$/, ";");
     }
 }
 
 type ColumnValueType<Column extends ColumnDescriptor> = Column extends EnumColumnDescriptor
-    ? Column['values'][number]
-    : ColumnTypeMap[Column['type']];
+    ? Column["values"][number]
+    : ColumnTypeMap[Column["type"]];
 
 type ColumnNameKey<Column extends ColumnDescriptor, OmitAutoInc extends boolean>
-    = Column['autoIncrement'] extends true ? (
-        OmitAutoInc extends true ? never : Column['name']
+    = Column["autoIncrement"] extends true ? (
+        OmitAutoInc extends true ? never : Column["name"]
     )
-    : Column['nonNull'] extends true ? Column['name']
+    : Column["nonNull"] extends true ? Column["name"]
     : never;
 
 type TableNullableColumns<Table extends TableDescriptor> = keyof {
-    [Column in Table['columns'][number] as Column['nonNull'] extends true ? never : Column['name']]: never;
+    [Column in Table["columns"][number] as Column["nonNull"] extends true ? never : Column["name"]]: never;
 };
 
 export type TableColumnValuePairs<Table extends TableDescriptor, OmitAutoInc extends boolean> = Partialize<{
-    [Column in Table['columns'][number] as ColumnNameKey<Column, OmitAutoInc>]: ColumnValueType<Column>;
+    [Column in Table["columns"][number] as ColumnNameKey<Column, OmitAutoInc>]: ColumnValueType<Column>;
 // @ts-expect-error: this works
 }, TableNullableColumns<Table>>;
 
@@ -89,7 +89,7 @@ export class InsertQueryBuilder<Table extends TableDescriptor> extends QueryBuil
     private pairs: TableColumnValuePairs<Table, true> | null;
 
     public constructor(table: Table) {
-        super('INSERT INTO', table);
+        super("INSERT INTO", table);
         this.pairs = null;
     }
 
@@ -101,14 +101,14 @@ export class InsertQueryBuilder<Table extends TableDescriptor> extends QueryBuil
     public toString(): string {
         const pairs = Object.entries(this.pairs ?? {});
         if (pairs.length === 0) {
-            throw new Error('At least one (column, value) pair must be specified.');
+            throw new Error("At least one (column, value) pair must be specified.");
         }
 
-        const columns = pairs.map(([k]) => k).join(', ');
+        const columns = pairs.map(([k]) => k).join(", ");
         const values = pairs.map(([k, v]) => {
             const { type } = this.table.columns.find(c => c.name === k) as ColumnDescriptor;
             return parseQueryValue(v, type);
-        }).join(', ');
+        }).join(", ");
 
         return `${this.instruction} ${this.table.name} (${columns}) VALUES (${values});`;
     }
@@ -122,7 +122,7 @@ export class UpdateQueryBuilder<
     private readonly filters: Array<TableColumnSelector<Table, Columns>>;
 
     public constructor(table: Table) {
-        super('UPDATE', table);
+        super("UPDATE", table);
         this.pairs = null;
         this.filters = [];
     }
@@ -140,18 +140,18 @@ export class UpdateQueryBuilder<
     public toString(): string {
         const pairs = Object.entries(this.pairs ?? {});
         if (pairs.length === 0) {
-            throw new Error('At least one (column, value) pair must be specified.');
+            throw new Error("At least one (column, value) pair must be specified.");
         }
 
         const set = pairs.map(([k, v]) => {
             const { type } = this.table.columns.find(c => c.name === k) as ColumnDescriptor;
             return `${k} = ${parseQueryValue(v, type)}`;
-        }).join(', ');
+        }).join(", ");
         const where = this.filters.length > 0
-            ? 'WHERE ' + parseFilters(this.table, this.filters)
-            : '';
+            ? "WHERE " + parseFilters(this.table, this.filters)
+            : "";
 
-        return `${this.instruction} ${this.table.name} SET ${set} ${where};`.replace(/ ;$/, ';');
+        return `${this.instruction} ${this.table.name} SET ${set} ${where};`.replace(/ ;$/, ";");
     }
 }
 
@@ -162,7 +162,7 @@ export class DeleteQueryBuilder<
     private readonly filters: Array<TableColumnSelector<Table, Columns>>;
 
     public constructor(table: Table) {
-        super('DELETE FROM', table);
+        super("DELETE FROM", table);
         this.filters = [];
     }
 
@@ -173,26 +173,26 @@ export class DeleteQueryBuilder<
 
     public toString(): string {
         if (this.filters.length === 0) {
-            throw new Error('At least one filter must be specified.');
+            throw new Error("At least one filter must be specified.");
         }
 
         const where = parseFilters(this.table, this.filters);
-        return `${this.instruction} ${this.table.name} WHERE ${where};`.replace(/ ;$/, ';');
+        return `${this.instruction} ${this.table.name} WHERE ${where};`.replace(/ ;$/, ";");
     }
 }
 
 export function parseQueryValue(value: unknown, type?: ColumnType): string {
     switch (typeof value) {
-        case 'string':
-            return `'${value.replace(/'/g, '\\\'')}'`;
-        case 'bigint':
-            return value.toString().replace('n', '');
+        case "string":
+            return `'${value.replace(/'/g, "\\'")}'`;
+        case "bigint":
+            return value.toString().replace("n", "");
     }
 
     if (value instanceof Date) {
-        const dateString = `'${value.toISOString().replace(/T|\.\d+Z$/g, ' ').trimEnd()}'`;
+        const dateString = `'${value.toISOString().replace(/T|\.\d+Z$/g, " ").trimEnd()}'`;
         if (type === ColumnType.Timestamp) return dateString;
-        return dateString.split(' ')[0] + '\'';
+        return dateString.split(" ")[0] + "'";
     }
 
     return `${value}`;
@@ -204,8 +204,8 @@ function parseFilters<
 >(table: Table, filters: Array<TableColumnSelector<Table, Columns>>): string {
     return filters.map(f => {
         const { type } = table.columns.find(c => c.name === f.column) as ColumnDescriptor;
-        const isNull = typeof f.isNull !== 'undefined'
-            ? `IS${!f.isNull ? ' NOT' : ''} NULL`
+        const isNull = typeof f.isNull !== "undefined"
+            ? `IS${!f.isNull ? " NOT" : ""} NULL`
             : null;
         const equality = f.equals ? `= ${parseQueryValue(f.equals, type)}`
             : f.notEquals ? `!= ${parseQueryValue(f.notEquals, type)}`
@@ -219,9 +219,9 @@ function parseFilters<
 
         const filters = [isNull, equality, lessComp, greaterComp].filter(f => f);
         if (filters.length === 0) {
-            throw new Error('Must specify at least one query filter.');
+            throw new Error("Must specify at least one query filter.");
         }
 
         return `(${f.column} ${filters.join(` OR ${f.column} `)})`;
-    }).join(' AND ');
+    }).join(" AND ");
 }

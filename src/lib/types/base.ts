@@ -1,13 +1,13 @@
-import { Argument } from '../commands/argument';
-import { TelegramClient } from '../client';
-import { CommandContext } from '../commands/context';
-import { Awaitable } from '../util';
+import { Argument } from "../commands/argument";
+import { TelegramClient } from "../client";
+import { CommandContext } from "../commands/context";
+import { Awaitable } from "../util";
 
 export enum ArgumentType {
-    Boolean = 'booleano',
-    Number = 'número',
-    String = 'texto',
-    Date = 'fecha',
+    Boolean = "booleano",
+    Number = "número",
+    String = "texto",
+    Date = "fecha",
 }
 
 export interface ArgumentTypeMap {

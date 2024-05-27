@@ -11,12 +11,12 @@ class DateArgumentTypeHandler extends base_1.ArgumentTypeHandler {
     validate(value, _, argument) {
         const date = parseDate(value);
         if (!date) {
-            return 'Ingrese una fecha válida. El formato es DD-MM o DD-MM-YYYY.';
+            return "Ingrese una fecha válida. El formato es DD-MM o DD-MM-YYYY.";
         }
         const time = date.getTime();
         const { min, max, futureDate } = argument;
         if (futureDate && time < Date.now()) {
-            return 'Ingrese una fecha en el futuro.';
+            return "Ingrese una fecha en el futuro.";
         }
         if (!(0, util_1.isNullish)(min) && time < min) {
             return `Ingrese una fecha mayor o igual a ${(0, util_1.dateToString)(new Date(min))}.`;
@@ -36,9 +36,9 @@ function parseDate(input) {
     if (!match)
         return null;
     if (!match[1]) {
-        input = input + '/' + (0, util_1.dateAtSantiago)().getFullYear();
+        input = input + "/" + (0, util_1.dateAtSantiago)().getFullYear();
     }
-    const parsedInput = input.replace(/-/g, '/').split('/').reverse().join('/');
+    const parsedInput = input.replace(/-/g, "/").split("/").reverse().join("/");
     const date = (0, util_1.dateAtSantiago)(parsedInput);
     return isNaN(date.getTime()) ? null : date;
 }

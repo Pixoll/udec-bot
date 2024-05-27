@@ -17,7 +17,7 @@ export function omit<T extends object, K extends keyof T>(obj: T, exclude: K[]):
 }
 
 export function isNullish(value: unknown): value is null | undefined {
-    return typeof value === 'undefined' || value === null;
+    return typeof value === "undefined" || value === null;
 }
 
 export function capitalize<S extends string>(text: S, restLower = false): Capitalize<S> {
@@ -26,25 +26,25 @@ export function capitalize<S extends string>(text: S, restLower = false): Capita
 }
 
 export function dateToString(date?: Date | null, includeTime = false): string {
-    return (date ?? dateAtSantiago()).toLocaleString('en-GB', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
+    return (date ?? dateAtSantiago()).toLocaleString("en-GB", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
         ...includeTime && {
-            hour: '2-digit',
-            minute: '2-digit',
+            hour: "2-digit",
+            minute: "2-digit",
         },
-    }).replace(',', '');
+    }).replace(",", "");
 }
 
 export function getTimeZoneOffset(timeZone: string): number {
-    const date = new Date(new Date().toLocaleString('en'));
-    const iso = date.toLocaleString('en', { timeZone });
+    const date = new Date(new Date().toLocaleString("en"));
+    const iso = date.toLocaleString("en", { timeZone });
     const lie = new Date(iso);
     return lie.getTime() - date.getTime();
 }
 
-const santiagoDateOffset = getTimeZoneOffset('America/Santiago');
+const santiagoDateOffset = getTimeZoneOffset("America/Santiago");
 
 export function dateAtSantiago(date?: string): Date {
     const dateObj = date ? new Date(date) : new Date();
@@ -53,13 +53,13 @@ export function dateAtSantiago(date?: string): Date {
 }
 
 const markdownCharacters = [
-    '_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!',
+    "_", "*", "[", "]", "(", ")", "~", "`", ">", "#", "+", "-", "=", "|", "{", "}", ".", "!",
 ] as const;
 type MarkdownCharacter = typeof markdownCharacters[number];
-const markdownRegex = new RegExp(markdownCharacters.map(c => `\\${c}`).join('|'), 'g');
+const markdownRegex = new RegExp(markdownCharacters.map(c => `\\${c}`).join("|"), "g");
 
 export function escapeMarkdown(text: string, ...exclude: MarkdownCharacter[]): string {
-    if (exclude.length === 0) return text.replace(markdownRegex, '\\$&');
-    const regex = RegExp(markdownCharacters.filter(c => !exclude.includes(c)).map(c => `\\${c}`).join('|'), 'g');
-    return text.replace(regex, '\\$&');
+    if (exclude.length === 0) return text.replace(markdownRegex, "\\$&");
+    const regex = RegExp(markdownCharacters.filter(c => !exclude.includes(c)).map(c => `\\${c}`).join("|"), "g");
+    return text.replace(regex, "\\$&");
 }

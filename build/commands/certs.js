@@ -5,29 +5,29 @@ const lib_1 = require("../lib");
 const util_1 = require("../util");
 const subjectNames = new Map();
 const dueDateMarkers = [{
-        emoji: '🏳',
+        emoji: "🏳",
         threshold: 2,
     }, {
-        emoji: '🔴',
+        emoji: "🔴",
         threshold: 7,
     }, {
-        emoji: '🟠',
+        emoji: "🟠",
         threshold: 14,
     }, {
-        emoji: '🟡',
+        emoji: "🟡",
         threshold: 21,
     }, {
-        emoji: '🟢',
+        emoji: "🟢",
         threshold: Infinity,
     }];
 const args = [{
-        key: 'days',
-        label: 'días',
-        prompt: 'Ingrese la cantidad de días en el futuro a mostrar.',
+        key: "days",
+        label: "días",
+        prompt: "Ingrese la cantidad de días en el futuro a mostrar.",
         type: lib_1.ArgumentType.Number,
         max: 120,
         default: 45 * util_1.daysMsConversionFactor,
-        examples: ['/certs 120'],
+        examples: ["/certs 120"],
         parse(value) {
             return parseInt(value) * util_1.daysMsConversionFactor; // days -> ms
         },
@@ -35,20 +35,20 @@ const args = [{
 class CertsCommand extends lib_1.Command {
     constructor(client) {
         super(client, {
-            name: 'certs',
-            description: 'Próximas evaluaciones.',
+            name: "certs",
+            description: "Próximas evaluaciones.",
             groupOnly: true,
             args,
         });
     }
     async run(context, { days }) {
-        const query = await this.client.db.select('udec_assignments', builder => builder
+        const query = await this.client.db.select("udec_assignments", builder => builder
             .where({
-            column: 'chat_id',
+            column: "chat_id",
             equals: context.chat.id,
         })
             .where({
-            column: 'date_due',
+            column: "date_due",
             lessThanOrEqualTo: new Date(Date.now() + days),
         }));
         if (!query.ok || query.result.length === 0) {
@@ -67,15 +67,15 @@ class CertsCommand extends lib_1.Command {
             const marker = dueDateMarkers.find(m => daysUntil <= m.threshold);
             return `• ${marker.emoji} *${(0, lib_1.capitalize)(a.type)}* \\- `
                 + `_${(0, util_1.daysUntilToString)(daysUntil)} \\(${(0, lib_1.dateToString)(a.date_due)}\\)_\n`
-                + `*\\[${a.subject_code}\\] ${subjectName ?? 'ERROR'}*`;
+                + `*\\[${a.subject_code}\\] ${subjectName ?? "ERROR"}*`;
         }));
         await context.fancyReply((0, util_1.stripIndent)(`
         ✳️ *Fechas Relevantes* ✳️
         \\~ Rango: ${Math.floor(days / util_1.daysMsConversionFactor)} días
 
-        ${assignments.join('\n\n')}
+        ${assignments.join("\n\n")}
         `), {
-            'parse_mode': 'MarkdownV2',
+            "parse_mode": "MarkdownV2",
         });
     }
 }
@@ -84,13 +84,13 @@ async function getSubjectName(db, code, chatId) {
     const existing = subjectNames.get(code);
     if (existing)
         return existing;
-    const query = await db.select('udec_subjects', builder => builder
+    const query = await db.select("udec_subjects", builder => builder
         .where({
-        column: 'chat_id',
+        column: "chat_id",
         equals: chatId,
     })
         .where({
-        column: 'code',
+        column: "code",
         equals: code,
     }));
     const result = query.ok ? query.result[0]?.name ?? null : null;

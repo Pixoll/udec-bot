@@ -9,10 +9,10 @@ const lib_1 = require("./lib");
 const tables_1 = require("./tables");
 const { OWNER_ID } = process.env;
 if (!OWNER_ID) {
-    throw new Error('A OWNER_ID env. variable must be specified.');
+    throw new Error("A OWNER_ID env. variable must be specified.");
 }
 exports.client = new lib_1.TelegramClient({
-    commandsDir: path_1.default.join(__dirname, './commands'),
+    commandsDir: path_1.default.join(__dirname, "./commands"),
     ownerId: +OWNER_ID,
     db: {
         tables: [

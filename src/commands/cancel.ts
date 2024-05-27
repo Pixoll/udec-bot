@@ -1,5 +1,5 @@
-import { TelegramClientType } from '../client';
-import { Command, CommandContext, TelegramClient } from '../lib';
+import { TelegramClientType } from "../client";
+import { Command, CommandContext, TelegramClient } from "../lib";
 
 export default class CancelCommand extends Command<[]> {
     // @ts-expect-error: type override
@@ -7,8 +7,8 @@ export default class CancelCommand extends Command<[]> {
 
     public constructor(client: TelegramClient) {
         super(client, {
-            name: 'cancel',
-            description: 'Cancela un menú.',
+            name: "cancel",
+            description: "Cancela un menú.",
             groupOnly: true,
         });
     }
@@ -18,14 +18,14 @@ export default class CancelCommand extends Command<[]> {
         const { session } = context;
         const menu = activeMenus.get(session);
         if (!menu) {
-            await context.fancyReply('No tienes ningún menú activo.');
+            await context.fancyReply("No tienes ningún menú activo.");
             return;
         }
 
         activeMenus.delete(session);
         await context.fancyReply(`El menú de /${menu} ha sido cancelado.`, {
-            'reply_markup': {
-                'remove_keyboard': true,
+            "reply_markup": {
+                "remove_keyboard": true,
             },
         });
     }

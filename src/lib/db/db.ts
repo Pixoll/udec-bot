@@ -5,8 +5,8 @@ import {
     ResultSetHeader,
     RowDataPacket,
     createConnection,
-} from 'mysql2/promise';
-import { Logger } from '../logger';
+} from "mysql2/promise";
+import { Logger } from "../logger";
 import {
     ConstructableQueryBuilder,
     DeleteQueryBuilder,
@@ -16,17 +16,17 @@ import {
     TableColumnValuePairs,
     UpdateQueryBuilder,
     parseQueryValue,
-} from './queryBuilder';
-import { ValuesOf, xor } from '../util';
+} from "./queryBuilder";
+import { ValuesOf, xor } from "../util";
 
 export enum ColumnType {
-    Bigint = 'BIGINT',
-    Boolean = 'TINYINT(1)',
-    Date = 'DATE',
-    Enum = 'ENUM',
-    Integer = 'INT',
-    String = 'VARCHAR',
-    Timestamp = 'TIMESTAMP',
+    Bigint = "BIGINT",
+    Boolean = "TINYINT(1)",
+    Date = "DATE",
+    Enum = "ENUM",
+    Integer = "INT",
+    String = "VARCHAR",
+    Timestamp = "TIMESTAMP",
 }
 
 export enum QueryErrorNumber {
@@ -119,15 +119,15 @@ type RawColumnType = ValuesOf<{
 interface DescribeTableResult {
     readonly Field: string;
     readonly Type: RawColumnType;
-    readonly Null: 'NO' | 'YES';
-    readonly Key: 'PRI' | '';
+    readonly Null: "NO" | "YES";
+    readonly Key: "PRI" | "";
     readonly Default: NonNullable<unknown> | null;
-    readonly Extra: 'auto_increment' | '';
+    readonly Extra: "auto_increment" | "";
 }
 
-type TableNames<Tables extends TablesArray> = Tables[number]['name'];
+type TableNames<Tables extends TablesArray> = Tables[number]["name"];
 type TableFromName<Tables extends TablesArray, Name extends TableNames<Tables>> = ValuesOf<{
-    [Table in Tables[number]as Table['name'] extends Name ? string : never]: Table;
+    [Table in Tables[number]as Table["name"] extends Name ? string : never]: Table;
 }> & TableDescriptor;
 
 export class Database<Tables extends TablesArray> implements DatabaseOptions<Tables> {
@@ -142,7 +142,7 @@ export class Database<Tables extends TablesArray> implements DatabaseOptions<Tab
 
     public constructor(options: DatabaseOptions<Tables>) {
         const { DB_HOST, DB_PORT, DB_SOCKET_PATH, DB_USERNAME, DB_PASSWORD, DB_NAME } = process.env;
-        Object.assign<Database<Tables>, Omit<DatabaseOptions<Tables>, 'tables'>, Partial<DatabaseOptions<Tables>>>(this, {
+        Object.assign<Database<Tables>, Omit<DatabaseOptions<Tables>, "tables">, Partial<DatabaseOptions<Tables>>>(this, {
             host: DB_HOST,
             port: DB_PORT ? +DB_PORT : -1,
             socketPath: DB_SOCKET_PATH,
@@ -152,19 +152,19 @@ export class Database<Tables extends TablesArray> implements DatabaseOptions<Tab
         }, options);
 
         if (!this.tables) {
-            throw new Error('DatabaseOptions.tables must be specified.');
+            throw new Error("DatabaseOptions.tables must be specified.");
         }
     }
 
     public async isConnected(): Promise<boolean> {
         if (!this.connection) return false;
-        return await this.connection.query('SELECT 1;').catch(() => null).then(v => !!v);
+        return await this.connection.query("SELECT 1;").catch(() => null).then(v => !!v);
     }
 
     public async connect(): Promise<void> {
         if (await this.isConnected()) return;
 
-        Logger.info('Connecting to database...');
+        Logger.info("Connecting to database...");
 
         this.connection = await createConnection({
             host: this.host,
@@ -173,19 +173,19 @@ export class Database<Tables extends TablesArray> implements DatabaseOptions<Tab
             user: this.username,
             password: this.password,
         });
-        Logger.info('Connected to database.');
+        Logger.info("Connected to database.");
 
         await this.setup();
     }
 
     public async disconnect(): Promise<void> {
-        Logger.info('Disconnecting from database...');
+        Logger.info("Disconnecting from database...");
         await this.connection.end();
-        Logger.info('Disconnected from database.');
+        Logger.info("Disconnected from database.");
     }
 
     private async setup(): Promise<void> {
-        Logger.info('Setting up database...');
+        Logger.info("Setting up database...");
 
         const r1 = await this.query(`CREATE DATABASE IF NOT EXISTS ${this.name};`);
         if (!r1) return;
@@ -199,7 +199,7 @@ export class Database<Tables extends TablesArray> implements DatabaseOptions<Tab
             await this.checkTableStructureIntegrity(table);
         }
 
-        Logger.info('Database is ready.');
+        Logger.info("Database is ready.");
     }
 
     public async select<TableName extends TableNames<Tables>, Table extends TableFromName<Tables, TableName>>(
@@ -246,10 +246,10 @@ export class Database<Tables extends TablesArray> implements DatabaseOptions<Tab
 
     public async query<Result extends RawQueryResult>(sql: string): Promise<QueryResult<Result>> {
         await this.connect();
-        Logger.info('MySQL instruction:', sql);
+        Logger.info("MySQL instruction:", sql);
         try {
             const result = await this.connection.query(sql) as unknown as Result;
-            Logger.info('Result =>', result);
+            Logger.info("Result =>", result);
             return {
                 ok: true,
                 result,
@@ -281,27 +281,27 @@ export class Database<Tables extends TablesArray> implements DatabaseOptions<Tab
         const isSameStructure = validateTableStructure(currentStructure, table.columns);
         if (isSameStructure) return;
 
-        Logger.error('Non-matching structures:', table.columns, '=>', currentStructure);
+        Logger.error("Non-matching structures:", table.columns, "=>", currentStructure);
     }
 
     private async createTableIfNotExists(table: TableDescriptor): Promise<boolean> {
         const primaryKeys = table.columns.filter(c => c.primaryKey).map(c => c.name);
         const foreignKeys = table.foreignKeys?.map(fk =>
-            `FOREIGN KEY (${fk.keys.join(', ')}) REFERENCES ${fk.references}(${fk.referenceKeys.join(', ')})`
-        ).join(', ');
+            `FOREIGN KEY (${fk.keys.join(", ")}) REFERENCES ${fk.references}(${fk.referenceKeys.join(", ")})`
+        ).join(", ");
 
         const createTable = `CREATE TABLE IF NOT EXISTS ${this.name}.${table.name} (`
             + table.columns.map(column =>
                 `${column.name} ${column.type}`
-                + ('size' in column ? `(${column.size})` : '')
-                + ('values' in column ? `(${column.values.map(n => `"${n}"`).join(', ')})` : '')
-                + (column.unique ? ' UNIQUE' : '')
-                + (column.nonNull ? ' NOT NULL' : '')
-                + (column.autoIncrement ? ' AUTO_INCREMENT' : '')
-            ).join(', ')
-            + (primaryKeys.length > 0 ? `, PRIMARY KEY (${primaryKeys.join(', ')})` : '')
-            + (foreignKeys ? `, ${foreignKeys}` : '')
-            + ');';
+                + ("size" in column ? `(${column.size})` : "")
+                + ("values" in column ? `(${column.values.map(n => `"${n}"`).join(", ")})` : "")
+                + (column.unique ? " UNIQUE" : "")
+                + (column.nonNull ? " NOT NULL" : "")
+                + (column.autoIncrement ? " AUTO_INCREMENT" : "")
+            ).join(", ")
+            + (primaryKeys.length > 0 ? `, PRIMARY KEY (${primaryKeys.join(", ")})` : "")
+            + (foreignKeys ? `, ${foreignKeys}` : "")
+            + ");";
 
         const result = await this.query(createTable);
         return result.ok;
@@ -322,9 +322,9 @@ function validateTableStructure(
         if (!currentColumn) return false;
 
         if (currentColumn.Default !== null) return false;
-        if (xor(!!column.autoIncrement, currentColumn.Extra === 'auto_increment')) return false;
-        if (xor(!!(column.unique || column.primaryKey), ['PRI', 'UNI'].includes(currentColumn.Key))) return false;
-        if (xor(!!column.nonNull, currentColumn.Null === 'NO')) return false;
+        if (xor(!!column.autoIncrement, currentColumn.Extra === "auto_increment")) return false;
+        if (xor(!!(column.unique || column.primaryKey), ["PRI", "UNI"].includes(currentColumn.Key))) return false;
+        if (xor(!!column.nonNull, currentColumn.Null === "NO")) return false;
         if (getRawColumnType(column) !== currentColumn.Type) return false;
     }
 
@@ -333,7 +333,7 @@ function validateTableStructure(
 
 function getRawColumnType(column: ColumnDescriptor): string {
     const lc = column.type.toLowerCase();
-    if ('size' in column) return `${lc}(${column.size})`;
-    if ('values' in column) return `${lc}(${column.values.map(v => parseQueryValue(v)).join(',')})`;
+    if ("size" in column) return `${lc}(${column.size})`;
+    if ("values" in column) return `${lc}(${column.values.map(v => parseQueryValue(v)).join(",")})`;
     return lc;
 }

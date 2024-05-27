@@ -4,8 +4,8 @@ const lib_1 = require("../lib");
 class CancelCommand extends lib_1.Command {
     constructor(client) {
         super(client, {
-            name: 'cancel',
-            description: 'Cancela un menú.',
+            name: "cancel",
+            description: "Cancela un menú.",
             groupOnly: true,
         });
     }
@@ -14,13 +14,13 @@ class CancelCommand extends lib_1.Command {
         const { session } = context;
         const menu = activeMenus.get(session);
         if (!menu) {
-            await context.fancyReply('No tienes ningún menú activo.');
+            await context.fancyReply("No tienes ningún menú activo.");
             return;
         }
         activeMenus.delete(session);
         await context.fancyReply(`El menú de /${menu} ha sido cancelado.`, {
-            'reply_markup': {
-                'remove_keyboard': true,
+            "reply_markup": {
+                "remove_keyboard": true,
             },
         });
     }

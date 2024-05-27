@@ -1,6 +1,6 @@
-import axios from 'axios';
-import parseHtml, { HTMLElement } from 'node-html-parser';
-import { TelegramClientType } from '../client';
+import axios from "axios";
+import parseHtml, { HTMLElement } from "node-html-parser";
+import { TelegramClientType } from "../client";
 import {
     ArgumentOptions,
     ArgumentType,
@@ -10,26 +10,26 @@ import {
     TelegramClient,
     dateToString,
     escapeMarkdown,
-} from '../lib';
-import { stripIndent } from '../util';
-import { URLSearchParams } from 'url';
+} from "../lib";
+import { stripIndent } from "../util";
+import { URLSearchParams } from "url";
 
-const menuErrorList = 'alert alert-block alert-danger alert-dismissible error messages';
+const menuErrorList = "alert alert-block alert-danger alert-dismissible error messages";
 
-const menuUrl = 'https://dise.udec.cl/node/171';
+const menuUrl = "https://dise.udec.cl/node/171";
 const querySelectors = {
-    menuId: 'node-171',
-    menuTable: 'div > div > div > table',
-    error: 'div > section > div',
+    menuId: "node-171",
+    menuTable: "div > div > div > table",
+    error: "div > section > div",
 } as const;
 
 const menusCache: Record<string, string> = {};
 
 const args = [{
-    key: 'date',
-    label: 'fecha',
+    key: "date",
+    label: "fecha",
     type: ArgumentType.Date,
-    examples: ['/juna DD-MM', '/juna 03-05'],
+    examples: ["/juna DD-MM", "/juna 03-05"],
 } as const satisfies ArgumentOptions<ArgumentType.Date>] as const;
 
 type RawArgs = typeof args;
@@ -41,8 +41,8 @@ export default class TestCommand extends Command<RawArgs> {
 
     public constructor(client: TelegramClient) {
         super(client, {
-            name: 'juna',
-            description: 'Menu de Casino Los Patos.',
+            name: "juna",
+            description: "Menu de Casino Los Patos.",
             args,
         });
     }
@@ -52,15 +52,15 @@ export default class TestCommand extends Command<RawArgs> {
         const cached = menusCache[dateString];
         if (cached) {
             await context.fancyReply(cached, {
-                'parse_mode': 'MarkdownV2',
+                "parse_mode": "MarkdownV2",
             });
             return;
         }
 
-        const [day, month] = dateString.split('/').slice(0, 2).map(n => +n);
+        const [day, month] = dateString.split("/").slice(0, 2).map(n => +n);
         const menuTable = await getMenuAtDate(day, month);
         if (!menuTable) {
-            const day = date ? 'ese día' : 'hoy';
+            const day = date ? "ese día" : "hoy";
             await context.fancyReply(`No se pudo encontrar el menú Junaeb. Puede que no estén sirviendo ${day}.`);
             return;
         }
@@ -74,7 +74,7 @@ export default class TestCommand extends Command<RawArgs> {
 
         menusCache[dateString] = menu;
         await context.fancyReply(menu, {
-            'parse_mode': 'MarkdownV2',
+            "parse_mode": "MarkdownV2",
         });
     }
 }
@@ -82,15 +82,15 @@ export default class TestCommand extends Command<RawArgs> {
 async function parseMenu(menuTable: HTMLElement): Promise<string> {
     return [...menuTable.childNodes]
         .filter(n => n.nodeType === 1)
-        .map(c => c.innerText?.trim().replace(/\s+/g, ' '))
+        .map(c => c.innerText?.trim().replace(/\s+/g, " "))
         .slice(1, 6)
         .flatMap(menu => {
-            menu = menu.replace(/\s*:\s*/, ': ');
-            const name = menu.slice(0, menu.indexOf(':'));
-            const dish = menu.slice(menu.indexOf(':') + 2);
-            return [`\\- *${name}*:`, `_${escapeMarkdown(dish)}_`, ''];
+            menu = menu.replace(/\s*:\s*/, ": ");
+            const name = menu.slice(0, menu.indexOf(":"));
+            const dish = menu.slice(menu.indexOf(":") + 2);
+            return [`\\- *${name}*:`, `_${escapeMarkdown(dish)}_`, ""];
         })
-        .join('\n')
+        .join("\n")
         .trimEnd();
 }
 
@@ -98,13 +98,13 @@ async function getMenuAtDate(day: number, month: number): Promise<HTMLElement | 
     const response = await axios.post(menuUrl, new URLSearchParams({
         dia: day.toString(),
         mes: month.toString(),
-        Submit: 'Ver Menú',
+        Submit: "Ver Menú",
     }).toString());
     if (response.status < 200 || response.status >= 300) return null;
 
     const html = parseHtml(response.data);
     const error = html.querySelectorAll(querySelectors.error).find(div =>
-        div.classList.value.sort().join(' ') === menuErrorList
+        div.classList.value.sort().join(" ") === menuErrorList
     );
     if (error) return null;
 

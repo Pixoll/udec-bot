@@ -1,4 +1,4 @@
-import { TelegramClientType } from '../client';
+import { TelegramClientType } from "../client";
 import {
     ArgumentOptions,
     ArgumentOptionsToResult,
@@ -11,30 +11,30 @@ import {
     capitalize,
     dateToString,
     parseContext,
-} from '../lib';
-import { ActionType, AssignmentObject, AssignmentType, SubjectObject } from '../tables';
-import { removeKeyboard, stripIndent } from '../util';
-import { Markup } from 'telegraf';
+} from "../lib";
+import { ActionType, AssignmentObject, AssignmentType, SubjectObject } from "../tables";
+import { removeKeyboard, stripIndent } from "../util";
+import { Markup } from "telegraf";
 
 const assignmentTypes = Object.values(AssignmentType).map(t => capitalize(t));
-const assignmentTypeRegex = new RegExp(`^(?:${assignmentTypes.join('|')})$`);
+const assignmentTypeRegex = new RegExp(`^(?:${assignmentTypes.join("|")})$`);
 
 const assignmentTypesKeyboard = Markup
     .keyboard(assignmentTypes)
     .oneTime()
     .resize()
     .selective()
-    .placeholder('/cancel para abortar.')
+    .placeholder("/cancel para abortar.")
     .reply_markup;
 
 const args = [{
-    key: 'date',
-    label: 'fecha',
-    prompt: 'Ingrese la fecha de la evaluación.',
+    key: "date",
+    label: "fecha",
+    prompt: "Ingrese la fecha de la evaluación.",
     type: ArgumentType.Date,
     required: true,
     futureDate: true,
-    examples: ['/addcert DD-MM', '/addcert 03-05'],
+    examples: ["/addcert DD-MM", "/addcert 03-05"],
 } as const satisfies ArgumentOptions<ArgumentType.Date>] as const;
 
 type RawArgs = typeof args;
@@ -48,8 +48,8 @@ export default class AddCertCommand extends Command<RawArgs> {
 
     public constructor(client: TelegramClient) {
         super(client, {
-            name: 'addcert',
-            description: 'Añade una evaluación al grupo.',
+            name: "addcert",
+            description: "Añade una evaluación al grupo.",
             groupOnly: true,
             ensureInactiveMenus: true,
             args,
@@ -63,8 +63,8 @@ export default class AddCertCommand extends Command<RawArgs> {
     }
 
     public async run(context: CommandContext, { date }: ArgsResult): Promise<void> {
-        const query = await this.client.db.select('udec_subjects', builder => builder.where({
-            column: 'chat_id',
+        const query = await this.client.db.select("udec_subjects", builder => builder.where({
+            column: "chat_id",
             equals: context.chat.id,
         }));
         if (!query.ok || query.result.length === 0) {
@@ -84,20 +84,20 @@ export default class AddCertCommand extends Command<RawArgs> {
             .oneTime()
             .resize()
             .selective()
-            .placeholder('/cancel para abortar.')
+            .placeholder("/cancel para abortar.")
             .reply_markup;
 
         this.assignments.set(context.session, {
-            'chat_id': context.chat.id,
-            'date_due': date,
+            "chat_id": context.chat.id,
+            "date_due": date,
         } as AssignmentObject);
 
         await context.fancyReply(stripIndent(`
         _Fecha de evaluación registrada: ${dateToString(date)}_
         \n*Selecciona la asignatura a evaluar: ⬇️*
         `), {
-            'parse_mode': 'MarkdownV2',
-            'reply_markup': subjectsKeyboard,
+            "parse_mode": "MarkdownV2",
+            "reply_markup": subjectsKeyboard,
         });
     }
 
@@ -109,49 +109,49 @@ export default class AddCertCommand extends Command<RawArgs> {
         if (!subject) {
             this.client.activeMenus.delete(context.session);
             this.assignments.delete(context.session);
-            await context.fancyReply('No se pudo identificar la asignatura de la evaluación.', removeKeyboard);
+            await context.fancyReply("No se pudo identificar la asignatura de la evaluación.", removeKeyboard);
             return;
         }
 
-        assignment['subject_code'] = code;
+        assignment["subject_code"] = code;
 
-        await context.fancyReply('*Elige el tipo de evaluación: ⬇️*', {
-            'parse_mode': 'MarkdownV2',
-            'reply_markup': assignmentTypesKeyboard,
+        await context.fancyReply("*Elige el tipo de evaluación: ⬇️*", {
+            "parse_mode": "MarkdownV2",
+            "reply_markup": assignmentTypesKeyboard,
         });
     }
 
     private async addAssignment(context: CommandContext, assignment: AssignmentObject): Promise<void> {
         assignment.type = context.text.toLowerCase() as AssignmentType;
 
-        const exists = await this.client.db.select('udec_assignments', builder => builder
-            .where({ column: 'chat_id', equals: assignment.chat_id })
-            .where({ column: 'date_due', equals: assignment.date_due })
-            .where({ column: 'subject_code', equals: assignment.subject_code })
-            .where({ column: 'type', equals: assignment.type })
+        const exists = await this.client.db.select("udec_assignments", builder => builder
+            .where({ column: "chat_id", equals: assignment.chat_id })
+            .where({ column: "date_due", equals: assignment.date_due })
+            .where({ column: "subject_code", equals: assignment.subject_code })
+            .where({ column: "type", equals: assignment.type })
         );
         if (exists.ok && exists.result.length > 0) {
-            await context.fancyReply('*La evaluación que intentas agregar ya está registrada\\.*', {
-                'parse_mode': 'MarkdownV2',
+            await context.fancyReply("*La evaluación que intentas agregar ya está registrada\\.*", {
+                "parse_mode": "MarkdownV2",
                 ...removeKeyboard,
             });
             return;
         }
 
-        const inserted = await this.client.db.insert('udec_assignments', builder => builder.values(assignment));
+        const inserted = await this.client.db.insert("udec_assignments", builder => builder.values(assignment));
         if (!inserted.ok) {
-            await context.fancyReply('Hubo un error al añadir la evaluación.', removeKeyboard);
+            await context.fancyReply("Hubo un error al añadir la evaluación.", removeKeyboard);
             await this.client.catchError(inserted.error, context);
             return;
         }
 
-        await context.fancyReply('*🎉 ¡La fecha de evaluación ha sido agregada\\!*', {
-            'parse_mode': 'MarkdownV2',
+        await context.fancyReply("*🎉 ¡La fecha de evaluación ha sido agregada\\!*", {
+            "parse_mode": "MarkdownV2",
             ...removeKeyboard,
         });
 
-        await this.client.db.insert('udec_actions_history', builder => builder.values({
-            'chat_id': context.chat.id,
+        await this.client.db.insert("udec_actions_history", builder => builder.values({
+            "chat_id": context.chat.id,
             timestamp: new Date(),
             type: ActionType.AddAssignment,
             username: context.from.full_username,

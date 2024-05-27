@@ -1,6 +1,6 @@
-import axios from 'axios';
-import parseHtml from 'node-html-parser';
-import { TelegramClientType } from '../client';
+import axios from "axios";
+import parseHtml from "node-html-parser";
+import { TelegramClientType } from "../client";
 import {
     Argument,
     ArgumentOptions,
@@ -10,32 +10,32 @@ import {
     CommandContext,
     TelegramClient,
     capitalize,
-} from '../lib';
-import { ActionType } from '../tables';
-import { stripIndent } from '../util';
+} from "../lib";
+import { ActionType } from "../tables";
+import { stripIndent } from "../util";
 
-const subjectInfoBaseUrl = 'https://alumnos.udec.cl/?q=node/25&codasignatura=';
+const subjectInfoBaseUrl = "https://alumnos.udec.cl/?q=node/25&codasignatura=";
 const querySelectors = {
-    infoId: 'node-25',
-    name: 'div > div > div > div',
-    listWithCredits: 'div > div > div > ul',
+    infoId: "node-25",
+    name: "div > div > div > div",
+    listWithCredits: "div > div > div > ul",
 } as const;
 
-const romanNumeralsRegex: readonly RegExp[] = ['I', 'II', 'III', 'IV', 'V']
+const romanNumeralsRegex: readonly RegExp[] = ["I", "II", "III", "IV", "V"]
     .map(n => new RegExp(`^${n}$`));
 
 const args = [{
-    key: 'code',
-    label: 'código',
-    prompt: 'Ingrese el código del ramo.',
+    key: "code",
+    label: "código",
+    prompt: "Ingrese el código del ramo.",
     type: ArgumentType.Number,
     min: 0,
     required: true,
-    examples: ['/addramo 123456'],
+    examples: ["/addramo 123456"],
     // @ts-expect-error: makes no difference
     validate(value, context, argument: Argument) {
         if (value.length !== 6) {
-            return 'El código debe tener 6 dígitos.';
+            return "El código debe tener 6 dígitos.";
         }
         return argument.typeHandler.validate(value, context, argument);
     },
@@ -55,8 +55,8 @@ export default class AddRamoCommand extends Command<RawArgs> {
 
     public constructor(client: TelegramClient) {
         super(client, {
-            name: 'addramo',
-            description: 'Añade un ramo al grupo.',
+            name: "addramo",
+            description: "Añade un ramo al grupo.",
             groupOnly: true,
             args,
         });
@@ -65,13 +65,13 @@ export default class AddRamoCommand extends Command<RawArgs> {
     public async run(context: CommandContext, { code }: ArgsResult): Promise<void> {
         const chatId = context.chat.id;
 
-        const existing = await this.client.db.select('udec_subjects', builder => builder
+        const existing = await this.client.db.select("udec_subjects", builder => builder
             .where({
-                column: 'code',
+                column: "code",
                 equals: code,
             })
             .where({
-                column: 'chat_id',
+                column: "chat_id",
                 equals: chatId,
             })
         ).then(q => q.ok ? q.result[0] ?? null : null);
@@ -83,24 +83,24 @@ export default class AddRamoCommand extends Command<RawArgs> {
             *Código*: ${code}
             *Créditos*: ${existing.credits}
             `), {
-                'parse_mode': 'MarkdownV2',
+                "parse_mode": "MarkdownV2",
             });
             return;
         }
 
         const subjectInfo = await getSubjectInfo(code);
         if (!subjectInfo) {
-            await context.fancyReply('No se pudo encontrar información sobre el ramo.');
+            await context.fancyReply("No se pudo encontrar información sobre el ramo.");
             return;
         }
 
-        const inserted = await this.client.db.insert('udec_subjects', builder => builder.values({
+        const inserted = await this.client.db.insert("udec_subjects", builder => builder.values({
             code,
             ...subjectInfo,
-            'chat_id': chatId,
+            "chat_id": chatId,
         }));
         if (!inserted.ok) {
-            await context.fancyReply('Hubo un error al añadir el ramo.');
+            await context.fancyReply("Hubo un error al añadir el ramo.");
             await this.client.catchError(inserted.error, context);
             return;
         }
@@ -112,11 +112,11 @@ export default class AddRamoCommand extends Command<RawArgs> {
         *Código*: ${code}
         *Créditos*: ${subjectInfo.credits}
         `), {
-            'parse_mode': 'MarkdownV2',
+            "parse_mode": "MarkdownV2",
         });
 
-        await this.client.db.insert('udec_actions_history', builder => builder.values({
-            'chat_id': chatId,
+        await this.client.db.insert("udec_actions_history", builder => builder.values({
+            "chat_id": chatId,
             username: context.from.full_username,
             type: ActionType.AddSubject,
             timestamp: new Date(),
@@ -133,7 +133,7 @@ async function getSubjectInfo(code: number): Promise<SubjectInfo | null> {
     if (!infoSection) return null;
 
     const name = infoSection.querySelector(querySelectors.name)?.innerText
-        .replace(new RegExp(` - ${code}$`), '');
+        .replace(new RegExp(` - ${code}$`), "");
     if (!name) return null;
 
     const credits = [...(infoSection.querySelector(querySelectors.listWithCredits)?.childNodes ?? [])]
@@ -149,15 +149,15 @@ async function getSubjectInfo(code: number): Promise<SubjectInfo | null> {
 }
 
 function parseSubjectName(name: string): string {
-    return name.replace(/\?/g, 'Ñ').trim().split(/\s+/)
+    return name.replace(/\?/g, "Ñ").trim().split(/\s+/)
         .map(w => {
-            const isNumeral = romanNumeralsRegex.some(r => r.test(w.replace(/[^\w]+/g, '')));
-            if (w === 'PARA' || (w.length <= 3 && !isNumeral)) {
+            const isNumeral = romanNumeralsRegex.some(r => r.test(w.replace(/[^\w]+/g, "")));
+            if (w === "PARA" || (w.length <= 3 && !isNumeral)) {
                 return w.toLowerCase();
             }
 
             const restLower = w.length > 3 && !isNumeral;
             return capitalize(w, restLower);
         })
-        .join(' ');
+        .join(" ");
 }

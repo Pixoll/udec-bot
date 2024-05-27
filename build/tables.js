@@ -3,24 +3,24 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.actionsHistoryTable = exports.ActionType = exports.assignmentsTable = exports.AssignmentType = exports.subjectsTable = void 0;
 const lib_1 = require("./lib");
 exports.subjectsTable = {
-    name: 'udec_subjects',
+    name: "udec_subjects",
     columns: [{
-            name: 'chat_id',
+            name: "chat_id",
             type: lib_1.ColumnType.Bigint,
             nonNull: true,
             primaryKey: true,
         }, {
-            name: 'code',
+            name: "code",
             type: lib_1.ColumnType.Integer,
             nonNull: true,
             primaryKey: true,
         }, {
-            name: 'name',
+            name: "name",
             type: lib_1.ColumnType.String,
             size: 150,
             nonNull: true,
         }, {
-            name: 'credits',
+            name: "credits",
             type: lib_1.ColumnType.Integer,
             nonNull: true,
         }],
@@ -34,34 +34,34 @@ var AssignmentType;
     AssignmentType["Report"] = "informe";
 })(AssignmentType || (exports.AssignmentType = AssignmentType = {}));
 exports.assignmentsTable = {
-    name: 'udec_assignments',
+    name: "udec_assignments",
     foreignKeys: [{
-            keys: ['chat_id', 'subject_code'],
+            keys: ["chat_id", "subject_code"],
             references: exports.subjectsTable.name,
             referenceKeys: [exports.subjectsTable.columns[0].name, exports.subjectsTable.columns[1].name],
         }],
     columns: [{
-            name: 'id',
+            name: "id",
             type: lib_1.ColumnType.Integer,
             nonNull: true,
             primaryKey: true,
             autoIncrement: true,
         }, {
-            name: 'chat_id',
+            name: "chat_id",
             type: lib_1.ColumnType.Bigint,
             nonNull: true,
             primaryKey: true,
         }, {
-            name: 'subject_code',
+            name: "subject_code",
             type: lib_1.ColumnType.Integer,
             nonNull: true,
         }, {
-            name: 'type',
+            name: "type",
             type: lib_1.ColumnType.Enum,
             values: Object.values(AssignmentType),
             nonNull: true,
         }, {
-            name: 'date_due',
+            name: "date_due",
             type: lib_1.ColumnType.Date,
             nonNull: true,
         }],
@@ -74,30 +74,30 @@ var ActionType;
     ActionType["RemoveSubject"] = "/removeramo";
 })(ActionType || (exports.ActionType = ActionType = {}));
 exports.actionsHistoryTable = {
-    name: 'udec_actions_history',
+    name: "udec_actions_history",
     columns: [{
-            name: 'id',
+            name: "id",
             type: lib_1.ColumnType.Integer,
             nonNull: true,
             primaryKey: true,
             autoIncrement: true,
         }, {
-            name: 'chat_id',
+            name: "chat_id",
             type: lib_1.ColumnType.Bigint,
             nonNull: true,
             primaryKey: true,
         }, {
-            name: 'type',
+            name: "type",
             type: lib_1.ColumnType.Enum,
             values: Object.values(ActionType),
             nonNull: true,
         }, {
-            name: 'username',
+            name: "username",
             type: lib_1.ColumnType.String,
             size: 150,
             nonNull: true,
         }, {
-            name: 'timestamp',
+            name: "timestamp",
             type: lib_1.ColumnType.Timestamp,
             nonNull: true,
         }],

@@ -7,7 +7,7 @@ const fs_1 = require("fs");
 const path_1 = __importDefault(require("path"));
 const lib_1 = require("../lib");
 const util_1 = require("../util");
-const packageJson = JSON.parse((0, fs_1.readFileSync)(path_1.default.join(__dirname, '../../package.json'), 'utf-8'));
+const packageJson = JSON.parse((0, fs_1.readFileSync)(path_1.default.join(__dirname, "../../package.json"), "utf-8"));
 const sourceMessage = (0, util_1.stripIndent)(`
 *UdeC Bot v${(0, lib_1.escapeMarkdown)(packageJson.version)}*
 
@@ -16,13 +16,13 @@ Código fuente: [GitHub](${(0, lib_1.escapeMarkdown)(packageJson.repository.url)
 class SourceCommand extends lib_1.Command {
     constructor(client) {
         super(client, {
-            name: 'source',
-            description: 'Vínculo al código fuente.',
+            name: "source",
+            description: "Vínculo al código fuente.",
         });
     }
     async run(context) {
         await context.fancyReply(sourceMessage, {
-            'parse_mode': 'MarkdownV2',
+            "parse_mode": "MarkdownV2",
         });
     }
 }

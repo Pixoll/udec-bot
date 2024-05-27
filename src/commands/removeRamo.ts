@@ -1,6 +1,6 @@
-import { Markup } from 'telegraf';
-import { ReplyKeyboardMarkup } from 'telegraf/typings/core/types/typegram';
-import { TelegramClientType } from '../client';
+import { Markup } from "telegraf";
+import { ReplyKeyboardMarkup } from "telegraf/typings/core/types/typegram";
+import { TelegramClientType } from "../client";
 import {
     Command,
     CommandContext,
@@ -9,17 +9,17 @@ import {
     SessionString,
     TelegramClient,
     parseContext,
-} from '../lib';
-import { alphabetically, removeKeyboard, stripIndent } from '../util';
-import { ActionType, SubjectObject } from '../tables';
+} from "../lib";
+import { alphabetically, removeKeyboard, stripIndent } from "../util";
+import { ActionType, SubjectObject } from "../tables";
 
 const confirmationRegex = /^(👍|❌)$/;
 const confirmationKeyboard = Markup
-    .keyboard([['👍', '❌']])
+    .keyboard([["👍", "❌"]])
     .oneTime()
     .resize()
     .selective()
-    .placeholder('/cancel para abortar.')
+    .placeholder("/cancel para abortar.")
     .reply_markup;
 
 export default class RemoveRamoCommand extends Command<[]> {
@@ -30,8 +30,8 @@ export default class RemoveRamoCommand extends Command<[]> {
 
     public constructor(client: TelegramClient) {
         super(client, {
-            name: 'removeramo',
-            description: 'Remover un ramo del grupo.',
+            name: "removeramo",
+            description: "Remover un ramo del grupo.",
             groupOnly: true,
             ensureInactiveMenus: true,
         });
@@ -44,8 +44,8 @@ export default class RemoveRamoCommand extends Command<[]> {
     }
 
     public async run(context: CommandContext): Promise<void> {
-        const subjects = await this.client.db.select('udec_subjects', builder => builder.where({
-            column: 'chat_id',
+        const subjects = await this.client.db.select("udec_subjects", builder => builder.where({
+            column: "chat_id",
             equals: context.chat.id,
         }));
         if (!subjects.ok || (subjects.ok && subjects.result.length === 0)) {
@@ -57,7 +57,7 @@ export default class RemoveRamoCommand extends Command<[]> {
             return;
         }
 
-        const subjectStrings = subjects.result.sort(alphabetically('name'))
+        const subjectStrings = subjects.result.sort(alphabetically("name"))
             .map(s => `[${s.code}] ${s.name} (${s.credits} créditos)`);
         const selectionMenu = createSelectionMenu(subjectStrings);
 
@@ -69,7 +69,7 @@ export default class RemoveRamoCommand extends Command<[]> {
 
         Usa /cancel para cancelar.
         `), {
-            'reply_markup': selectionMenu,
+            "reply_markup": selectionMenu,
         });
     }
 
@@ -77,7 +77,7 @@ export default class RemoveRamoCommand extends Command<[]> {
         const code = +(context.text.match(/^\[(\d+)\]/)?.[1] ?? -1);
         const subject = subjects.find(s => s.code === code);
         if (!subject) {
-            await context.fancyReply('No se pudo identificar el ramo que quieres remover.', removeKeyboard);
+            await context.fancyReply("No se pudo identificar el ramo que quieres remover.", removeKeyboard);
             return;
         }
 
@@ -90,24 +90,24 @@ export default class RemoveRamoCommand extends Command<[]> {
         *Código*: ${subject.code}
         *Créditos*: ${subject.credits}
         `), {
-            'parse_mode': 'MarkdownV2',
-            'reply_markup': confirmationKeyboard,
+            "parse_mode": "MarkdownV2",
+            "reply_markup": confirmationKeyboard,
         });
     }
 
     private async deleteSubject(context: CommandContext, subject: SubjectObject): Promise<void> {
-        if (context.text === '❌') {
-            await context.fancyReply('El ramo no será removido.', removeKeyboard);
+        if (context.text === "❌") {
+            await context.fancyReply("El ramo no será removido.", removeKeyboard);
             return;
         }
 
-        const deleted = await this.client.db.delete('udec_subjects', builder => builder
+        const deleted = await this.client.db.delete("udec_subjects", builder => builder
             .where({
-                column: 'chat_id',
+                column: "chat_id",
                 equals: context.chat.id,
             })
             .where({
-                column: 'code',
+                column: "code",
                 equals: subject.code,
             })
         );
@@ -118,24 +118,24 @@ export default class RemoveRamoCommand extends Command<[]> {
 
                 Aún existen evaluaciones vigentes vinculadas a este ramo\\. Elimina esas primero con /removecert\\.
                 `), {
-                    'parse_mode': 'MarkdownV2',
+                    "parse_mode": "MarkdownV2",
                     ...removeKeyboard,
                 });
                 return;
             }
 
-            await context.fancyReply('Hubo un error al remover el ramo.', removeKeyboard);
+            await context.fancyReply("Hubo un error al remover el ramo.", removeKeyboard);
             await this.client.catchError(deleted.error, context);
             return;
         }
 
-        await context.fancyReply('🗑 *El ramo ha sido eliminado\\.*', {
-            'parse_mode': 'MarkdownV2',
+        await context.fancyReply("🗑 *El ramo ha sido eliminado\\.*", {
+            "parse_mode": "MarkdownV2",
             ...removeKeyboard,
         });
 
-        await this.client.db.insert('udec_actions_history', builder => builder.values({
-            'chat_id': context.chat.id,
+        await this.client.db.insert("udec_actions_history", builder => builder.values({
+            "chat_id": context.chat.id,
             username: context.from.full_username,
             type: ActionType.RemoveSubject,
             timestamp: new Date(),
@@ -188,6 +188,6 @@ function createSelectionMenu(subjects: string[]): ReplyKeyboardMarkup {
         .oneTime()
         .resize()
         .selective()
-        .placeholder('/cancel para abortar.')
+        .placeholder("/cancel para abortar.")
         .reply_markup;
 }

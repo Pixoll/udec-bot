@@ -8,11 +8,11 @@ function parseContext(ctx, client) {
         client,
         session: `${ctx.chat.id}:${ctx.from.id}`,
     });
-    if (!('full_username' in context.from)) {
-        Object.defineProperty(context.from, 'full_username', {
+    if (!("full_username" in context.from)) {
+        Object.defineProperty(context.from, "full_username", {
             get() {
                 return this.username
-                    ?? [this.first_name, this.last_name].filter(n => n).join(' ');
+                    ?? [this.first_name, this.last_name].filter(n => n).join(" ");
             },
         });
     }
@@ -22,9 +22,9 @@ function parseContext(ctx, client) {
 exports.parseContext = parseContext;
 async function fancyReply(text, extra = {}) {
     return await this.reply(text, {
-        'reply_parameters': {
-            'message_id': this.msgId,
-            'allow_sending_without_reply': true,
+        "reply_parameters": {
+            "message_id": this.msgId,
+            "allow_sending_without_reply": true,
         },
         ...extra,
     }).catch((error) => {

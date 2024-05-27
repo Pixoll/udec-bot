@@ -18,27 +18,27 @@ class TelegramClient extends telegraf_1.Telegraf {
     constructor(options) {
         const { TELEGRAM_TOKEN } = process.env;
         if (!TELEGRAM_TOKEN) {
-            throw new Error('A TELEGRAM_TOKEN env. variable must be specified.');
+            throw new Error("A TELEGRAM_TOKEN env. variable must be specified.");
         }
         super(TELEGRAM_TOKEN);
-        Object.assign(this, (0, util_1.omit)(options, ['commandsDir', 'db']));
+        Object.assign(this, (0, util_1.omit)(options, ["commandsDir", "db"]));
         this.db = new db_1.Database(options.db);
         this.activeMenus = new Map();
         this.ready = false;
-        logger_1.Logger.info('Registering commands and type handlers...');
+        logger_1.Logger.info("Registering commands and type handlers...");
         this.registry = new registry_1.ClientRegistry(this);
-        this.registry.registerTypeHandlersIn(path_1.default.join(__dirname, './types'), 'base')
+        this.registry.registerTypeHandlersIn(path_1.default.join(__dirname, "./types"), "base")
             .registerCommandsIn(options.commandsDir);
         this.catch((...args) => this.catchError(...args));
     }
     async catchError(error, context) {
         const messageId = context.msgId;
         logger_1.Logger.error(error);
-        context.reply('Ocurrió un error y ha sido notificado al mantenedor del bot.', {
+        context.reply("Ocurrió un error y ha sido notificado al mantenedor del bot.", {
             ...messageId && ({
-                'reply_parameters': {
-                    'message_id': messageId,
-                    'allow_sending_without_reply': true,
+                "reply_parameters": {
+                    "message_id": messageId,
+                    "allow_sending_without_reply": true,
                 },
             }),
         });
@@ -50,14 +50,14 @@ class TelegramClient extends telegraf_1.Telegraf {
     }
     async login() {
         await this.db.connect();
-        logger_1.Logger.info('Starting Telegram Client...');
+        logger_1.Logger.info("Starting Telegram Client...");
         if (this.ready) {
-            process.emitWarning('Telegram Client has been already launched. Make sure to only call this method once.');
+            process.emitWarning("Telegram Client has been already launched. Make sure to only call this method once.");
             return;
         }
         this.launch({ dropPendingUpdates: true }, () => {
             this.ready = true;
-            logger_1.Logger.info('Telegram Client is ready.');
+            logger_1.Logger.info("Telegram Client is ready.");
         });
     }
 }
