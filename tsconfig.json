@@ -8,7 +8,7 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "removeComments": false,
+    "removeComments": true,
     "inlineSourceMap": true,
     "noErrorTruncation": true,
     "resolveJsonModule": true,
