@@ -34,6 +34,7 @@ export class TelegramClient<Database extends object = object> extends Telegraf {
                     database: DB_NAME,
                     supportBigNumbers: true,
                     bigNumberStrings: true,
+                    dateStrings: true,
                 }),
             }),
         });
