@@ -1,5 +1,5 @@
 import { Markup } from "telegraf";
-import { ValuesOf } from "./lib";
+import { ValuesOf, dateAtSantiago, dateToString } from "./lib";
 import { ExtraReplyMessage } from "telegraf/typings/telegram-types";
 
 export const removeKeyboard = {
@@ -33,7 +33,9 @@ export function alphabetically<T>(key?: StringKeysOf<T> | boolean, ascending = t
 export const daysMsConversionFactor = 86_400_000;
 
 export function getDaysUntil(date: Date): number {
-    return Math.ceil((date.getTime() - Date.now()) / daysMsConversionFactor);
+    // I wish I had |>
+    const today = dateAtSantiago(dateStringToSqlDate(dateToString(dateAtSantiago())));
+    return Math.ceil((date.getTime() - today.getTime()) / daysMsConversionFactor);
 }
 
 export function daysUntilToString(days: number): string {
