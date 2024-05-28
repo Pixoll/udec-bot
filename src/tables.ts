@@ -1,31 +1,27 @@
-import { ColumnType, ForeignKey, TableColumnValuePairs, TableDescriptor } from "./lib";
+import type { ColumnType, Insertable, Selectable, Updateable } from "kysely";
 
-export const subjectsTable = {
-    name: "udec_subjects",
-    columns: [{
-        name: "chat_id",
-        type: ColumnType.Bigint,
-        nonNull: true,
-        primaryKey: true,
-    }, {
-        name: "code",
-        type: ColumnType.Integer,
-        nonNull: true,
-        primaryKey: true,
-    }, {
-        name: "name",
-        type: ColumnType.String,
-        size: 150,
-        nonNull: true,
-    }, {
-        name: "credits",
-        type: ColumnType.Integer,
-        nonNull: true,
-    }],
-} as const satisfies TableDescriptor;
+type Generated<T> = ColumnType<T, never, never>;
+type Immutable<Select, Insert = Select> = ColumnType<Select, Insert, never>;
 
-export type SubjectsTable = typeof subjectsTable;
-export type SubjectObject = TableColumnValuePairs<SubjectsTable, false>;
+export type ChatId = `${number}`;
+
+export enum ActionType {
+    AddAssignment = "/addcert",
+    RemoveAssignment = "/removecert",
+    AddSubject = "/addramo",
+    RemoveSubject = "/removeramo",
+}
+
+export interface ActionHistoryTable {
+    chat_id: Immutable<ChatId>;
+    id: Generated<number>;
+    timestamp: Immutable<string>;
+    type: Immutable<ActionType>;
+    username: Immutable<string>;
+}
+
+export type ActionHistory = Selectable<ActionHistoryTable>;
+export type NewActionHistory = Insertable<ActionHistoryTable>;
 
 export enum AssignmentType {
     Homework = "tarea",
@@ -35,79 +31,46 @@ export enum AssignmentType {
     Report = "informe",
 }
 
-export const assignmentsTable = {
-    name: "udec_assignments",
-    foreignKeys: [{
-        keys: ["chat_id", "subject_code"],
-        references: subjectsTable.name,
-        referenceKeys: [subjectsTable.columns[0].name, subjectsTable.columns[1].name],
-    } satisfies ForeignKey<2>],
-    columns: [{
-        name: "id",
-        type: ColumnType.Integer,
-        nonNull: true,
-        primaryKey: true,
-        autoIncrement: true,
-    }, {
-        name: "chat_id",
-        type: ColumnType.Bigint,
-        nonNull: true,
-        primaryKey: true,
-    }, {
-        name: "subject_code",
-        type: ColumnType.Integer,
-        nonNull: true,
-    }, {
-        name: "type",
-        type: ColumnType.Enum,
-        values: Object.values(AssignmentType) as readonly AssignmentType[],
-        nonNull: true,
-    }, {
-        name: "date_due",
-        type: ColumnType.Date,
-        nonNull: true,
-    }],
-} as const satisfies TableDescriptor;
-
-export type AssignmentsTable = typeof assignmentsTable;
-export type AssignmentObject = TableColumnValuePairs<AssignmentsTable, false>;
-
-export enum ActionType {
-    AddAssignment = "/addcert",
-    RemoveAssignment = "/removecert",
-    AddSubject = "/addramo",
-    RemoveSubject = "/removeramo",
+export interface AssignmentTable {
+    chat_id: Immutable<ChatId>;
+    date_due: Immutable<string>;
+    id: Generated<number>;
+    subject_code: Immutable<number>;
+    type: Immutable<AssignmentType>;
 }
 
-export const actionsHistoryTable = {
-    name: "udec_actions_history",
-    columns: [{
-        name: "id",
-        type: ColumnType.Integer,
-        nonNull: true,
-        primaryKey: true,
-        autoIncrement: true,
-    }, {
-        name: "chat_id",
-        type: ColumnType.Bigint,
-        nonNull: true,
-        primaryKey: true,
-    }, {
-        name: "type",
-        type: ColumnType.Enum,
-        values: Object.values(ActionType) as readonly ActionType[],
-        nonNull: true,
-    }, {
-        name: "username",
-        type: ColumnType.String,
-        size: 150,
-        nonNull: true,
-    }, {
-        name: "timestamp",
-        type: ColumnType.Timestamp,
-        nonNull: true,
-    }],
-} as const satisfies TableDescriptor;
+export type Assignment = Selectable<AssignmentTable>;
+export type NewAssignment = Insertable<AssignmentTable>;
 
-export type ActionsHistoryTable = typeof actionsHistoryTable;
-export type ActionHistoryObject = TableColumnValuePairs<ActionsHistoryTable, false>;
+export interface ChatTable {
+    id: Immutable<ChatId>;
+}
+
+export type Chat = Selectable<ChatTable>;
+export type NewChat = Insertable<ChatTable>;
+export type ChatUpdate = Updateable<ChatTable>;
+
+export interface ChatSubjectTable {
+    chat_id: Immutable<ChatId>;
+    subject_code: Immutable<number>;
+}
+
+export type ChatSubject = Selectable<ChatSubjectTable>;
+export type NewChatSubject = Insertable<ChatSubjectTable>;
+
+export interface SubjectTable {
+    code: Immutable<number>;
+    credits: Immutable<number>;
+    name: Immutable<string>;
+}
+
+export type Subject = Selectable<SubjectTable>;
+export type NewSubject = Insertable<SubjectTable>;
+
+export interface Database {
+    udec_action_history: ActionHistoryTable;
+    udec_assignment: AssignmentTable;
+    udec_chat: ChatTable;
+    udec_chat_subject: ChatSubjectTable;
+    udec_subject: SubjectTable;
+}

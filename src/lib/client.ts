@@ -1,35 +1,49 @@
-import { Context, Telegraf } from "telegraf";
-import { ClientRegistry } from "./registry";
+import { Kysely, MysqlDialect } from "kysely";
+import { createPool } from "mysql2";
 import path from "path";
-import { omit } from "./util";
-import { Logger } from "./logger";
-import { Database, DatabaseOptions, TablesArray } from "./db";
+import { Context, Telegraf } from "telegraf";
 import { SessionString } from "./commands";
+import { Logger } from "./logger";
+import { ClientRegistry } from "./registry";
 
-export class TelegramClient<Tables extends TablesArray = []>
-    extends Telegraf
-    implements Omit<TelegramClientOptions<Tables>, "commandsDir" | "db"> {
+export class TelegramClient<Database extends object = object> extends Telegraf {
     public declare readonly ownerId: number | null;
     public readonly registry: ClientRegistry;
-    public readonly db: Database<Tables>;
+    public readonly db: Kysely<Database>;
     public readonly activeMenus: Map<SessionString, string>;
     private ready: boolean;
 
-    public constructor(options: TelegramClientOptions<Tables>) {
+    public constructor(options: TelegramClientOptions) {
         const { TELEGRAM_TOKEN } = process.env;
         if (!TELEGRAM_TOKEN) {
             throw new Error("A TELEGRAM_TOKEN env. variable must be specified.");
         }
 
         super(TELEGRAM_TOKEN);
-        Object.assign(this, omit(options, ["commandsDir", "db"]));
 
-        this.db = new Database<Tables>(options.db);
+        const { DB_HOST, DB_PORT, DB_SOCKET_PATH, DB_USERNAME, DB_PASSWORD, DB_NAME } = process.env;
+
+        this.db = new Kysely<Database>({
+            dialect: new MysqlDialect({
+                pool: createPool({
+                    host: DB_HOST,
+                    port: DB_PORT ? +DB_PORT : undefined,
+                    socketPath: DB_SOCKET_PATH,
+                    user: DB_USERNAME,
+                    password: DB_PASSWORD,
+                    database: DB_NAME,
+                    supportBigNumbers: true,
+                    bigNumberStrings: true,
+                }),
+            }),
+        });
+
+        this.ownerId = options.ownerId;
         this.activeMenus = new Map();
         this.ready = false;
 
         Logger.info("Registering commands and type handlers...");
-        this.registry = new ClientRegistry(this as unknown as TelegramClient<[]>);
+        this.registry = new ClientRegistry(this as unknown as TelegramClient);
         this.registry.registerTypeHandlersIn(path.join(__dirname, "./types"), "base")
             .registerCommandsIn(options.commandsDir);
 
@@ -56,8 +70,6 @@ export class TelegramClient<Tables extends TablesArray = []>
     }
 
     public async login(): Promise<void> {
-        await this.db.connect();
-
         Logger.info("Starting Telegram Client...");
         if (this.ready) {
             process.emitWarning("Telegram Client has been already launched. Make sure to only call this method once.");
@@ -71,8 +83,7 @@ export class TelegramClient<Tables extends TablesArray = []>
     }
 }
 
-export interface TelegramClientOptions<Tables extends TablesArray> {
+export interface TelegramClientOptions {
     readonly commandsDir: string;
     readonly ownerId: number | null;
-    readonly db: DatabaseOptions<Tables>;
 }

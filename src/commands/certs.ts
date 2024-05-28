@@ -7,11 +7,10 @@ import {
     CommandContext,
     TelegramClient,
     capitalize,
+    dateAtSantiago,
     dateToString,
 } from "../lib";
 import { daysMsConversionFactor, daysUntilToString, getDaysUntil, stripIndent } from "../util";
-
-const subjectNames = new Map<number, string>();
 
 const dueDateMarkers = [{
     emoji: "🏳",
@@ -65,17 +64,15 @@ export default class CertsCommand extends Command<RawArgs> {
     }
 
     public async run(context: CommandContext, { days }: ArgsResult): Promise<void> {
-        const query = await this.client.db.select("udec_assignments", builder => builder
-            .where({
-                column: "chat_id",
-                equals: context.chat.id,
-            })
-            .where({
-                column: "date_due",
-                lessThanOrEqualTo: new Date(Date.now() + days),
-            })
-        );
-        if (!query.ok || query.result.length === 0) {
+        const queryAssignments = await this.client.db
+            .selectFrom("udec_assignment as assignment")
+            .innerJoin("udec_subject as subject", "assignment.subject_code", "subject.code")
+            .select(["subject_code", "name as subject_name", "date_due", "type"])
+            .where("chat_id", "=", `${context.chat.id}`)
+            .where("date_due", "<=", dateToString(new Date(Date.now() + days)))
+            .execute();
+
+        if (queryAssignments.length === 0) {
             await context.fancyReply(stripIndent(`
             No hay ninguna evaluación registrada para este grupo.
 
@@ -84,16 +81,16 @@ export default class CertsCommand extends Command<RawArgs> {
             return;
         }
 
-        const assignments = await Promise.all(query.result
+        const assignments = queryAssignments
+            .map(a => ({ ...a, date_due: dateAtSantiago(a.date_due) }))
             .sort((a, b) => a.date_due.getTime() - b.date_due.getTime())
-            .map(async (a) => {
-                const subjectName = await getSubjectName(this.client.db, a.subject_code, context.chat.id);
+            .map((a) => {
                 const daysUntil = getDaysUntil(a.date_due);
                 const marker = dueDateMarkers.find(m => daysUntil <= m.threshold) as DueDateMarker;
                 return `• ${marker.emoji} *${capitalize(a.type)}* \\- `
                     + `_${daysUntilToString(daysUntil)} \\(${dateToString(a.date_due)}\\)_\n`
-                    + `*\\[${a.subject_code}\\] ${subjectName ?? "ERROR"}*`;
-            }));
+                    + `*\\[${a.subject_code}\\] ${a.subject_name ?? "ERROR"}*`;
+            });
 
         await context.fancyReply(stripIndent(`
         ✳️ *Fechas Relevantes* ✳️
@@ -104,25 +101,4 @@ export default class CertsCommand extends Command<RawArgs> {
             "parse_mode": "MarkdownV2",
         });
     }
-}
-
-export async function getSubjectName(db: TelegramClientType["db"], code: number, chatId: number): Promise<string | null> {
-    const existing = subjectNames.get(code);
-    if (existing) return existing;
-
-    const query = await db.select("udec_subjects", builder => builder
-        .where({
-            column: "chat_id",
-            equals: chatId,
-        })
-        .where({
-            column: "code",
-            equals: code,
-        })
-    );
-
-    const result = query.ok ? query.result[0]?.name ?? null : null;
-    if (result) subjectNames.set(code, result);
-
-    return result;
 }

@@ -6,6 +6,7 @@ import {
     Command,
     CommandContext,
     TelegramClient,
+    dateAtSantiago,
     dateToString,
     escapeMarkdown,
 } from "../lib";
@@ -36,18 +37,21 @@ export default class HistoryCommand extends Command<RawArgs> {
     }
 
     public async run(context: CommandContext, { amount }: ArgsResult): Promise<void> {
-        const query = await this.client.db.select("udec_actions_history", builder => builder.where({
-            column: "chat_id",
-            equals: context.chat.id,
-        }));
-        if (!query.ok || query.result.length === 0) {
+        const actions = await this.client.db
+            .selectFrom("udec_action_history")
+            .select(["timestamp", "type", "username"])
+            .where("chat_id", "=", `${context.chat.id}`)
+            .execute();
+
+        if (actions.length === 0) {
             await context.fancyReply("El historial de acciones está vacío.");
             return;
         }
 
-        const history = query.result
+        const history = actions
+            .map(a => ({ ...a, timestamp: dateAtSantiago(a.timestamp) }))
             .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
-            .slice(0, amount ?? query.result.length)
+            .slice(0, amount ?? actions.length)
             .map(record =>
                 `• \`${dateToString(record.timestamp, true)}\` \\- ${record.type} \\- ${escapeMarkdown(record.username)}`
             )

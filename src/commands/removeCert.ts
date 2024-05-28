@@ -8,12 +8,16 @@ import {
     SessionString,
     TelegramClient,
     capitalize,
+    dateAtSantiago,
     dateToString,
     parseContext,
 } from "../lib";
 import { daysUntilToString, getDaysUntil, removeKeyboard, stripIndent } from "../util";
-import { ActionType, AssignmentObject, AssignmentType } from "../tables";
-import { getSubjectName } from "./certs";
+import { ActionType, Assignment, AssignmentType, Subject } from "../tables";
+
+type AssignmentWithSubjectName = Omit<Assignment, "chat_id"> & {
+    subject_name: Subject["name"];
+};
 
 const assignmentTypes = Object.values(AssignmentType).map(v => capitalize(v));
 const assignmentStringRegex = new RegExp(
@@ -40,8 +44,8 @@ interface AssignmentMatchGroups {
 export default class RemoveCertCommand extends Command<[]> {
     // @ts-expect-error: type override
     public declare readonly client: TelegramClientType;
-    private readonly assignments: Map<SessionString, AssignmentObject[]>;
-    private readonly waitingConfirmation: Map<SessionString, AssignmentObject>;
+    private readonly assignments: Map<SessionString, AssignmentWithSubjectName[]>;
+    private readonly waitingConfirmation: Map<SessionString, AssignmentWithSubjectName>;
 
     public constructor(client: TelegramClient) {
         super(client, {
@@ -59,11 +63,20 @@ export default class RemoveCertCommand extends Command<[]> {
     }
 
     public async run(context: CommandContext): Promise<void> {
-        const query = await this.client.db.select("udec_assignments", builder => builder.where({
-            column: "chat_id",
-            equals: context.chat.id,
-        }));
-        if (!query.ok || (query.ok && query.result.length === 0)) {
+        const assignments = await this.client.db
+            .selectFrom("udec_assignment as assignment")
+            .innerJoin("udec_subject as subject", "assignment.subject_code", "subject.code")
+            .select([
+                "assignment.id",
+                "assignment.type",
+                "assignment.subject_code",
+                "subject.name as subject_name",
+                "assignment.date_due",
+            ])
+            .where("assignment.chat_id", "=", `${context.chat.id}`)
+            .execute();
+
+        if (assignments.length === 0) {
             await context.fancyReply(stripIndent(`
             No hay ningún ramo registrado para este grupo.
 
@@ -72,16 +85,12 @@ export default class RemoveCertCommand extends Command<[]> {
             return;
         }
 
-        const assignmentsStrings = await Promise.all(query.result
+        const assignmentsStrings = assignments
+            .map(a => ({ ...a, date_due: dateAtSantiago(a.date_due) }))
             .sort((a, b) => a.date_due.getTime() - b.date_due.getTime())
-            .map(async (s) => {
-                const subjectName = await getSubjectName(this.client.db, s.subject_code, context.chat.id);
-                return `${capitalize(s.type)} - [${s.subject_code}] ${subjectName} (${dateToString(s.date_due)})`;
-            })
-        );
-        const selectionMenu = createSelectionMenu(assignmentsStrings);
+            .map((s) => `${capitalize(s.type)} - [${s.subject_code}] ${s.subject_name} (${dateToString(s.date_due)})`);
 
-        this.assignments.set(context.session, query.result);
+        this.assignments.set(context.session, assignments);
         this.client.activeMenus.set(context.session, this.name);
 
         await context.fancyReply(stripIndent(`
@@ -89,19 +98,20 @@ export default class RemoveCertCommand extends Command<[]> {
 
         Usa /cancel para cancelar.
         `), {
-            "reply_markup": selectionMenu,
+            "reply_markup": createSelectionMenu(assignmentsStrings),
         });
     }
 
-    private async confirmDeletion(context: CommandContext, assignments: AssignmentObject[]): Promise<void> {
+    private async confirmDeletion(context: CommandContext, assignments: AssignmentWithSubjectName[]): Promise<void> {
         const { dueDate, subjectCode, type } = context.text
             .match(assignmentStringRegex)?.groups as unknown as AssignmentMatchGroups;
 
         const assignment = assignments.find(a =>
-            dateToString(a.date_due) === dueDate
+            a.date_due === dueDate.replace(/^\d/g, "-")
             && a.subject_code === +subjectCode
             && a.type === type.toLowerCase()
         );
+
         if (!assignment) {
             this.client.activeMenus.delete(context.session);
             await context.fancyReply("No se pudo identificar la evaluación que quieres remover.", removeKeyboard);
@@ -110,33 +120,36 @@ export default class RemoveCertCommand extends Command<[]> {
 
         this.waitingConfirmation.set(context.session, assignment);
 
-        const subjectName = await getSubjectName(this.client.db, assignment.subject_code, context.chat.id);
-
+        /* eslint-disable indent */
         await context.fancyReply(stripIndent(`
         *¿Estás seguro que quieres eliminar esta evaluación?*
 
         *Tipo*: ${capitalize(assignment.type)}
-        *Ramo*: \\[${assignment.subject_code}\\] ${subjectName ?? "ERROR"}
-        *Fecha*: ${dateToString(assignment.date_due)} \\(${daysUntilToString(getDaysUntil(assignment.date_due))}\\)
+        *Ramo*: \\[${assignment.subject_code}\\] ${assignment.subject_name}
+        *Fecha*: ${assignment.date_due.replace(/-/g, "/")} \\(${daysUntilToString(
+            getDaysUntil(dateAtSantiago(assignment.date_due))
+        )}\\)
         `), {
             "parse_mode": "MarkdownV2",
             "reply_markup": confirmationKeyboard,
         });
+        /* eslint-enable indent */
     }
 
-    private async deleteAssignment(context: CommandContext, assignment: AssignmentObject): Promise<void> {
+    private async deleteAssignment(context: CommandContext, assignment: AssignmentWithSubjectName): Promise<void> {
         if (context.text === "❌") {
             await context.fancyReply("La evaluación no será removida.", removeKeyboard);
             return;
         }
 
-        const deleted = await this.client.db.delete("udec_assignments", builder => builder.where({
-            column: "id",
-            equals: assignment.id,
-        }));
-        if (!deleted.ok) {
+        try {
+            await this.client.db
+                .deleteFrom("udec_assignment")
+                .where("id", "=", assignment.id)
+                .executeTakeFirstOrThrow();
+        } catch (error) {
             await context.fancyReply("Hubo un error al remover la evaluación.", removeKeyboard);
-            await this.client.catchError(deleted.error, context);
+            await this.client.catchError(error, context);
             return;
         }
 
@@ -145,12 +158,19 @@ export default class RemoveCertCommand extends Command<[]> {
             ...removeKeyboard,
         });
 
-        await this.client.db.insert("udec_actions_history", builder => builder.values({
-            "chat_id": context.chat.id,
-            username: context.from.full_username,
-            type: ActionType.RemoveAssignment,
-            timestamp: new Date(),
-        }));
+        try {
+            await this.client.db
+                .insertInto("udec_action_history")
+                .values({
+                    chat_id: `${context.chat.id}`,
+                    timestamp: dateAtSantiago().toISOString().replace(/T|\.\d{3}Z$/g, ""),
+                    type: ActionType.RemoveAssignment,
+                    username: context.from.full_username,
+                })
+                .executeTakeFirstOrThrow();
+        } catch (error) {
+            await this.client.catchError(error, context);
+        }
     }
 
     private async assignmentListener(ctx: MessageContext, next: () => Promise<void>): Promise<void> {

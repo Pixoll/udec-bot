@@ -1,3 +1,4 @@
+import { Markup } from "telegraf";
 import { TelegramClientType } from "../client";
 import {
     ArgumentOptions,
@@ -9,12 +10,12 @@ import {
     SessionString,
     TelegramClient,
     capitalize,
+    dateAtSantiago,
     dateToString,
     parseContext,
 } from "../lib";
-import { ActionType, AssignmentObject, AssignmentType, SubjectObject } from "../tables";
+import { ActionType, Assignment, AssignmentType, NewAssignment, Subject } from "../tables";
 import { removeKeyboard, stripIndent } from "../util";
-import { Markup } from "telegraf";
 
 const assignmentTypes = Object.values(AssignmentType).map(t => capitalize(t));
 const assignmentTypeRegex = new RegExp(`^(?:${assignmentTypes.join("|")})$`);
@@ -43,8 +44,8 @@ type ArgsResult = ArgumentOptionsToResult<RawArgs>;
 export default class AddCertCommand extends Command<RawArgs> {
     // @ts-expect-error: type override
     public declare readonly client: TelegramClientType;
-    private readonly assignments: Map<SessionString, AssignmentObject>;
-    private readonly subjects: Map<SessionString, SubjectObject[]>;
+    private readonly assignments: Map<SessionString, NewAssignment>;
+    private readonly subjects: Map<SessionString, Subject[]>;
 
     public constructor(client: TelegramClient) {
         super(client, {
@@ -63,11 +64,14 @@ export default class AddCertCommand extends Command<RawArgs> {
     }
 
     public async run(context: CommandContext, { date }: ArgsResult): Promise<void> {
-        const query = await this.client.db.select("udec_subjects", builder => builder.where({
-            column: "chat_id",
-            equals: context.chat.id,
-        }));
-        if (!query.ok || query.result.length === 0) {
+        const subjects = await this.client.db
+            .selectFrom("udec_chat_subject as chat_subject")
+            .innerJoin("udec_subject as subject", "chat_subject.subject_code", "subject.code")
+            .select(["subject.code", "subject.name", "subject.credits"])
+            .where("chat_subject.chat_id", "=", `${context.chat.id}`)
+            .execute();
+
+        if (subjects.length === 0) {
             await context.fancyReply(stripIndent(`
             No hay ningún ramo registrado para este grupo.
 
@@ -76,11 +80,11 @@ export default class AddCertCommand extends Command<RawArgs> {
             return;
         }
 
-        this.subjects.set(context.session, query.result);
+        this.subjects.set(context.session, subjects);
         this.client.activeMenus.set(context.session, this.name);
 
         const subjectsKeyboard = Markup
-            .keyboard(query.result.map(s => `[${s.code}] ${s.name} (${s.credits} créditos)`))
+            .keyboard(subjects.map(s => `[${s.code}] ${s.name} (${s.credits} créditos)`))
             .oneTime()
             .resize()
             .selective()
@@ -88,9 +92,9 @@ export default class AddCertCommand extends Command<RawArgs> {
             .reply_markup;
 
         this.assignments.set(context.session, {
-            "chat_id": context.chat.id,
-            "date_due": date,
-        } as AssignmentObject);
+            chat_id: `${context.chat.id}`,
+            date_due: date,
+        } as unknown as NewAssignment);
 
         await context.fancyReply(stripIndent(`
         _Fecha de evaluación registrada: ${dateToString(date)}_
@@ -102,7 +106,7 @@ export default class AddCertCommand extends Command<RawArgs> {
     }
 
     private async setSubject(
-        context: CommandContext, subjects: SubjectObject[], assignment: AssignmentObject
+        context: CommandContext, subjects: Subject[], assignment: Assignment
     ): Promise<void> {
         const code = +(context.text.match(/^\[(\d+)\]/)?.[1] ?? -1);
         const subject = subjects.find(s => s.code === code);
@@ -121,16 +125,19 @@ export default class AddCertCommand extends Command<RawArgs> {
         });
     }
 
-    private async addAssignment(context: CommandContext, assignment: AssignmentObject): Promise<void> {
+    private async addAssignment(context: CommandContext, assignment: Assignment): Promise<void> {
         assignment.type = context.text.toLowerCase() as AssignmentType;
 
-        const exists = await this.client.db.select("udec_assignments", builder => builder
-            .where({ column: "chat_id", equals: assignment.chat_id })
-            .where({ column: "date_due", equals: assignment.date_due })
-            .where({ column: "subject_code", equals: assignment.subject_code })
-            .where({ column: "type", equals: assignment.type })
-        );
-        if (exists.ok && exists.result.length > 0) {
+        const registeredAssignment = await this.client.db
+            .selectFrom("udec_assignment")
+            .selectAll()
+            .where("chat_id", "=", assignment.chat_id)
+            .where("date_due", "=", assignment.date_due)
+            .where("subject_code", "=", assignment.subject_code)
+            .where("type", "=", assignment.type)
+            .executeTakeFirst();
+
+        if (registeredAssignment) {
             await context.fancyReply("*La evaluación que intentas agregar ya está registrada\\.*", {
                 "parse_mode": "MarkdownV2",
                 ...removeKeyboard,
@@ -138,10 +145,14 @@ export default class AddCertCommand extends Command<RawArgs> {
             return;
         }
 
-        const inserted = await this.client.db.insert("udec_assignments", builder => builder.values(assignment));
-        if (!inserted.ok) {
+        try {
+            await this.client.db
+                .insertInto("udec_assignment")
+                .values(assignment)
+                .executeTakeFirstOrThrow();
+        } catch (error) {
             await context.fancyReply("Hubo un error al añadir la evaluación.", removeKeyboard);
-            await this.client.catchError(inserted.error, context);
+            await this.client.catchError(error, context);
             return;
         }
 
@@ -150,12 +161,19 @@ export default class AddCertCommand extends Command<RawArgs> {
             ...removeKeyboard,
         });
 
-        await this.client.db.insert("udec_actions_history", builder => builder.values({
-            "chat_id": context.chat.id,
-            timestamp: new Date(),
-            type: ActionType.AddAssignment,
-            username: context.from.full_username,
-        }));
+        try {
+            await this.client.db
+                .insertInto("udec_action_history")
+                .values({
+                    chat_id: `${context.chat.id}`,
+                    timestamp: dateAtSantiago().toISOString().replace(/T|\.\d{3}Z$/g, ""),
+                    type: ActionType.AddAssignment,
+                    username: context.from.full_username,
+                })
+                .executeTakeFirstOrThrow();
+        } catch (error) {
+            await this.client.catchError(error, context);
+        }
     }
 
     private async subjectListener(ctx: MessageContext, next: () => Promise<void>): Promise<void> {
@@ -166,10 +184,10 @@ export default class AddCertCommand extends Command<RawArgs> {
             return;
         }
 
-        const subjects = this.subjects.get(context.session) as SubjectObject[];
+        const subjects = this.subjects.get(context.session) as Subject[];
         this.subjects.delete(context.session);
 
-        const assignment = this.assignments.get(context.session) as AssignmentObject;
+        const assignment = this.assignments.get(context.session) as Assignment;
         if (assignment.subject_code) {
             next();
             return;
@@ -186,7 +204,7 @@ export default class AddCertCommand extends Command<RawArgs> {
             return;
         }
 
-        const assignment = this.assignments.get(context.session) as AssignmentObject;
+        const assignment = this.assignments.get(context.session) as Assignment;
         if (assignment.type) {
             next();
             return;

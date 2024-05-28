@@ -5,13 +5,13 @@ import {
     Command,
     CommandContext,
     MessageContext,
-    QueryErrorNumber,
     SessionString,
     TelegramClient,
+    dateAtSantiago,
     parseContext,
 } from "../lib";
 import { alphabetically, removeKeyboard, stripIndent } from "../util";
-import { ActionType, SubjectObject } from "../tables";
+import { ActionType, Subject } from "../tables";
 
 const confirmationRegex = /^(👍|❌)$/;
 const confirmationKeyboard = Markup
@@ -25,8 +25,8 @@ const confirmationKeyboard = Markup
 export default class RemoveRamoCommand extends Command<[]> {
     // @ts-expect-error: type override
     public declare readonly client: TelegramClientType;
-    private readonly subjects: Map<SessionString, SubjectObject[]>;
-    private readonly waitingConfirmation: Map<SessionString, SubjectObject>;
+    private readonly subjects: Map<SessionString, Subject[]>;
+    private readonly waitingConfirmation: Map<SessionString, Subject>;
 
     public constructor(client: TelegramClient) {
         super(client, {
@@ -44,11 +44,14 @@ export default class RemoveRamoCommand extends Command<[]> {
     }
 
     public async run(context: CommandContext): Promise<void> {
-        const subjects = await this.client.db.select("udec_subjects", builder => builder.where({
-            column: "chat_id",
-            equals: context.chat.id,
-        }));
-        if (!subjects.ok || (subjects.ok && subjects.result.length === 0)) {
+        const subjects = await this.client.db
+            .selectFrom("udec_chat_subject as chat_subject")
+            .innerJoin("udec_subject as subject", "chat_subject.subject_code", "subject.code")
+            .select(["subject.code", "subject.name", "subject.credits"])
+            .where("chat_subject.chat_id", "=", `${context.chat.id}`)
+            .execute();
+
+        if (subjects.length === 0) {
             await context.fancyReply(stripIndent(`
             No hay ningún ramo registrado para este grupo.
 
@@ -57,11 +60,11 @@ export default class RemoveRamoCommand extends Command<[]> {
             return;
         }
 
-        const subjectStrings = subjects.result.sort(alphabetically("name"))
+        const subjectStrings = subjects.sort(alphabetically("name"))
             .map(s => `[${s.code}] ${s.name} (${s.credits} créditos)`);
         const selectionMenu = createSelectionMenu(subjectStrings);
 
-        this.subjects.set(context.session, subjects.result);
+        this.subjects.set(context.session, subjects);
         this.client.activeMenus.set(context.session, this.name);
 
         await context.fancyReply(stripIndent(`
@@ -73,7 +76,7 @@ export default class RemoveRamoCommand extends Command<[]> {
         });
     }
 
-    private async confirmDeletion(context: CommandContext, subjects: SubjectObject[]): Promise<void> {
+    private async confirmDeletion(context: CommandContext, subjects: Subject[]): Promise<void> {
         const code = +(context.text.match(/^\[(\d+)\]/)?.[1] ?? -1);
         const subject = subjects.find(s => s.code === code);
         if (!subject) {
@@ -95,37 +98,40 @@ export default class RemoveRamoCommand extends Command<[]> {
         });
     }
 
-    private async deleteSubject(context: CommandContext, subject: SubjectObject): Promise<void> {
+    private async deleteSubject(context: CommandContext, subject: Subject): Promise<void> {
         if (context.text === "❌") {
             await context.fancyReply("El ramo no será removido.", removeKeyboard);
             return;
         }
 
-        const deleted = await this.client.db.delete("udec_subjects", builder => builder
-            .where({
-                column: "chat_id",
-                equals: context.chat.id,
-            })
-            .where({
-                column: "code",
-                equals: subject.code,
-            })
-        );
-        if (!deleted.ok) {
-            if (deleted.error.errno === QueryErrorNumber.CannotDeleteParent) {
-                await context.fancyReply(stripIndent(`
-                *No se puede eliminar este ramo\\.*
+        const registeredAssignments = await this.client.db
+            .selectFrom("udec_assignment")
+            .selectAll()
+            .where("chat_id", "=", `${context.chat.id}`)
+            .where("subject_code", "=", subject.code)
+            .execute();
 
-                Aún existen evaluaciones vigentes vinculadas a este ramo\\. Elimina esas primero con /removecert\\.
-                `), {
-                    "parse_mode": "MarkdownV2",
-                    ...removeKeyboard,
-                });
-                return;
-            }
+        if (registeredAssignments.length > 0) {
+            await context.fancyReply(stripIndent(`
+            *No se puede eliminar este ramo\\.*
 
+            Aún existen evaluaciones vigentes vinculadas a este ramo\\. Elimina esas primero con /removecert\\.
+            `), {
+                "parse_mode": "MarkdownV2",
+                ...removeKeyboard,
+            });
+            return;
+        }
+
+        try {
+            await this.client.db
+                .deleteFrom("udec_chat_subject")
+                .where("chat_id", "=", `${context.chat.id}`)
+                .where("subject_code", "=", subject.code)
+                .executeTakeFirstOrThrow();
+        } catch (error) {
             await context.fancyReply("Hubo un error al remover el ramo.", removeKeyboard);
-            await this.client.catchError(deleted.error, context);
+            await this.client.catchError(error, context);
             return;
         }
 
@@ -134,12 +140,19 @@ export default class RemoveRamoCommand extends Command<[]> {
             ...removeKeyboard,
         });
 
-        await this.client.db.insert("udec_actions_history", builder => builder.values({
-            "chat_id": context.chat.id,
-            username: context.from.full_username,
-            type: ActionType.RemoveSubject,
-            timestamp: new Date(),
-        }));
+        try {
+            await this.client.db
+                .insertInto("udec_action_history")
+                .values({
+                    chat_id: `${context.chat.id}`,
+                    timestamp: dateAtSantiago().toISOString().replace(/T|\.\d{3}Z$/g, ""),
+                    type: ActionType.RemoveSubject,
+                    username: context.from.full_username,
+                })
+                .executeTakeFirstOrThrow();
+        } catch (error) {
+            await this.client.catchError(error, context);
+        }
     }
 
     private async subjectListener(ctx: MessageContext, next: () => Promise<void>): Promise<void> {

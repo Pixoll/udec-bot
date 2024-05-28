@@ -10,6 +10,7 @@ import {
     CommandContext,
     TelegramClient,
     capitalize,
+    dateAtSantiago,
 } from "../lib";
 import { ActionType } from "../tables";
 import { stripIndent } from "../util";
@@ -63,45 +64,63 @@ export default class AddRamoCommand extends Command<RawArgs> {
     }
 
     public async run(context: CommandContext, { code }: ArgsResult): Promise<void> {
-        const chatId = context.chat.id;
+        const isSubjectInChat = await this.client.db
+            .selectFrom("udec_chat_subject")
+            .select(["subject_code"])
+            .where("chat_id", "=", `${context.chat.id}`)
+            .where("subject_code", "=", code)
+            .executeTakeFirst()
+            .then(v => !!v);
 
-        const existing = await this.client.db.select("udec_subjects", builder => builder
-            .where({
-                column: "code",
-                equals: code,
-            })
-            .where({
-                column: "chat_id",
-                equals: chatId,
-            })
-        ).then(q => q.ok ? q.result[0] ?? null : null);
-        if (existing) {
+        const registeredSubject = await this.client.db
+            .selectFrom("udec_subject")
+            .select(["name", "credits"])
+            .where("code", "=", code)
+            .executeTakeFirst();
+
+        if (isSubjectInChat) {
+            // never undefined thanks to foreign keys
+            const subject = registeredSubject!;
+
             await context.fancyReply(stripIndent(`
             Este ramo ya está registrado con los siguientes datos:
 
-            *Nombre*: ${existing.name}
+            *Nombre*: ${subject.name}
             *Código*: ${code}
-            *Créditos*: ${existing.credits}
+            *Créditos*: ${subject.credits}
             `), {
                 "parse_mode": "MarkdownV2",
             });
             return;
         }
 
-        const subjectInfo = await getSubjectInfo(code);
+        const subjectInfo = registeredSubject ?? await getSubjectInfo(code);
         if (!subjectInfo) {
             await context.fancyReply("No se pudo encontrar información sobre el ramo.");
             return;
         }
 
-        const inserted = await this.client.db.insert("udec_subjects", builder => builder.values({
-            code,
-            ...subjectInfo,
-            "chat_id": chatId,
-        }));
-        if (!inserted.ok) {
+        try {
+            if (!registeredSubject) {
+                await this.client.db
+                    .insertInto("udec_subject")
+                    .values({
+                        code,
+                        ...subjectInfo,
+                    })
+                    .executeTakeFirstOrThrow();
+            }
+
+            await this.client.db
+                .insertInto("udec_chat_subject")
+                .values({
+                    chat_id: `${context.chat.id}`,
+                    subject_code: code,
+                })
+                .executeTakeFirstOrThrow();
+        } catch (error) {
             await context.fancyReply("Hubo un error al añadir el ramo.");
-            await this.client.catchError(inserted.error, context);
+            await this.client.catchError(error, context);
             return;
         }
 
@@ -115,12 +134,19 @@ export default class AddRamoCommand extends Command<RawArgs> {
             "parse_mode": "MarkdownV2",
         });
 
-        await this.client.db.insert("udec_actions_history", builder => builder.values({
-            "chat_id": chatId,
-            username: context.from.full_username,
-            type: ActionType.AddSubject,
-            timestamp: new Date(),
-        }));
+        try {
+            await this.client.db
+                .insertInto("udec_action_history")
+                .values({
+                    chat_id: `${context.chat.id}`,
+                    timestamp: dateAtSantiago().toISOString().replace(/T|\.\d{3}Z$/g, ""),
+                    type: ActionType.AddSubject,
+                    username: context.from.full_username,
+                })
+                .executeTakeFirstOrThrow();
+        } catch (error) {
+            await this.client.catchError(error, context);
+        }
     }
 }
 
