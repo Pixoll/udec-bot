@@ -45,7 +45,7 @@ class CertsCommand extends lib_1.Command {
             .innerJoin("udec_subject as subject", "assignment.subject_code", "subject.code")
             .select(["subject_code", "name as subject_name", "date_due", "type"])
             .where("chat_id", "=", `${context.chat.id}`)
-            .where("date_due", "<=", (0, lib_1.dateToString)(new Date(Date.now() + days)))
+            .where("date_due", ">=", (0, lib_1.dateToString)(new Date(Date.now() + days)))
             .execute();
         if (queryAssignments.length === 0) {
             await context.fancyReply((0, util_1.stripIndent)(`
