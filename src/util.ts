@@ -1,5 +1,5 @@
 import { Markup } from "telegraf";
-import { ValuesOf, dateAtSantiago, dateToString } from "./lib";
+import { ValuesOf } from "./lib";
 import { ExtraReplyMessage } from "telegraf/typings/telegram-types";
 
 export const removeKeyboard = {
