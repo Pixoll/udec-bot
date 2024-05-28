@@ -41,7 +41,7 @@ export function getTimeZoneOffset(timeZone: string): number {
     const date = new Date(new Date().toLocaleString("en"));
     const iso = date.toLocaleString("en", { timeZone });
     const lie = new Date(iso);
-    return lie.getTime() - date.getTime();
+    return date.getTime() - lie.getTime();
 }
 
 const santiagoDateOffset = getTimeZoneOffset("America/Santiago");
