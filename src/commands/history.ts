@@ -6,7 +6,6 @@ import {
     Command,
     CommandContext,
     TelegramClient,
-    dateAtSantiago,
     dateToString,
     escapeMarkdown,
 } from "../lib";
@@ -49,7 +48,7 @@ export default class HistoryCommand extends Command<RawArgs> {
         }
 
         const history = actions
-            .map(a => ({ ...a, timestamp: dateAtSantiago(a.timestamp) }))
+            .map(a => ({ ...a, timestamp: new Date(a.timestamp) }))
             .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
             .slice(0, amount ?? actions.length)
             .map(record =>
