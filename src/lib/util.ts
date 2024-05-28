@@ -41,15 +41,23 @@ export function getTimeZoneOffset(timeZone: string): number {
     const date = new Date(new Date().toLocaleString("en"));
     const iso = date.toLocaleString("en", { timeZone });
     const lie = new Date(iso);
-    return date.getTime() - lie.getTime();
+    return lie.getTime() - date.getTime();
 }
 
 const santiagoDateOffset = getTimeZoneOffset("America/Santiago");
 
 export function dateAtSantiago(date?: string): Date {
-    const dateObj = date ? new Date(date) : new Date();
-    const ms = dateObj.getTime();
-    return new Date(ms + santiagoDateOffset);
+    if (!date) return new Date();
+
+    const ms = new Date(date).getTime();
+    return new Date(ms - santiagoDateOffset);
+}
+
+export function timestampAtSantiago(): string {
+    return new Date(Date.now() + santiagoDateOffset)
+        .toISOString()
+        .replace(/T|\.\d{3}Z$/g, " ")
+        .trimEnd();
 }
 
 const markdownCharacters = [

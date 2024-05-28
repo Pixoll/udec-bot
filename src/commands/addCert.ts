@@ -10,12 +10,12 @@ import {
     SessionString,
     TelegramClient,
     capitalize,
-    dateAtSantiago,
     dateToString,
     parseContext,
+    timestampAtSantiago,
 } from "../lib";
 import { ActionType, Assignment, AssignmentType, NewAssignment, Subject } from "../tables";
-import { dateStringToSqlDate, dateToSqlTimestamp, removeKeyboard, stripIndent } from "../util";
+import { dateStringToSqlDate, removeKeyboard, stripIndent } from "../util";
 
 const assignmentTypes = Object.values(AssignmentType).map(t => capitalize(t));
 const assignmentTypeRegex = new RegExp(`^(?:${assignmentTypes.join("|")})$`);
@@ -166,7 +166,7 @@ export default class AddCertCommand extends Command<RawArgs> {
                 .insertInto("udec_action_history")
                 .values({
                     chat_id: `${context.chat.id}`,
-                    timestamp: dateToSqlTimestamp(dateAtSantiago()),
+                    timestamp: timestampAtSantiago(),
                     type: ActionType.AddAssignment,
                     username: context.from.full_username,
                 })

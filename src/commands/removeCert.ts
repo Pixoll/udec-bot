@@ -11,15 +11,9 @@ import {
     dateAtSantiago,
     dateToString,
     parseContext,
+    timestampAtSantiago,
 } from "../lib";
-import {
-    dateStringToSqlDate,
-    dateToSqlTimestamp,
-    daysUntilToString,
-    getDaysUntil,
-    removeKeyboard,
-    stripIndent,
-} from "../util";
+import { dateStringToSqlDate, daysUntilToString, getDaysUntil, removeKeyboard, stripIndent } from "../util";
 import { ActionType, Assignment, AssignmentType, Subject } from "../tables";
 
 type AssignmentWithSubjectName = Omit<Assignment, "chat_id"> & {
@@ -169,7 +163,7 @@ export default class RemoveCertCommand extends Command<[]> {
                 .insertInto("udec_action_history")
                 .values({
                     chat_id: `${context.chat.id}`,
-                    timestamp: dateToSqlTimestamp(dateAtSantiago()),
+                    timestamp: timestampAtSantiago(),
                     type: ActionType.RemoveAssignment,
                     username: context.from.full_username,
                 })
