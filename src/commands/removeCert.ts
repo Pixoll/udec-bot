@@ -12,7 +12,14 @@ import {
     dateToString,
     parseContext,
 } from "../lib";
-import { dateToSqlTimestamp, daysUntilToString, getDaysUntil, removeKeyboard, stripIndent } from "../util";
+import {
+    dateStringToSqlDate,
+    dateToSqlTimestamp,
+    daysUntilToString,
+    getDaysUntil,
+    removeKeyboard,
+    stripIndent,
+} from "../util";
 import { ActionType, Assignment, AssignmentType, Subject } from "../tables";
 
 type AssignmentWithSubjectName = Omit<Assignment, "chat_id"> & {
@@ -106,8 +113,9 @@ export default class RemoveCertCommand extends Command<[]> {
         const { dueDate, subjectCode, type } = context.text
             .match(assignmentStringRegex)?.groups as unknown as AssignmentMatchGroups;
 
+        const parsedDueDate = dateStringToSqlDate(dueDate);
         const assignment = assignments.find(a =>
-            a.date_due === dueDate.replace(/^\d/g, "-")
+            a.date_due === parsedDueDate
             && a.subject_code === +subjectCode
             && a.type === type.toLowerCase()
         );
@@ -126,9 +134,7 @@ export default class RemoveCertCommand extends Command<[]> {
 
         *Tipo*: ${capitalize(assignment.type)}
         *Ramo*: \\[${assignment.subject_code}\\] ${assignment.subject_name}
-        *Fecha*: ${assignment.date_due.replace(/-/g, "/")} \\(${daysUntilToString(
-            getDaysUntil(dateAtSantiago(assignment.date_due))
-        )}\\)
+        *Fecha*: ${dueDate} \\(${daysUntilToString(getDaysUntil(dateAtSantiago(assignment.date_due)))}\\)
         `), {
             "parse_mode": "MarkdownV2",
             "reply_markup": confirmationKeyboard,
