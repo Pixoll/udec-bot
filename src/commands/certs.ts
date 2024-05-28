@@ -69,7 +69,7 @@ export default class CertsCommand extends Command<RawArgs> {
             .innerJoin("udec_subject as subject", "assignment.subject_code", "subject.code")
             .select(["subject_code", "name as subject_name", "date_due", "type"])
             .where("chat_id", "=", `${context.chat.id}`)
-            .where("date_due", ">=", dateStringToSqlDate(dateToString(new Date(Date.now() + days))))
+            .where("date_due", "<=", dateStringToSqlDate(dateToString(new Date(Date.now() + days))))
             .execute();
 
         if (queryAssignments.length === 0) {
