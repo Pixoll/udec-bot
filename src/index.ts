@@ -3,6 +3,7 @@ dotenv();
 
 import { client } from "./client";
 import { Logger, dateToString } from "./lib";
+import { dateStringToSqlDate } from "./util";
 
 void async function (): Promise<void> {
     await client.login();
@@ -10,15 +11,15 @@ void async function (): Promise<void> {
     const expired = await client.db
         .selectFrom("udec_assignment")
         .selectAll()
-        .where("date_due", "<", dateToString())
+        .where("date_due", "<", dateStringToSqlDate(dateToString()))
         .execute();
 
     if (expired.length > 0) {
-        const deleted = await client.db
+        await client.db
             .deleteFrom("udec_assignment")
             .where("id", "in", expired.map(a => a.id))
             .execute();
 
-        Logger.info("Deleted assignments:", deleted);
+        Logger.info("Deleted assignments:", expired);
     }
 }();

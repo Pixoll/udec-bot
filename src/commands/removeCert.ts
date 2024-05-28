@@ -12,7 +12,7 @@ import {
     dateToString,
     parseContext,
 } from "../lib";
-import { daysUntilToString, getDaysUntil, removeKeyboard, stripIndent } from "../util";
+import { dateToSqlTimestamp, daysUntilToString, getDaysUntil, removeKeyboard, stripIndent } from "../util";
 import { ActionType, Assignment, AssignmentType, Subject } from "../tables";
 
 type AssignmentWithSubjectName = Omit<Assignment, "chat_id"> & {
@@ -163,7 +163,7 @@ export default class RemoveCertCommand extends Command<[]> {
                 .insertInto("udec_action_history")
                 .values({
                     chat_id: `${context.chat.id}`,
-                    timestamp: dateAtSantiago().toISOString().replace(/T|\.\d{3}Z$/g, ""),
+                    timestamp: dateToSqlTimestamp(dateAtSantiago()),
                     type: ActionType.RemoveAssignment,
                     username: context.from.full_username,
                 })

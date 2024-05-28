@@ -13,7 +13,7 @@ import {
     dateAtSantiago,
 } from "../lib";
 import { ActionType } from "../tables";
-import { stripIndent } from "../util";
+import { dateToSqlTimestamp, stripIndent } from "../util";
 
 const subjectInfoBaseUrl = "https://alumnos.udec.cl/?q=node/25&codasignatura=";
 const querySelectors = {
@@ -139,7 +139,7 @@ export default class AddRamoCommand extends Command<RawArgs> {
                 .insertInto("udec_action_history")
                 .values({
                     chat_id: `${context.chat.id}`,
-                    timestamp: dateAtSantiago().toISOString().replace(/T|\.\d{3}Z$/g, ""),
+                    timestamp: dateToSqlTimestamp(dateAtSantiago()),
                     type: ActionType.AddSubject,
                     username: context.from.full_username,
                 })

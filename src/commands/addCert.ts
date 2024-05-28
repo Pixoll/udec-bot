@@ -15,7 +15,7 @@ import {
     parseContext,
 } from "../lib";
 import { ActionType, Assignment, AssignmentType, NewAssignment, Subject } from "../tables";
-import { removeKeyboard, stripIndent } from "../util";
+import { dateStringToSqlDate, dateToSqlTimestamp, removeKeyboard, stripIndent } from "../util";
 
 const assignmentTypes = Object.values(AssignmentType).map(t => capitalize(t));
 const assignmentTypeRegex = new RegExp(`^(?:${assignmentTypes.join("|")})$`);
@@ -93,8 +93,8 @@ export default class AddCertCommand extends Command<RawArgs> {
 
         this.assignments.set(context.session, {
             chat_id: `${context.chat.id}`,
-            date_due: date,
-        } as unknown as NewAssignment);
+            date_due: dateStringToSqlDate(dateToString(date)),
+        } satisfies Partial<NewAssignment> as NewAssignment);
 
         await context.fancyReply(stripIndent(`
         _Fecha de evaluación registrada: ${dateToString(date)}_
@@ -166,7 +166,7 @@ export default class AddCertCommand extends Command<RawArgs> {
                 .insertInto("udec_action_history")
                 .values({
                     chat_id: `${context.chat.id}`,
-                    timestamp: dateAtSantiago().toISOString().replace(/T|\.\d{3}Z$/g, ""),
+                    timestamp: dateToSqlTimestamp(dateAtSantiago()),
                     type: ActionType.AddAssignment,
                     username: context.from.full_username,
                 })

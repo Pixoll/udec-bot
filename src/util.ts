@@ -50,6 +50,14 @@ export function daysUntilToString(days: number): string {
     return `${weeksString} ${daysString}`.trim();
 }
 
+export function dateStringToSqlDate(date: string): string {
+    return date.split("/").reverse().join("-");
+}
+
+export function dateToSqlTimestamp(date: Date): string {
+    return date.toISOString().replace(/T|\.\d{3}Z$/g, " ").trimEnd();
+}
+
 function pluralize(text: string, amount: number): string {
     return `${amount} ${text}` + (amount !== 1 ? "s" : "");
 }

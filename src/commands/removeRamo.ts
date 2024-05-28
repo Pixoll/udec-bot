@@ -10,7 +10,7 @@ import {
     dateAtSantiago,
     parseContext,
 } from "../lib";
-import { alphabetically, removeKeyboard, stripIndent } from "../util";
+import { alphabetically, dateToSqlTimestamp, removeKeyboard, stripIndent } from "../util";
 import { ActionType, Subject } from "../tables";
 
 const confirmationRegex = /^(👍|❌)$/;
@@ -145,7 +145,7 @@ export default class RemoveRamoCommand extends Command<[]> {
                 .insertInto("udec_action_history")
                 .values({
                     chat_id: `${context.chat.id}`,
-                    timestamp: dateAtSantiago().toISOString().replace(/T|\.\d{3}Z$/g, ""),
+                    timestamp: dateToSqlTimestamp(dateAtSantiago()),
                     type: ActionType.RemoveSubject,
                     username: context.from.full_username,
                 })
