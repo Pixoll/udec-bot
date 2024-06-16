@@ -23,7 +23,8 @@ const sourceMessage = stripIndent(`
 Código fuente: [GitHub](${escapeMarkdown(packageJson.repository.url)})
 `);
 
-export default class SourceCommand extends Command<[]> {
+// noinspection JSUnusedGlobalSymbols
+export default class SourceCommand extends Command {
     // @ts-expect-error: type override
     public declare readonly client: TelegramClientType;
 

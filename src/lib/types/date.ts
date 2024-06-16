@@ -5,6 +5,7 @@ import { ArgumentType, ArgumentTypeHandler } from "./base";
 
 const dateRegex = /^[0-3]?\d[/-][01]?\d((?:[/-]\d{4}))?$/;
 
+// noinspection JSUnusedGlobalSymbols
 export class DateArgumentTypeHandler extends ArgumentTypeHandler<ArgumentType.Date> {
     public constructor(client: TelegramClient) {
         super(client, ArgumentType.Date);
@@ -17,7 +18,11 @@ export class DateArgumentTypeHandler extends ArgumentTypeHandler<ArgumentType.Da
         }
 
         const time = date.getTime();
-        const { min, max, futureDate } = argument;
+        const {
+            min,
+            max,
+            futureDate,
+        } = argument;
         if (futureDate && time < Date.now()) {
             return "Ingrese una fecha en el futuro.";
         }

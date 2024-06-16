@@ -22,6 +22,7 @@ const args = [{
 type RawArgs = typeof args;
 type ArgsResult = ArgumentOptionsToResult<RawArgs>;
 
+// noinspection JSUnusedGlobalSymbols
 export default class HistoryCommand extends Command<RawArgs> {
     // @ts-expect-error: type override
     public declare readonly client: TelegramClientType;
@@ -48,11 +49,14 @@ export default class HistoryCommand extends Command<RawArgs> {
         }
 
         const history = actions
-            .map(a => ({ ...a, timestamp: new Date(a.timestamp) }))
+            .map(a => ({
+                ...a,
+                timestamp: new Date(a.timestamp),
+            }))
             .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
             .slice(0, amount ?? actions.length)
             .map(record =>
-                `• \`${dateToString(record.timestamp, true)}\` \\- ${record.type} \\- ${escapeMarkdown(record.username)}`
+                `• \`${dateToString(record.timestamp, true)}\` \\- ${record.type} \\- ${escapeMarkdown(record.username)}`,
             )
             .join("\n");
 

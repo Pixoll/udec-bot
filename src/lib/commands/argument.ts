@@ -20,8 +20,11 @@ export interface ArgumentOptions<T extends ArgumentType = ArgumentType> {
     readonly futureDate?: boolean;
     readonly whenInvalid?: string | null;
     readonly examples?: string[];
+
     parse?(value: string, context: CommandContext, argument: Argument<T>): Awaitable<ArgumentTypeMap[T]>;
+
     validate?(value: string, context: CommandContext, argument: Argument<T>): Awaitable<boolean | string>;
+
     isEmpty?(value: string, context: CommandContext, argument: Argument<T>): boolean;
 }
 
@@ -90,7 +93,16 @@ export class Argument<T extends ArgumentType = ArgumentType> implements Omit<Arg
     }
 
     public async obtain(value: string, context: CommandContext): Promise<ArgumentResult<T>> {
-        const { default: defaultValue, required, typeHandler, key, label, prompt, whenInvalid, examples } = this;
+        const {
+            default: defaultValue,
+            required,
+            typeHandler,
+            key,
+            label,
+            prompt,
+            whenInvalid,
+            examples,
+        } = this;
         const name = label ?? key;
         const type = typeHandler.type;
         const empty = this.isEmpty(value, context);
@@ -120,10 +132,9 @@ export class Argument<T extends ArgumentType = ArgumentType> implements Omit<Arg
             return {
                 ok: false,
                 error: ArgumentResultErrorType.Invalid,
-                message: escapeMarkdown(whenInvalid ?? (isValid
-                    ? isValid
-                    : `Argumento inválido, "${name}" debe ser de tipo ${type}.`
-                )) + parsedExamples,
+                message: escapeMarkdown(
+                    whenInvalid ?? (isValid ? isValid : `Argumento inválido, "${name}" debe ser de tipo ${type}.`),
+                ) + parsedExamples,
             };
         }
 
@@ -135,13 +146,13 @@ export class Argument<T extends ArgumentType = ArgumentType> implements Omit<Arg
     }
 
     public async parse(value: string, context: CommandContext): Promise<ArgumentTypeMap[T]> {
-        if (this.parser) return await this.parser(value, context, this);
-        return await this.typeHandler.parse(value, context, this);
+        if (this.parser) return this.parser(value, context, this);
+        return this.typeHandler.parse(value, context, this);
     }
 
     public async validate(value: string, context: CommandContext): Promise<boolean | string> {
-        if (this.validator) return await this.validator(value, context, this);
-        return await this.typeHandler.validate(value, context, this);
+        if (this.validator) return this.validator(value, context, this);
+        return this.typeHandler.validate(value, context, this);
     }
 
     public isEmpty(value: string, context: CommandContext): boolean {

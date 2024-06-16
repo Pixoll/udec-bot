@@ -1,8 +1,9 @@
-import { Argument } from "../commands/argument";
+import { Argument } from "../commands";
 import { TelegramClient } from "../client";
 import { isNullish } from "../util";
 import { ArgumentType, ArgumentTypeHandler } from "./base";
 
+// noinspection JSUnusedGlobalSymbols
 export class StringArgumentTypeHandler extends ArgumentTypeHandler<ArgumentType.String> {
     public constructor(client: TelegramClient) {
         super(client, ArgumentType.String);

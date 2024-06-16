@@ -1,15 +1,20 @@
-import { Argument } from "../commands/argument";
+import { Argument } from "../commands";
 import { TelegramClient } from "../client";
 import { isNullish } from "../util";
 import { ArgumentTypeHandler, ArgumentType } from "./base";
 
+// noinspection JSUnusedGlobalSymbols
 export class NumberArgumentTypeHandler extends ArgumentTypeHandler<ArgumentType.Number> {
     public constructor(client: TelegramClient) {
         super(client, ArgumentType.Number);
     }
 
     public validate(value: string, _: unknown, argument: Argument<ArgumentType.Number>): boolean | string {
-        const { choices, max, min } = argument;
+        const {
+            choices,
+            max,
+            min,
+        } = argument;
         if (isNaN(+value) || !/^\d+$/.test(value)) return false;
         const number = parseInt(value);
 

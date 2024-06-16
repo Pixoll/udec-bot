@@ -21,7 +21,14 @@ export class TelegramClient<Database extends object = object> extends Telegraf {
 
         super(TELEGRAM_TOKEN);
 
-        const { DB_HOST, DB_PORT, DB_SOCKET_PATH, DB_USERNAME, DB_PASSWORD, DB_NAME } = process.env;
+        const {
+            DB_HOST,
+            DB_PORT,
+            DB_SOCKET_PATH,
+            DB_USERNAME,
+            DB_PASSWORD,
+            DB_NAME,
+        } = process.env;
 
         this.db = new Kysely<Database>({
             dialect: new MysqlDialect({
@@ -54,7 +61,7 @@ export class TelegramClient<Database extends object = object> extends Telegraf {
     public async catchError(error: unknown, context: Context): Promise<void> {
         const messageId = context.msgId;
         Logger.error(error);
-        context.reply("Ocurrió un error y ha sido notificado al mantenedor del bot.", {
+        await context.reply("Ocurrió un error y ha sido notificado al mantenedor del bot.", {
             ...messageId && ({
                 "reply_parameters": {
                     "message_id": messageId,
@@ -67,7 +74,7 @@ export class TelegramClient<Database extends object = object> extends Telegraf {
         if (!ownerId) return;
 
         const stack = error instanceof Error ? error.stack ?? error : error;
-        context.telegram.sendMessage(ownerId, `An unexpected error has occurred:\n\n${stack}`);
+        await context.telegram.sendMessage(ownerId, `An unexpected error has occurred:\n\n${stack}`);
     }
 
     public async login(): Promise<void> {
@@ -77,7 +84,7 @@ export class TelegramClient<Database extends object = object> extends Telegraf {
             return;
         }
 
-        this.launch({ dropPendingUpdates: true }, () => {
+        await this.launch({ dropPendingUpdates: true }, () => {
             this.ready = true;
             Logger.info("Telegram Client is ready.");
         });

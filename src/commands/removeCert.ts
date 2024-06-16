@@ -23,11 +23,11 @@ type AssignmentWithSubjectName = Omit<Assignment, "chat_id"> & {
 const assignmentTypes = Object.values(AssignmentType).map(v => capitalize(v));
 const assignmentStringRegex = new RegExp(
     `^(?<type>${assignmentTypes.join("|")}) - `
-    + /\[(?<subjectCode>\d+)\] [\w ]+ /.source
-    + /\((?<dueDate>\d{2}\/\d{2}\/\d{4})\)/.source
+    + /\[(?<subjectCode>\d+)] [\w ]+ /.source
+    + /\((?<dueDate>\d{2}\/\d{2}\/\d{4})\)/.source,
 );
 
-const confirmationRegex = /^(👍|❌)$/;
+const confirmationRegex = /^([👍❌])$/u;
 const confirmationKeyboard = Markup
     .keyboard([["👍", "❌"]])
     .oneTime()
@@ -42,7 +42,8 @@ interface AssignmentMatchGroups {
     readonly dueDate: string;
 }
 
-export default class RemoveCertCommand extends Command<[]> {
+// noinspection JSUnusedGlobalSymbols
+export default class RemoveCertCommand extends Command {
     // @ts-expect-error: type override
     public declare readonly client: TelegramClientType;
     private readonly assignments: Map<SessionString, AssignmentWithSubjectName[]>;
@@ -87,7 +88,10 @@ export default class RemoveCertCommand extends Command<[]> {
         }
 
         const assignmentsStrings = assignments
-            .map(a => ({ ...a, date_due: dateAtSantiago(a.date_due) }))
+            .map(a => ({
+                ...a,
+                date_due: dateAtSantiago(a.date_due),
+            }))
             .sort((a, b) => a.date_due.getTime() - b.date_due.getTime())
             .map((s) => `${capitalize(s.type)} - [${s.subject_code}] ${s.subject_name} (${dateToString(s.date_due)})`);
 
@@ -104,14 +108,18 @@ export default class RemoveCertCommand extends Command<[]> {
     }
 
     private async confirmDeletion(context: CommandContext, assignments: AssignmentWithSubjectName[]): Promise<void> {
-        const { dueDate, subjectCode, type } = context.text
+        const {
+            dueDate,
+            subjectCode,
+            type,
+        } = context.text
             .match(assignmentStringRegex)?.groups as unknown as AssignmentMatchGroups;
 
         const parsedDueDate = dateStringToSqlDate(dueDate);
         const assignment = assignments.find(a =>
             a.date_due === parsedDueDate
             && a.subject_code === +subjectCode
-            && a.type === type.toLowerCase()
+            && a.type === type.toLowerCase(),
         );
 
         if (!assignment) {
@@ -177,12 +185,14 @@ export default class RemoveCertCommand extends Command<[]> {
         const context = parseContext(ctx, this.client as unknown as TelegramClient);
         const activeMenu = this.client.activeMenus.get(context.session);
         if (activeMenu !== this.name || this.waitingConfirmation.has(context.session)) {
+            // noinspection ES6MissingAwait
             next();
             return;
         }
 
         const assignments = this.assignments.get(context.session);
         if (!assignments) {
+            // noinspection ES6MissingAwait
             next();
             return;
         }
@@ -195,12 +205,14 @@ export default class RemoveCertCommand extends Command<[]> {
         const context = parseContext(ctx, this.client as unknown as TelegramClient);
         const activeMenu = this.client.activeMenus.get(context.session);
         if (activeMenu !== this.name || this.assignments.has(context.session)) {
+            // noinspection ES6MissingAwait
             next();
             return;
         }
 
         const assignment = this.waitingConfirmation.get(context.session);
         if (!assignment) {
+            // noinspection ES6MissingAwait
             next();
             return;
         }

@@ -1,5 +1,7 @@
+import { UdecSubject } from "kysely-codegen";
 import { Markup } from "telegraf";
-import { ValuesOf } from "./lib";
+import { TelegramClientType } from "./client";
+import { CommandContext, ValuesOf } from "./lib";
 import { ExtraReplyMessage } from "telegraf/typings/telegram-types";
 
 export const removeKeyboard = {
@@ -56,4 +58,13 @@ export function dateStringToSqlDate(date: string): string {
 
 function pluralize(text: string, amount: number): string {
     return `${amount} ${text}` + (amount !== 1 ? "s" : "");
+}
+
+export async function getSubjects(client: TelegramClientType, context: CommandContext): Promise<UdecSubject[]> {
+    return client.db
+        .selectFrom("udec_chat_subject as chat_subject")
+        .innerJoin("udec_subject as subject", "chat_subject.subject_code", "subject.code")
+        .select(["subject.code", "subject.name", "subject.credits"])
+        .where("chat_subject.chat_id", "=", `${context.chat.id}`)
+        .execute();
 }

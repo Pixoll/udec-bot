@@ -15,7 +15,7 @@ import {
     timestampAtSantiago,
 } from "../lib";
 import { ActionType, Assignment, AssignmentType, NewAssignment, Subject } from "../tables";
-import { dateStringToSqlDate, removeKeyboard, stripIndent } from "../util";
+import { dateStringToSqlDate, getSubjects, removeKeyboard, stripIndent } from "../util";
 
 const assignmentTypes = Object.values(AssignmentType).map(t => capitalize(t));
 const assignmentTypeRegex = new RegExp(`^(?:${assignmentTypes.join("|")})$`);
@@ -41,6 +41,7 @@ const args = [{
 type RawArgs = typeof args;
 type ArgsResult = ArgumentOptionsToResult<RawArgs>;
 
+// noinspection JSUnusedGlobalSymbols
 export default class AddCertCommand extends Command<RawArgs> {
     // @ts-expect-error: type override
     public declare readonly client: TelegramClientType;
@@ -59,18 +60,12 @@ export default class AddCertCommand extends Command<RawArgs> {
         this.assignments = new Map();
         this.subjects = new Map();
 
-        client.hears(/^\[\d+\] .+ \(\d+ créditos\)$/, (...args) => this.subjectListener(...args));
+        client.hears(/^\[\d+] .+ \(\d+ créditos\)$/, (...args) => this.subjectListener(...args));
         client.hears(assignmentTypeRegex, (...args) => this.assignmentTypeListener(...args));
     }
 
     public async run(context: CommandContext, { date }: ArgsResult): Promise<void> {
-        const subjects = await this.client.db
-            .selectFrom("udec_chat_subject as chat_subject")
-            .innerJoin("udec_subject as subject", "chat_subject.subject_code", "subject.code")
-            .select(["subject.code", "subject.name", "subject.credits"])
-            .where("chat_subject.chat_id", "=", `${context.chat.id}`)
-            .execute();
-
+        const subjects = await getSubjects(this.client, context);
         if (subjects.length === 0) {
             await context.fancyReply(stripIndent(`
             No hay ningún ramo registrado para este grupo.
@@ -106,9 +101,9 @@ export default class AddCertCommand extends Command<RawArgs> {
     }
 
     private async setSubject(
-        context: CommandContext, subjects: Subject[], assignment: Assignment
+        context: CommandContext, subjects: Subject[], assignment: Assignment,
     ): Promise<void> {
-        const code = +(context.text.match(/^\[(\d+)\]/)?.[1] ?? -1);
+        const code = +(context.text.match(/^\[(\d+)]/)?.[1] ?? -1);
         const subject = subjects.find(s => s.code === code);
         if (!subject) {
             this.client.activeMenus.delete(context.session);
@@ -180,6 +175,7 @@ export default class AddCertCommand extends Command<RawArgs> {
         const context = parseContext(ctx, this.client as unknown as TelegramClient);
         const activeMenu = this.client.activeMenus.get(context.session);
         if (activeMenu !== this.name || !this.subjects.has(context.session) || !this.assignments.has(context.session)) {
+            // noinspection ES6MissingAwait
             next();
             return;
         }
@@ -189,6 +185,7 @@ export default class AddCertCommand extends Command<RawArgs> {
 
         const assignment = this.assignments.get(context.session) as Assignment;
         if (assignment.subject_code) {
+            // noinspection ES6MissingAwait
             next();
             return;
         }
@@ -200,12 +197,14 @@ export default class AddCertCommand extends Command<RawArgs> {
         const context = parseContext(ctx, this.client as unknown as TelegramClient);
         const activeMenu = this.client.activeMenus.get(context.session);
         if (activeMenu !== this.name || !this.assignments.has(context.session)) {
+            // noinspection ES6MissingAwait
             next();
             return;
         }
 
         const assignment = this.assignments.get(context.session) as Assignment;
         if (assignment.type) {
+            // noinspection ES6MissingAwait
             next();
             return;
         }

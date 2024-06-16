@@ -4,6 +4,7 @@ import { ArgumentTypeHandler, ArgumentType } from "./base";
 const truthy: ReadonlySet<string> = new Set(["true", "t", "yes", "y", "on", "enable", "enabled", "1", "+"]);
 const falsy: ReadonlySet<string> = new Set(["false", "f", "no", "n", "off", "disable", "disabled", "0", "-"]);
 
+// noinspection JSUnusedGlobalSymbols
 export class BooleanArgumentTypeHandler extends ArgumentTypeHandler<ArgumentType.Boolean> {
     public constructor(client: TelegramClient) {
         super(client, ArgumentType.Boolean);

@@ -10,10 +10,10 @@ import {
     parseContext,
     timestampAtSantiago,
 } from "../lib";
-import { alphabetically, removeKeyboard, stripIndent } from "../util";
+import { alphabetically, getSubjects, removeKeyboard, stripIndent } from "../util";
 import { ActionType, Subject } from "../tables";
 
-const confirmationRegex = /^(👍|❌)$/;
+const confirmationRegex = /^([👍❌])$/u;
 const confirmationKeyboard = Markup
     .keyboard([["👍", "❌"]])
     .oneTime()
@@ -22,7 +22,8 @@ const confirmationKeyboard = Markup
     .placeholder("/cancel para abortar.")
     .reply_markup;
 
-export default class RemoveRamoCommand extends Command<[]> {
+// noinspection JSUnusedGlobalSymbols
+export default class RemoveRamoCommand extends Command {
     // @ts-expect-error: type override
     public declare readonly client: TelegramClientType;
     private readonly subjects: Map<SessionString, Subject[]>;
@@ -39,18 +40,12 @@ export default class RemoveRamoCommand extends Command<[]> {
         this.subjects = new Map();
         this.waitingConfirmation = new Map();
 
-        client.hears(/^\[\d+\] .+ \(\d+ créditos\)$/, (...args) => this.subjectListener(...args));
+        client.hears(/^\[\d+] .+ \(\d+ créditos\)$/, (...args) => this.subjectListener(...args));
         client.hears(confirmationRegex, (...args) => this.confirmationListener(...args));
     }
 
     public async run(context: CommandContext): Promise<void> {
-        const subjects = await this.client.db
-            .selectFrom("udec_chat_subject as chat_subject")
-            .innerJoin("udec_subject as subject", "chat_subject.subject_code", "subject.code")
-            .select(["subject.code", "subject.name", "subject.credits"])
-            .where("chat_subject.chat_id", "=", `${context.chat.id}`)
-            .execute();
-
+        const subjects = await getSubjects(this.client, context);
         if (subjects.length === 0) {
             await context.fancyReply(stripIndent(`
             No hay ningún ramo registrado para este grupo.
@@ -77,7 +72,7 @@ export default class RemoveRamoCommand extends Command<[]> {
     }
 
     private async confirmDeletion(context: CommandContext, subjects: Subject[]): Promise<void> {
-        const code = +(context.text.match(/^\[(\d+)\]/)?.[1] ?? -1);
+        const code = +(context.text.match(/^\[(\d+)]/)?.[1] ?? -1);
         const subject = subjects.find(s => s.code === code);
         if (!subject) {
             await context.fancyReply("No se pudo identificar el ramo que quieres remover.", removeKeyboard);
@@ -159,12 +154,14 @@ export default class RemoveRamoCommand extends Command<[]> {
         const context = parseContext(ctx, this.client as unknown as TelegramClient);
         const activeMenu = this.client.activeMenus.get(context.session);
         if (activeMenu !== this.name || this.waitingConfirmation.has(context.session)) {
+            // noinspection ES6MissingAwait
             next();
             return;
         }
 
         const subjects = this.subjects.get(context.session);
         if (!subjects) {
+            // noinspection ES6MissingAwait
             next();
             return;
         }
@@ -177,12 +174,14 @@ export default class RemoveRamoCommand extends Command<[]> {
         const context = parseContext(ctx, this.client as unknown as TelegramClient);
         const activeMenu = this.client.activeMenus.get(context.session);
         if (activeMenu !== this.name || this.subjects.has(context.session)) {
+            // noinspection ES6MissingAwait
             next();
             return;
         }
 
         const subject = this.waitingConfirmation.get(context.session);
         if (!subject) {
+            // noinspection ES6MissingAwait
             next();
             return;
         }

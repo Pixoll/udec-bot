@@ -35,6 +35,7 @@ const args = [{
 type RawArgs = typeof args;
 type ArgsResult = ArgumentOptionsToResult<RawArgs>;
 
+// noinspection JSUnusedGlobalSymbols
 export default class TestCommand extends Command<RawArgs> {
     // @ts-expect-error: type override
     public declare readonly client: TelegramClientType;
@@ -104,7 +105,7 @@ async function getMenuAtDate(day: number, month: number): Promise<HTMLElement | 
 
     const html = parseHtml(response.data);
     const error = html.querySelectorAll(querySelectors.error).find(div =>
-        div.classList.value.sort().join(" ") === menuErrorList
+        div.classList.value.sort().join(" ") === menuErrorList,
     );
     if (error) return null;
 

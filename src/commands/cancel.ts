@@ -1,7 +1,8 @@
 import { TelegramClientType } from "../client";
 import { Command, CommandContext, TelegramClient } from "../lib";
 
-export default class CancelCommand extends Command<[]> {
+// noinspection JSUnusedGlobalSymbols
+export default class CancelCommand extends Command {
     // @ts-expect-error: type override
     public declare readonly client: TelegramClientType;
 

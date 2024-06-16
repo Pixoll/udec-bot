@@ -96,7 +96,10 @@ export class ClientRegistry {
     }
 
     protected registerCommand(NewCommand: ConstructableCommand): this {
-        const { commands, client } = this;
+        const {
+            commands,
+            client,
+        } = this;
         const command = new NewCommand(client);
         const { name } = command;
 
@@ -141,7 +144,10 @@ export class ClientRegistry {
     }
 
     protected registerTypeHandler(NewArgumentType: BuildableArgumentTypeHandler): this {
-        const { types, client } = this;
+        const {
+            types,
+            client,
+        } = this;
         const typeHandler = new NewArgumentType(client);
         const { type } = typeHandler;
 

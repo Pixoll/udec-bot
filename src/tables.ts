@@ -1,3 +1,5 @@
+// noinspection JSUnusedGlobalSymbols
+
 import type { ColumnType, Insertable, Selectable, Updateable } from "kysely";
 
 type Generated<T> = ColumnType<T, never, never>;

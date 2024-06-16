@@ -1,6 +1,7 @@
 declare module "process" {
     global {
         namespace NodeJS {
+            // noinspection JSUnusedGlobalSymbols
             interface ProcessEnv {
                 TELEGRAM_TOKEN: string;
                 OWNER_ID: string;

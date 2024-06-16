@@ -50,6 +50,7 @@ interface DueDateMarker {
     threshold: number;
 }
 
+// noinspection JSUnusedGlobalSymbols
 export default class CertsCommand extends Command<RawArgs> {
     // @ts-expect-error: type override
     public declare readonly client: TelegramClientType;
@@ -82,7 +83,10 @@ export default class CertsCommand extends Command<RawArgs> {
         }
 
         const assignments = queryAssignments
-            .map(a => ({ ...a, date_due: dateAtSantiago(a.date_due) }))
+            .map(a => ({
+                ...a,
+                date_due: dateAtSantiago(a.date_due),
+            }))
             .sort((a, b) => a.date_due.getTime() - b.date_due.getTime())
             .map((a) => {
                 const daysUntil = getDaysUntil(a.date_due);

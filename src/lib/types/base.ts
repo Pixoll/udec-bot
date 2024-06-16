@@ -1,6 +1,5 @@
-import { Argument } from "../commands/argument";
 import { TelegramClient } from "../client";
-import { CommandContext } from "../commands/context";
+import { Argument, CommandContext } from "../commands";
 import { Awaitable } from "../util";
 
 export enum ArgumentType {
@@ -21,7 +20,7 @@ export abstract class ArgumentTypeHandler<T extends ArgumentType> {
     public readonly client: TelegramClient;
     public readonly type: ArgumentType;
 
-    public constructor(client: TelegramClient, type: T) {
+    protected constructor(client: TelegramClient, type: T) {
         this.client = client;
         this.type = type;
     }

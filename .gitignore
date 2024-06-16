@@ -2,3 +2,4 @@
 .env
 .tsbuildinfo
 node_modules
+.idea

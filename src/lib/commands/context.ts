@@ -15,9 +15,11 @@ export declare class CommandContext extends MessageContext implements CommandCon
     public readonly args: string[];
     public readonly client: TelegramClient;
     public readonly session: SessionString;
+
     public get from(): MessageContext["from"] & {
         get full_username(): string;
     };
+
     public fancyReply(text: string, extra?: ExtraReplyMessage | undefined): Promise<Message.TextMessage | null>;
 }
 
@@ -43,7 +45,7 @@ export function parseContext(ctx: MessageContext, client: TelegramClient): Comma
 }
 
 async function fancyReply(
-    this: CommandContext, text: string, extra: ExtraReplyMessage = {}
+    this: CommandContext, text: string, extra: ExtraReplyMessage = {},
 ): Promise<Message.TextMessage | null> {
     return await this.reply(text, {
         "reply_parameters": {

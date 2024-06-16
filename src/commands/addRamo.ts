@@ -50,6 +50,7 @@ interface SubjectInfo {
     readonly credits: number;
 }
 
+// noinspection JSUnusedGlobalSymbols
 export default class AddRamoCommand extends Command<RawArgs> {
     // @ts-expect-error: type override
     public declare readonly client: TelegramClientType;
@@ -177,7 +178,7 @@ async function getSubjectInfo(code: number): Promise<SubjectInfo | null> {
 function parseSubjectName(name: string): string {
     return name.replace(/\?/g, "Ñ").trim().split(/\s+/)
         .map(w => {
-            const isNumeral = romanNumeralsRegex.some(r => r.test(w.replace(/[^\w]+/g, "")));
+            const isNumeral = romanNumeralsRegex.some(r => r.test(w.replace(/\W+/g, "")));
             if (w === "PARA" || (w.length <= 3 && !isNumeral)) {
                 return w.toLowerCase();
             }

@@ -1,5 +1,5 @@
 import { TelegramClient } from "../client";
-import { ArgumentType, ArgumentTypeMap } from "../types";
+import { ArgumentTypeMap } from "../types";
 import { omit } from "../util";
 import { Argument, ArgumentOptions, ArgumentResultError } from "./argument";
 import { CommandContext } from "./context";
@@ -31,17 +31,17 @@ export type ArgumentOptionsToClasses<Args extends readonly ArgumentOptions[]>
     : [];
 
 export type ArgumentOptionsToResult<Args extends readonly ArgumentOptions[]> = {
-    [Arg in Args[number]as Arg["key"]]: (
-        Arg["required"] extends true ? never
+    [Arg in Args[number] as Arg["key"]]: (
+    Arg["required"] extends true ? never
         : (
             Arg["default"] extends (...args: infer _) => infer R
-            ? Awaited<R>
-            : (Arg["default"] & null) extends never
-            ? Arg["default"]
-            : null
-        )
+                ? Awaited<R>
+                : (Arg["default"] & null) extends never
+                    ? Arg["default"]
+                    : null
+            )
     ) | (
-        Arg["choices"] extends Array<infer U> | ReadonlyArray<infer U>
+    Arg["choices"] extends Array<infer U> | ReadonlyArray<infer U>
         ? U
         : ArgumentTypeMap[Arg["type"]]
     );
@@ -85,7 +85,7 @@ export abstract class Command<Args extends readonly ArgumentOptions[] = []> {
         const args: AnyArguments = {};
         const argsStrings = context.args;
         for (let i = 0; i < this.args.length; i++) {
-            const arg = this.args[i] as Argument<ArgumentType>;
+            const arg = this.args[i] as Argument;
             const value = i === this.args.length - 1 ? argsStrings.slice(i).join(" ") : argsStrings[i];
             const result = await arg.obtain(value, context);
             if (!result.ok) return result;
