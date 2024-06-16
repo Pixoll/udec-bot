@@ -70,7 +70,7 @@ export default class TestCommand extends Command<RawArgs> {
         🦆 *Menu Los Patos* 🦆
         \\~ _${dateString}_
 
-        ${await parseMenu(menuTable)}
+        ${parseMenu(menuTable)}
         `);
 
         menusCache[dateString] = menu;
@@ -80,12 +80,21 @@ export default class TestCommand extends Command<RawArgs> {
     }
 }
 
-async function parseMenu(menuTable: HTMLElement): Promise<string> {
-    return [...menuTable.childNodes]
+function parseMenu(menuTable: HTMLElement): string {
+    const menuStrings = [...menuTable.childNodes]
         .filter(n => n.nodeType === 1)
-        .map(c => c.innerText?.trim().replace(/\s+/g, " "))
-        .slice(1, 6)
-        .flatMap(menu => {
+        .map(c => c.innerText?.trim().replace(/\s+/g, " "));
+
+    return stripIndent(`
+    ${menuToString(menuStrings.slice(1, 6))}
+    
+    ${menuToString(menuStrings.slice(8))}
+    `);
+}
+
+function menuToString(menuStrings: string[]): string {
+    return menuStrings
+        .flatMap((menu: string) => {
             menu = menu.replace(/\s*:\s*/, ": ");
             const name = menu.slice(0, menu.indexOf(":"));
             const dish = menu.slice(menu.indexOf(":") + 2);
