@@ -1,4 +1,4 @@
-import { TelegramClientType } from "../client";
+import { client, TelegramClientType } from "../client";
 import {
     ArgumentOptions,
     ArgumentOptionsToResult,
@@ -10,7 +10,14 @@ import {
     dateAtSantiago,
     dateToString,
 } from "../lib";
-import { dateStringToSqlDate, daysMsConversionFactor, daysUntilToString, getDaysUntil, stripIndent } from "../util";
+import {
+    clearOldAssignments,
+    dateStringToSqlDate,
+    daysMsConversionFactor,
+    daysUntilToString,
+    getDaysUntil,
+    stripIndent,
+} from "../util";
 
 const dueDateMarkers = [{
     emoji: "🏳",
@@ -65,6 +72,8 @@ export default class CertsCommand extends Command<RawArgs> {
     }
 
     public async run(context: CommandContext, { days }: ArgsResult): Promise<void> {
+        await clearOldAssignments(client);
+
         const queryAssignments = await this.client.db
             .selectFrom("udec_assignment as assignment")
             .innerJoin("udec_subject as subject", "assignment.subject_code", "subject.code")

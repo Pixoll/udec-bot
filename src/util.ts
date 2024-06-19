@@ -1,7 +1,7 @@
 import { UdecSubject } from "kysely-codegen";
 import { Markup } from "telegraf";
-import { TelegramClientType } from "./client";
-import { CommandContext, ValuesOf } from "./lib";
+import { client, TelegramClientType } from "./client";
+import { CommandContext, dateToString, Logger, ValuesOf } from "./lib";
 import { ExtraReplyMessage } from "telegraf/typings/telegram-types";
 
 export const removeKeyboard = {
@@ -67,4 +67,21 @@ export async function getSubjects(client: TelegramClientType, context: CommandCo
         .select(["subject.code", "subject.name", "subject.credits"])
         .where("chat_subject.chat_id", "=", `${context.chat.id}`)
         .execute();
+}
+
+export async function clearOldAssignments(client: TelegramClientType): Promise<void> {
+    const expired = await client.db
+        .selectFrom("udec_assignment")
+        .selectAll()
+        .where("date_due", "<", dateStringToSqlDate(dateToString()))
+        .execute();
+
+    if (expired.length > 0) {
+        await client.db
+            .deleteFrom("udec_assignment")
+            .where("id", "in", expired.map(a => a.id))
+            .execute();
+
+        Logger.info("Deleted assignments:", expired);
+    }
 }
