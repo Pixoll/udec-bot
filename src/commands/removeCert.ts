@@ -23,8 +23,8 @@ type AssignmentWithSubjectName = Omit<Assignment, "chat_id"> & {
 const assignmentTypes = Object.values(AssignmentType).map(v => capitalize(v));
 const assignmentStringRegex = new RegExp(
     `^(?<type>${assignmentTypes.join("|")}) - `
-    + /\[(?<subjectCode>\d+)] [\w ]+ /.source
-    + /\((?<dueDate>\d{2}\/\d{2}\/\d{4})\)/.source,
+    + /\[(?<subjectCode>\d+)] .+ /.source
+    + /\((?<dueDate>\d{2}\/\d{2}\/\d{4})\)$/.source,
 );
 
 const confirmationRegex = /^([👍❌])$/u;
