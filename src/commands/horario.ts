@@ -1,4 +1,3 @@
-import puppeteer, { Browser } from "puppeteer";
 import { TelegramClientType } from "../client";
 import {
     Argument,
@@ -9,6 +8,7 @@ import {
     CommandContext,
     TelegramClient,
 } from "../lib";
+import { newPage } from "../puppeteer";
 import { ClassDay, ClassType, getEngineeringSchedule, Subject, SubjectScheduleDefined } from "../schedules";
 
 enum SlotType {
@@ -157,19 +157,8 @@ export default class HorarioCommand extends Command<RawArgs> {
     }
 }
 
-let browser: Browser | undefined;
-
-async function launchBrowser(): Promise<Browser> {
-    browser = await puppeteer.launch({
-        // TODO not safe on linux, should find a workaround
-        args: ["--no-sandbox", "--disable-setuid-sandbox"],
-    });
-    return browser;
-}
-
 async function htmlToImage(html: string): Promise<Buffer> {
-    const browser = await launchBrowser();
-    const page = await browser.newPage();
+    using page = await newPage();
     await page.setContent(html);
     const body = await page.$("div.root");
     if (!body) {
@@ -181,8 +170,6 @@ async function htmlToImage(html: string): Promise<Buffer> {
         optimizeForSpeed: true,
         type: "png",
     });
-    await page.close();
-    await browser.close();
 
     return Buffer.from(image);
 }

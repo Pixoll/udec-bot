@@ -3,8 +3,8 @@ import { parse as parseCsv } from "csv-parse/sync";
 import { mkdirSync } from "fs";
 import { existsSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { launch } from "puppeteer";
 import XLSX, { Range } from "xlsx";
+import { newPage } from "../puppeteer";
 
 const pdfFilesDir = path.join(process.cwd(), "resources/pdf");
 let pdfId = 0;
@@ -21,10 +21,6 @@ mkdirSync(pdfFilesDir, { recursive: true });
 export async function pdfToCsv(pdfUrl: string): Promise<CsvSheet> {
     const id = pdfId++;
     const pdfFilePath = path.join(pdfFilesDir, `${id}`);
-    const browser = await launch({
-        // TODO not safe on linux, should find a workaround
-        args: ["--no-sandbox", "--disable-setuid-sandbox"],
-    });
 
     const pdfArrayBuffer = await axios.get<ArrayBuffer>(pdfUrl, {
         responseType: "arraybuffer",
@@ -32,12 +28,11 @@ export async function pdfToCsv(pdfUrl: string): Promise<CsvSheet> {
     writeFileSync(pdfFilePath, Buffer.from(pdfArrayBuffer));
 
     console.log(`Uploading [${id}] ${pdfUrl}`);
-    const smallPdfPage = await browser.newPage();
+    using smallPdfPage = await newPage();
     await smallPdfPage.goto("https://smallpdf.com/pdf-to-excel");
     const fileInputElement = await smallPdfPage.waitForSelector("input[type=file]");
 
     if (!fileInputElement) {
-        await browser.close();
         throw new Error("Could not find file input element on page.");
     }
 
@@ -47,7 +42,6 @@ export async function pdfToCsv(pdfUrl: string): Promise<CsvSheet> {
     console.log(`Uploaded [${id}]`);
 
     if (!downloadFileElement) {
-        await browser.close();
         throw new Error("Could not find file download button element on page.");
     }
 
@@ -57,9 +51,6 @@ export async function pdfToCsv(pdfUrl: string): Promise<CsvSheet> {
         responseType: "arraybuffer",
     }).then(r => r.data);
     console.log(`Downloaded [${id}]`);
-
-    await smallPdfPage.close();
-    await browser.close();
 
     return await xlsxToCsv(Buffer.from(xlsxArrayBugger));
 }

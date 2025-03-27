@@ -3,7 +3,7 @@ import { mkdirSync, readFileSync } from "fs";
 import { existsSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { LinearDataView } from "./linear-data-view";
-import { pdfToCsv } from "./puppeteer";
+import { pdfToCsv } from "./pdf-to-csv";
 import { ClassDay, ClassType, Subject, SubjectCareer, SubjectProfessor, SubjectSchedule } from "./types";
 
 const scheduleFilesDir = path.join(process.cwd(), "resources/schedules");
