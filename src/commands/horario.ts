@@ -160,7 +160,10 @@ export default class HorarioCommand extends Command<RawArgs> {
 let browser: Browser | undefined;
 
 async function launchBrowser(): Promise<Browser> {
-    browser = await puppeteer.launch();
+    browser = await puppeteer.launch({
+        // TODO not safe on linux, should find a workaround
+        args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    });
     return browser;
 }
 

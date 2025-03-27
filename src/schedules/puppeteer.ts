@@ -21,7 +21,10 @@ mkdirSync(pdfFilesDir, { recursive: true });
 export async function pdfToCsv(pdfUrl: string): Promise<CsvSheet> {
     const id = pdfId++;
     const pdfFilePath = path.join(pdfFilesDir, `${id}`);
-    const browser = await launch();
+    const browser = await launch({
+        // TODO not safe on linux, should find a workaround
+        args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    });
 
     const pdfArrayBuffer = await axios.get<ArrayBuffer>(pdfUrl, {
         responseType: "arraybuffer",
