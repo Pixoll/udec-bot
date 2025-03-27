@@ -128,7 +128,7 @@ export default class HorarioCommand extends Command<RawArgs> {
             const html = generateHtml([...subjects.values()]);
             const imageBuffer = await htmlToImage(html);
 
-            await context.fancyReplyWithPhoto({
+            await context.fancyReplyWithDocument({
                 source: imageBuffer,
                 filename: "horario.png",
             }, {
