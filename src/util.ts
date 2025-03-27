@@ -1,7 +1,7 @@
-import { UdecSubject } from "kysely-codegen";
 import { Markup } from "telegraf";
 import { client, TelegramClientType } from "./client";
 import { CommandContext, dateToString, Logger, ValuesOf } from "./lib";
+import { Subject } from "./tables";
 import { ExtraReplyMessage } from "telegraf/typings/telegram-types";
 
 export const removeKeyboard = {
@@ -60,7 +60,7 @@ function pluralize(text: string, amount: number): string {
     return `${amount} ${text}` + (amount !== 1 ? "s" : "");
 }
 
-export async function getSubjects(client: TelegramClientType, context: CommandContext): Promise<UdecSubject[]> {
+export async function getSubjects(client: TelegramClientType, context: CommandContext): Promise<Subject[]> {
     return client.db
         .selectFrom("udec_chat_subject as chat_subject")
         .innerJoin("udec_subject as subject", "chat_subject.subject_code", "subject.code")
