@@ -6,10 +6,10 @@ import {
     ArgumentOptions,
     ArgumentOptionsToResult,
     ArgumentType,
+    capitalize,
     Command,
     CommandContext,
     TelegramClient,
-    capitalize,
     timestampAtSantiago,
 } from "../lib";
 import { ActionType } from "../tables";
@@ -36,7 +36,10 @@ const args = [{
     // @ts-expect-error: makes no difference
     validate(value, context, argument: Argument) {
         if (value.length !== 6) {
-            return "El código debe tener 6 dígitos.";
+            return {
+                ok: false,
+                message: "El código debe tener 6 dígitos.",
+            };
         }
         return argument.typeHandler.validate(value, context, argument);
     },
@@ -90,7 +93,7 @@ export default class AddRamoCommand extends Command<RawArgs> {
             *Código*: ${code}
             *Créditos*: ${subject.credits}
             `), {
-                "parse_mode": "MarkdownV2",
+                parse_mode: "MarkdownV2",
             });
             return;
         }
@@ -132,7 +135,7 @@ export default class AddRamoCommand extends Command<RawArgs> {
         *Código*: ${code}
         *Créditos*: ${subjectInfo.credits}
         `), {
-            "parse_mode": "MarkdownV2",
+            parse_mode: "MarkdownV2",
         });
 
         try {

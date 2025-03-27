@@ -1,11 +1,11 @@
 import { Markup } from "telegraf";
-import { client, TelegramClientType } from "./client";
+import { ExtraReplyMessage } from "telegraf/typings/telegram-types";
+import { TelegramClientType } from "./client";
 import { CommandContext, dateToString, Logger, ValuesOf } from "./lib";
 import { Subject } from "./tables";
-import { ExtraReplyMessage } from "telegraf/typings/telegram-types";
 
 export const removeKeyboard = {
-    "reply_markup": Markup.removeKeyboard().reply_markup,
+    reply_markup: Markup.removeKeyboard().reply_markup,
 } as const satisfies ExtraReplyMessage;
 
 export function stripIndent(text: string): string {

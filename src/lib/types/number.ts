@@ -1,7 +1,7 @@
-import { Argument } from "../commands";
 import { TelegramClient } from "../client";
+import { Argument } from "../commands";
 import { isNullish } from "../util";
-import { ArgumentTypeHandler, ArgumentType } from "./base";
+import { ArgumentType, ArgumentTypeHandler, ArgumentTypeValidationResult } from "./base";
 
 // noinspection JSUnusedGlobalSymbols
 export class NumberArgumentTypeHandler extends ArgumentTypeHandler<ArgumentType.Number> {
@@ -9,26 +9,32 @@ export class NumberArgumentTypeHandler extends ArgumentTypeHandler<ArgumentType.
         super(client, ArgumentType.Number);
     }
 
-    public validate(value: string, _: unknown, argument: Argument<ArgumentType.Number>): boolean | string {
-        const {
-            choices,
-            max,
-            min,
-        } = argument;
-        if (isNaN(+value) || !/^\d+$/.test(value)) return false;
-        const number = parseInt(value);
+    public validate(value: string, _: unknown, argument: Argument<ArgumentType.Number>): ArgumentTypeValidationResult {
+        const { choices, max, min } = argument;
+        if (!Number.isSafeInteger(+value)) return { ok: false };
+
+        const number = +value;
 
         if (choices && !choices.includes(number)) {
-            return `Ingrese una de las siguientes opciones: ${choices.map(c => `\`${c}\``).join(", ")}`;
+            return {
+                ok: false,
+                message: `Ingrese una de las siguientes opciones: ${choices.map(c => `\`${c}\``).join(", ")}`,
+            };
         }
         if (!isNullish(min) && number < min) {
-            return `Ingrese un número mayor o igual a ${min}.`;
+            return {
+                ok: false,
+                message: `Ingrese un número mayor o igual a ${min}.`,
+            };
         }
         if (!isNullish(max) && number > max) {
-            return `Ingrese un número menor o igual a ${max}.`;
+            return {
+                ok: false,
+                message: `Ingrese un número menor o igual a ${max}.`,
+            };
         }
 
-        return true;
+        return { ok: true };
     }
 
     public parse(value: string): number {

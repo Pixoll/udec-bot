@@ -19,10 +19,10 @@ export type AnyArguments = Record<string, unknown>;
 
 export type ParseArgsResult = ParseArgsResultOk | ArgumentResultError;
 
-export interface ParseArgsResultOk {
+export type ParseArgsResultOk = {
     ok: true;
     values: AnyArguments;
-}
+};
 
 export type ArgumentOptionsToClasses<Args extends readonly ArgumentOptions[]>
     = Args extends [infer Arg extends ArgumentOptions, ...infer RestArgs extends readonly ArgumentOptions[]]
@@ -35,15 +35,15 @@ export type ArgumentOptionsToResult<Args extends readonly ArgumentOptions[]> = {
     Arg["required"] extends true ? never
         : (
             Arg["default"] extends (...args: infer _) => infer R
-                ? Awaited<R>
+                ? (Arg["infinite"] extends true ? Array<Awaited<R>> : Awaited<R>)
                 : (Arg["default"] & null) extends never
-                    ? Arg["default"]
-                    : null
+                    ? (Arg["infinite"] extends true ? Array<Arg["default"]> : Arg["default"])
+                    : (Arg["infinite"] extends true ? [] : null)
             )
     ) | (
     Arg["choices"] extends Array<infer U> | ReadonlyArray<infer U>
-        ? U
-        : ArgumentTypeMap[Arg["type"]]
+        ? (Arg["infinite"] extends true ? U[] : U)
+        : (Arg["infinite"] extends true ? Array<ArgumentTypeMap[Arg["type"]]> : ArgumentTypeMap[Arg["type"]])
     );
 };
 
@@ -61,7 +61,30 @@ export abstract class Command<Args extends readonly ArgumentOptions[] = []> {
 
         this.groupOnly ??= false;
         this.ensureInactiveMenus ??= false;
-        this.args = (options.args?.map(arg => new Argument(client, arg)) ?? []) as ArgumentOptionsToClasses<Args>;
+
+        const args: Argument[] = [];
+        const argsOptions = options.args ?? [];
+        let hasInfinite = false;
+
+        for (let i = 0; i < argsOptions.length; i++) {
+            const argOptions = argsOptions[i]!;
+
+            if (argOptions.infinite) {
+                if (hasInfinite) {
+                    throw new Error("There cannot be multiple infinite arguments.");
+                }
+
+                if (i !== argsOptions.length - 1) {
+                    throw new Error("Infinite arguments must be placed last in the list.");
+                }
+
+                hasInfinite = true;
+            }
+
+            args.push(new Argument(client, argOptions));
+        }
+
+        this.args = args as ArgumentOptionsToClasses<Args>;
     }
 
     public abstract run(context: CommandContext, args: AnyArguments): unknown;
@@ -85,9 +108,13 @@ export abstract class Command<Args extends readonly ArgumentOptions[] = []> {
         const args: AnyArguments = {};
         const argsStrings = context.args;
         for (let i = 0; i < this.args.length; i++) {
-            const arg = this.args[i] as Argument;
-            const value = i === this.args.length - 1 ? argsStrings.slice(i).join(" ") : argsStrings[i];
-            const result = await arg.obtain(value, context);
+            const arg = this.args[i]!;
+            const value = arg.infinite ? argsStrings.slice(i)
+                : i === this.args.length - 1 ? argsStrings.slice(i).join(" ")
+                    : argsStrings[i] ?? "";
+            const result = typeof value === "string"
+                ? await arg.obtain(value, context)
+                : await arg.obtainInfinite(value, context);
             if (!result.ok) return result;
 
             args[arg.key] = result.value;

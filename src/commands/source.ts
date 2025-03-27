@@ -1,7 +1,7 @@
 import { readFileSync } from "fs";
 import path from "path";
 import { TelegramClientType } from "../client";
-import { Command, CommandContext, TelegramClient, escapeMarkdown } from "../lib";
+import { Command, CommandContext, escapeMarkdown, TelegramClient } from "../lib";
 import { stripIndent } from "../util";
 
 const packageJson = JSON.parse(readFileSync(path.join(__dirname, "../../package.json"), "utf-8")) as PackageJson;
@@ -37,7 +37,7 @@ export default class SourceCommand extends Command {
 
     public async run(context: CommandContext): Promise<void> {
         await context.fancyReply(sourceMessage, {
-            "parse_mode": "MarkdownV2",
+            parse_mode: "MarkdownV2",
         });
     }
 }

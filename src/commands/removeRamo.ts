@@ -5,13 +5,13 @@ import {
     Command,
     CommandContext,
     MessageContext,
+    parseContext,
     SessionString,
     TelegramClient,
-    parseContext,
     timestampAtSantiago,
 } from "../lib";
-import { alphabetically, getSubjects, removeKeyboard, stripIndent } from "../util";
 import { ActionType, Subject } from "../tables";
+import { alphabetically, getSubjects, removeKeyboard, stripIndent } from "../util";
 
 const confirmationRegex = /^([👍❌])$/u;
 const confirmationKeyboard = Markup
@@ -67,7 +67,7 @@ export default class RemoveRamoCommand extends Command {
 
         Usa /cancel para cancelar.
         `), {
-            "reply_markup": selectionMenu,
+            reply_markup: selectionMenu,
         });
     }
 
@@ -88,8 +88,8 @@ export default class RemoveRamoCommand extends Command {
         *Código*: ${subject.code}
         *Créditos*: ${subject.credits}
         `), {
-            "parse_mode": "MarkdownV2",
-            "reply_markup": confirmationKeyboard,
+            parse_mode: "MarkdownV2",
+            reply_markup: confirmationKeyboard,
         });
     }
 
@@ -112,7 +112,7 @@ export default class RemoveRamoCommand extends Command {
 
             Aún existen evaluaciones vigentes vinculadas a este ramo\\. Elimina esas primero con /removecert\\.
             `), {
-                "parse_mode": "MarkdownV2",
+                parse_mode: "MarkdownV2",
                 ...removeKeyboard,
             });
             return;
@@ -131,7 +131,7 @@ export default class RemoveRamoCommand extends Command {
         }
 
         await context.fancyReply("🗑 *El ramo ha sido eliminado\\.*", {
-            "parse_mode": "MarkdownV2",
+            parse_mode: "MarkdownV2",
             ...removeKeyboard,
         });
 

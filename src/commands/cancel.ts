@@ -25,8 +25,8 @@ export default class CancelCommand extends Command {
 
         activeMenus.delete(session);
         await context.fancyReply(`El menú de /${menu} ha sido cancelado.`, {
-            "reply_markup": {
-                "remove_keyboard": true,
+            reply_markup: {
+                remove_keyboard: true,
             },
         });
     }

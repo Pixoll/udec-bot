@@ -1,9 +1,9 @@
 import { TelegramClient } from "../client";
 import { Argument } from "../commands";
 import { dateAtSantiago, dateToString, isNullish } from "../util";
-import { ArgumentType, ArgumentTypeHandler } from "./base";
+import { ArgumentType, ArgumentTypeHandler, ArgumentTypeValidationResult } from "./base";
 
-const dateRegex = /^[0-3]?\d[/-][01]?\d((?:[/-]\d{4}))?$/;
+const dateRegex = /^[0-3]?\d[/-][01]?\d([/-]\d{4})?$/;
 
 // noinspection JSUnusedGlobalSymbols
 export class DateArgumentTypeHandler extends ArgumentTypeHandler<ArgumentType.Date> {
@@ -11,10 +11,13 @@ export class DateArgumentTypeHandler extends ArgumentTypeHandler<ArgumentType.Da
         super(client, ArgumentType.Date);
     }
 
-    public validate(value: string, _: unknown, argument: Argument<ArgumentType.Date>): string | boolean {
+    public validate(value: string, _: unknown, argument: Argument<ArgumentType.Date>): ArgumentTypeValidationResult {
         const date = parseDate(value);
         if (!date) {
-            return "Ingrese una fecha válida. El formato es DD-MM o DD-MM-YYYY.";
+            return {
+                ok: false,
+                message: "Ingrese una fecha válida. El formato es DD-MM o DD-MM-YYYY.",
+            };
         }
 
         const time = date.getTime();
@@ -24,16 +27,25 @@ export class DateArgumentTypeHandler extends ArgumentTypeHandler<ArgumentType.Da
             futureDate,
         } = argument;
         if (futureDate && time < Date.now()) {
-            return "Ingrese una fecha en el futuro.";
+            return {
+                ok: false,
+                message: "Ingrese una fecha en el futuro.",
+            };
         }
         if (!isNullish(min) && time < min) {
-            return `Ingrese una fecha mayor o igual a ${dateToString(new Date(min))}.`;
+            return {
+                ok: false,
+                message: `Ingrese una fecha mayor o igual a ${dateToString(new Date(min))}.`,
+            };
         }
         if (!isNullish(max) && time > max) {
-            return `Ingrese una fecha menor o igual a ${dateToString(new Date(max))}.`;
+            return {
+                ok: false,
+                message: `Ingrese una fecha menor o igual a ${dateToString(new Date(max))}.`,
+            };
         }
 
-        return true;
+        return { ok: true };
     }
 
     public parse(value: string): Date {

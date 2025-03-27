@@ -5,9 +5,9 @@ import {
     ArgumentType,
     Command,
     CommandContext,
-    TelegramClient,
     dateToString,
     escapeMarkdown,
+    TelegramClient,
 } from "../lib";
 import { stripIndent } from "../util";
 
@@ -56,7 +56,7 @@ export default class HistoryCommand extends Command<RawArgs> {
             .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
             .slice(0, amount ?? actions.length)
             .map(record =>
-                `• \`${dateToString(record.timestamp, true)}\` \\- ${record.type} \\- ${escapeMarkdown(record.username)}`,
+                `• \`${dateToString(record.timestamp, true)}\` \\- ${record.type} \\- ${escapeMarkdown(record.username)}`
             )
             .join("\n");
 
@@ -71,7 +71,7 @@ export default class HistoryCommand extends Command<RawArgs> {
 
         ${footer}
         `), {
-            "parse_mode": "MarkdownV2",
+            parse_mode: "MarkdownV2",
         });
     }
 }

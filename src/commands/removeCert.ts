@@ -2,19 +2,19 @@ import { Markup } from "telegraf";
 import { ReplyKeyboardMarkup } from "telegraf/typings/core/types/typegram";
 import { TelegramClientType } from "../client";
 import {
+    capitalize,
     Command,
     CommandContext,
-    MessageContext,
-    SessionString,
-    TelegramClient,
-    capitalize,
     dateAtSantiago,
     dateToString,
+    MessageContext,
     parseContext,
+    SessionString,
+    TelegramClient,
     timestampAtSantiago,
 } from "../lib";
-import { dateStringToSqlDate, daysUntilToString, getDaysUntil, removeKeyboard, stripIndent } from "../util";
 import { ActionType, Assignment, AssignmentType, Subject } from "../tables";
+import { dateStringToSqlDate, daysUntilToString, getDaysUntil, removeKeyboard, stripIndent } from "../util";
 
 type AssignmentWithSubjectName = Omit<Assignment, "chat_id"> & {
     subject_name: Subject["name"];
@@ -24,7 +24,7 @@ const assignmentTypes = Object.values(AssignmentType).map(v => capitalize(v));
 const assignmentStringRegex = new RegExp(
     `^(?<type>${assignmentTypes.join("|")}) - `
     + /\[(?<subjectCode>\d+)] .+ /.source
-    + /\((?<dueDate>\d{2}\/\d{2}\/\d{4})\)$/.source,
+    + /\((?<dueDate>\d{2}\/\d{2}\/\d{4})\)$/.source
 );
 
 const confirmationRegex = /^([👍❌])$/u;
@@ -103,7 +103,7 @@ export default class RemoveCertCommand extends Command {
 
         Usa /cancel para cancelar.
         `), {
-            "reply_markup": createSelectionMenu(assignmentsStrings),
+            reply_markup: createSelectionMenu(assignmentsStrings),
         });
     }
 
@@ -119,7 +119,7 @@ export default class RemoveCertCommand extends Command {
         const assignment = assignments.find(a =>
             a.date_due === parsedDueDate
             && a.subject_code === +subjectCode
-            && a.type === type.toLowerCase(),
+            && a.type === type.toLowerCase()
         );
 
         if (!assignment) {
@@ -138,8 +138,8 @@ export default class RemoveCertCommand extends Command {
         *Ramo*: \\[${assignment.subject_code}\\] ${assignment.subject_name}
         *Fecha*: ${dueDate} \\(${daysUntilToString(getDaysUntil(dateAtSantiago(assignment.date_due)))}\\)
         `), {
-            "parse_mode": "MarkdownV2",
-            "reply_markup": confirmationKeyboard,
+            parse_mode: "MarkdownV2",
+            reply_markup: confirmationKeyboard,
         });
         /* eslint-enable indent */
     }
@@ -162,7 +162,7 @@ export default class RemoveCertCommand extends Command {
         }
 
         await context.fancyReply("🗑 *La evaluación ha sido eliminada\\.*", {
-            "parse_mode": "MarkdownV2",
+            parse_mode: "MarkdownV2",
             ...removeKeyboard,
         });
 

@@ -3,12 +3,12 @@ import {
     ArgumentOptions,
     ArgumentOptionsToResult,
     ArgumentType,
+    capitalize,
     Command,
     CommandContext,
-    TelegramClient,
-    capitalize,
     dateAtSantiago,
     dateToString,
+    TelegramClient,
 } from "../lib";
 import {
     clearOldAssignments,
@@ -111,7 +111,7 @@ export default class CertsCommand extends Command<RawArgs> {
 
         ${assignments.join("\n\n")}
         `), {
-            "parse_mode": "MarkdownV2",
+            parse_mode: "MarkdownV2",
         });
     }
 }

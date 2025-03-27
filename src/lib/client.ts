@@ -63,9 +63,9 @@ export class TelegramClient<Database extends object = object> extends Telegraf {
         Logger.error(error);
         await context.reply("Ocurrió un error y ha sido notificado al mantenedor del bot.", {
             ...messageId && ({
-                "reply_parameters": {
-                    "message_id": messageId,
-                    "allow_sending_without_reply": true,
+                reply_parameters: {
+                    message_id: messageId,
+                    allow_sending_without_reply: true,
                 },
             }),
         });

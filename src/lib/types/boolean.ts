@@ -1,5 +1,5 @@
 import { TelegramClient } from "../client";
-import { ArgumentTypeHandler, ArgumentType } from "./base";
+import { ArgumentTypeHandler, ArgumentType, ArgumentTypeValidationResult } from "./base";
 
 const truthy: ReadonlySet<string> = new Set(["true", "t", "yes", "y", "on", "enable", "enabled", "1", "+"]);
 const falsy: ReadonlySet<string> = new Set(["false", "f", "no", "n", "off", "disable", "disabled", "0", "-"]);
@@ -10,9 +10,11 @@ export class BooleanArgumentTypeHandler extends ArgumentTypeHandler<ArgumentType
         super(client, ArgumentType.Boolean);
     }
 
-    public validate(value: string): boolean {
+    public validate(value: string): ArgumentTypeValidationResult {
         const lc = value.toLowerCase();
-        return truthy.has(lc) || falsy.has(lc);
+        return {
+            ok: truthy.has(lc) || falsy.has(lc),
+        };
     }
 
     public parse(value: string): boolean {

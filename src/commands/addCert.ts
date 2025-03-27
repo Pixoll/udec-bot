@@ -4,14 +4,14 @@ import {
     ArgumentOptions,
     ArgumentOptionsToResult,
     ArgumentType,
+    capitalize,
     Command,
     CommandContext,
+    dateToString,
     MessageContext,
+    parseContext,
     SessionString,
     TelegramClient,
-    capitalize,
-    dateToString,
-    parseContext,
     timestampAtSantiago,
 } from "../lib";
 import { ActionType, Assignment, AssignmentType, NewAssignment, Subject } from "../tables";
@@ -95,13 +95,15 @@ export default class AddCertCommand extends Command<RawArgs> {
         _Fecha de evaluación registrada: ${dateToString(date)}_
         \n*Selecciona la asignatura a evaluar: ⬇️*
         `), {
-            "parse_mode": "MarkdownV2",
-            "reply_markup": subjectsKeyboard,
+            parse_mode: "MarkdownV2",
+            reply_markup: subjectsKeyboard,
         });
     }
 
     private async setSubject(
-        context: CommandContext, subjects: Subject[], assignment: Assignment,
+        context: CommandContext,
+        subjects: Subject[],
+        assignment: Assignment
     ): Promise<void> {
         const code = +(context.text.match(/^\[(\d+)]/)?.[1] ?? -1);
         const subject = subjects.find(s => s.code === code);
@@ -112,11 +114,11 @@ export default class AddCertCommand extends Command<RawArgs> {
             return;
         }
 
-        assignment["subject_code"] = code;
+        assignment.subject_code = code;
 
         await context.fancyReply("*Elige el tipo de evaluación: ⬇️*", {
-            "parse_mode": "MarkdownV2",
-            "reply_markup": assignmentTypesKeyboard,
+            parse_mode: "MarkdownV2",
+            reply_markup: assignmentTypesKeyboard,
         });
     }
 
@@ -134,7 +136,7 @@ export default class AddCertCommand extends Command<RawArgs> {
 
         if (registeredAssignment) {
             await context.fancyReply("*La evaluación que intentas agregar ya está registrada\\.*", {
-                "parse_mode": "MarkdownV2",
+                parse_mode: "MarkdownV2",
                 ...removeKeyboard,
             });
             return;
@@ -152,7 +154,7 @@ export default class AddCertCommand extends Command<RawArgs> {
         }
 
         await context.fancyReply("*🎉 ¡La fecha de evaluación ha sido agregada\\!*", {
-            "parse_mode": "MarkdownV2",
+            parse_mode: "MarkdownV2",
             ...removeKeyboard,
         });
 

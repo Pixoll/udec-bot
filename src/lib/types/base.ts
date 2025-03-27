@@ -25,7 +25,11 @@ export abstract class ArgumentTypeHandler<T extends ArgumentType> {
         this.type = type;
     }
 
-    public abstract validate(value: string, context: CommandContext, argument: Argument<T>): Awaitable<boolean | string>;
+    public abstract validate(
+        value: string,
+        context: CommandContext,
+        argument: Argument<T>
+    ): Awaitable<ArgumentTypeValidationResult>;
 
     public abstract parse(value: string, context: CommandContext, argument: Argument<T>): Awaitable<ArgumentTypeMap[T]>;
 
@@ -33,5 +37,18 @@ export abstract class ArgumentTypeHandler<T extends ArgumentType> {
         return value.length === 0;
     }
 }
+
+export type ArgumentTypeValidationResult =
+    | ArgumentTypeValidationResultOk
+    | ArgumentTypeValidationResultError;
+
+export type ArgumentTypeValidationResultOk = {
+    ok: true;
+};
+
+export type ArgumentTypeValidationResultError = {
+    ok: false;
+    message?: string;
+};
 
 export type ConstructableArgumentType = new (client: TelegramClient) => ArgumentTypeHandler<ArgumentType>;

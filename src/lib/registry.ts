@@ -2,9 +2,9 @@ import requireAll from "require-all";
 import { TelegramClient } from "./client";
 import { Collection } from "./collection";
 import { Command, ConstructableCommand, parseContext } from "./commands";
-import { ArgumentTypeHandler, ArgumentType, ConstructableArgumentType as BuildableArgumentTypeHandler } from "./types";
-import { capitalize, isNullish } from "./util";
 import { Logger } from "./logger";
+import { ArgumentType, ArgumentTypeHandler, ConstructableArgumentType as BuildableArgumentTypeHandler } from "./types";
+import { capitalize, isNullish } from "./util";
 
 type NodeModuleOf<T> = T | {
     [k: string]: T;
@@ -130,7 +130,7 @@ export class ClientRegistry {
             const args = await command.parseArgs(context);
             if (!args.ok) {
                 await context.fancyReply(args.message, {
-                    "parse_mode": "MarkdownV2",
+                    parse_mode: "MarkdownV2",
                 });
                 next();
                 return;

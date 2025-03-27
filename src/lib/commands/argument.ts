@@ -1,7 +1,7 @@
-import { CommandContext } from "./context";
 import { TelegramClient } from "../client";
-import { ArgumentTypeHandler, ArgumentType, ArgumentTypeMap } from "../types";
+import { ArgumentType, ArgumentTypeHandler, ArgumentTypeMap, ArgumentTypeValidationResult } from "../types";
 import { Awaitable, escapeMarkdown, omit } from "../util";
+import { CommandContext } from "./context";
 
 type ArgumentDefault<T extends ArgumentType> =
     | ArgumentTypeMap[T]
@@ -20,31 +20,34 @@ export interface ArgumentOptions<T extends ArgumentType = ArgumentType> {
     readonly futureDate?: boolean;
     readonly whenInvalid?: string | null;
     readonly examples?: string[];
+    readonly infinite?: boolean;
 
     parse?(value: string, context: CommandContext, argument: Argument<T>): Awaitable<ArgumentTypeMap[T]>;
 
-    validate?(value: string, context: CommandContext, argument: Argument<T>): Awaitable<boolean | string>;
+    validate?(value: string, context: CommandContext, argument: Argument<T>): Awaitable<ArgumentTypeValidationResult>;
 
     isEmpty?(value: string, context: CommandContext, argument: Argument<T>): boolean;
 }
 
-export type ArgumentResult<T extends ArgumentType> = ArgumentResultOk<T> | ArgumentResultError;
+export type ArgumentResult<T extends ArgumentType, Infinite extends boolean = false> =
+    | ArgumentResultOk<T, Infinite>
+    | ArgumentResultError;
 
 export enum ArgumentResultErrorType {
     Empty,
     Invalid,
 }
 
-export interface ArgumentResultOk<T extends ArgumentType> {
+export type ArgumentResultOk<T extends ArgumentType, Infinite extends boolean> = {
     ok: true;
-    value: ArgumentTypeMap[T] | null;
-}
+    value: Infinite extends true ? Array<ArgumentTypeMap[T]> : ArgumentTypeMap[T] | null;
+};
 
-export interface ArgumentResultError {
+export type ArgumentResultError = {
     ok: false;
     error: ArgumentResultErrorType;
     message: string;
-}
+};
 
 const defaultOptions = {
     label: null,
@@ -57,6 +60,7 @@ const defaultOptions = {
     futureDate: false,
     whenInvalid: null,
     examples: [],
+    infinite: false,
 } as const satisfies Partial<ArgumentOptions>;
 
 export class Argument<T extends ArgumentType = ArgumentType> implements Omit<ArgumentOptions<T>, "type"> {
@@ -72,6 +76,7 @@ export class Argument<T extends ArgumentType = ArgumentType> implements Omit<Arg
     public declare readonly futureDate: boolean;
     public declare readonly whenInvalid: string | null;
     public declare readonly examples: string[];
+    public declare readonly infinite: boolean;
     public readonly parser: NonNullable<ArgumentOptions<T>["parse"]> | null;
     public readonly validator: NonNullable<ArgumentOptions<T>["validate"]> | null;
     public readonly emptyChecker: NonNullable<ArgumentOptions<T>["isEmpty"]> | null;
@@ -103,12 +108,14 @@ export class Argument<T extends ArgumentType = ArgumentType> implements Omit<Arg
             whenInvalid,
             examples,
         } = this;
+
         const name = label ?? key;
         const type = typeHandler.type;
         const empty = this.isEmpty(value, context);
         const parsedExamples = examples.length > 0
             ? escapeMarkdown(`\n\nEjemplos: ${examples.map(e => `\`${e}\``).join(", ")}.`, "`")
             : "";
+
         if (empty) {
             if (required) {
                 return {
@@ -127,13 +134,14 @@ export class Argument<T extends ArgumentType = ArgumentType> implements Omit<Arg
             };
         }
 
-        const isValid = await this.validate(value, context);
-        if (isValid !== true) {
+        const validationResult = await this.validate(value, context);
+        if (!validationResult.ok) {
             return {
                 ok: false,
                 error: ArgumentResultErrorType.Invalid,
-                message: escapeMarkdown(
-                    whenInvalid ?? (isValid ? isValid : `Argumento inválido, "${name}" debe ser de tipo ${type}.`),
+                message: escapeMarkdown(whenInvalid
+                    ?? validationResult.message
+                    ?? `Argumento inválido, "${name}" debe ser de tipo ${type}.`
                 ) + parsedExamples,
             };
         }
@@ -145,12 +153,71 @@ export class Argument<T extends ArgumentType = ArgumentType> implements Omit<Arg
         };
     }
 
+    public async obtainInfinite(values: string[], context: CommandContext): Promise<ArgumentResult<T, true>> {
+        const {
+            default: defaultValue,
+            required,
+            typeHandler,
+            key,
+            label,
+            prompt,
+            whenInvalid,
+            examples,
+        } = this;
+
+        const name = label ?? key;
+        const type = typeHandler.type;
+        const empty = this.isEmpty(values.join("").replace(/\s+/g, ""), context);
+        const parsedExamples = examples.length > 0
+            ? escapeMarkdown(`\n\nEjemplos: ${examples.map(e => `\`${e}\``).join(", ")}.`, "`")
+            : "";
+
+        if (empty) {
+            if (required) {
+                return {
+                    ok: false,
+                    error: ArgumentResultErrorType.Empty,
+                    message: escapeMarkdown(prompt ?? `Ingrese el argumento "${name}" de tipo ${type}.`) + parsedExamples,
+                };
+            }
+
+            const resolvedValue = typeof defaultValue === "function"
+                ? await defaultValue(values.join(" "), context, this)
+                : defaultValue;
+            return {
+                ok: true,
+                value: resolvedValue !== null ? [resolvedValue] : [],
+            };
+        }
+
+        for (let i = 0; i < values.length; i++) {
+            const value = values[i]!;
+            const validationResult = await this.validate(value, context);
+            if (!validationResult.ok) {
+                return {
+                    ok: false,
+                    error: ArgumentResultErrorType.Invalid,
+                    message: escapeMarkdown(whenInvalid
+                        ?? validationResult.message
+                        ?? `Argumento ${i + 1} inválido, "${name}" debe ser de tipo ${type}.`
+                    ) + parsedExamples,
+                };
+            }
+        }
+
+        const resolvedValues = await Promise.all(values.map(value => this.parse(value, context)));
+        return {
+            ok: true,
+            value: resolvedValues,
+        };
+    }
+
     public async parse(value: string, context: CommandContext): Promise<ArgumentTypeMap[T]> {
         if (this.parser) return this.parser(value, context, this);
         return this.typeHandler.parse(value, context, this);
     }
 
-    public async validate(value: string, context: CommandContext): Promise<boolean | string> {
+    public async validate(value: string, context: CommandContext): Promise<ArgumentTypeValidationResult> {
         if (this.validator) return this.validator(value, context, this);
         return this.typeHandler.validate(value, context, this);
     }

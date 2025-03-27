@@ -22,7 +22,7 @@ export function isNullish(value: unknown): value is null | undefined {
 
 export function capitalize<S extends string>(text: S, restLower = false): Capitalize<S> {
     const rest = text.slice(1);
-    return (text[0].toUpperCase() + (restLower ? rest.toLowerCase() : rest)) as Capitalize<S>;
+    return (text.slice(0, 1).toUpperCase() + (restLower ? rest.toLowerCase() : rest)) as Capitalize<S>;
 }
 
 export function dateToString(date?: Date | null, includeTime = false): string {

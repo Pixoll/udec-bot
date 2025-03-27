@@ -1,18 +1,18 @@
 import axios from "axios";
 import parseHtml, { HTMLElement } from "node-html-parser";
+import { URLSearchParams } from "url";
 import { TelegramClientType } from "../client";
 import {
     ArgumentOptions,
-    ArgumentType,
     ArgumentOptionsToResult,
+    ArgumentType,
     Command,
     CommandContext,
-    TelegramClient,
     dateToString,
     escapeMarkdown,
+    TelegramClient,
 } from "../lib";
 import { stripIndent } from "../util";
-import { URLSearchParams } from "url";
 
 const menuErrorList = "alert alert-block alert-danger alert-dismissible error messages";
 
@@ -36,7 +36,7 @@ type RawArgs = typeof args;
 type ArgsResult = ArgumentOptionsToResult<RawArgs>;
 
 // noinspection JSUnusedGlobalSymbols
-export default class TestCommand extends Command<RawArgs> {
+export default class JunaCommand extends Command<RawArgs> {
     // @ts-expect-error: type override
     public declare readonly client: TelegramClientType;
 
@@ -53,12 +53,12 @@ export default class TestCommand extends Command<RawArgs> {
         const cached = menusCache[dateString];
         if (cached) {
             await context.fancyReply(cached, {
-                "parse_mode": "MarkdownV2",
+                parse_mode: "MarkdownV2",
             });
             return;
         }
 
-        const [day, month] = dateString.split("/").slice(0, 2).map(n => +n);
+        const [day = 1, month = 1] = dateString.split("/").slice(0, 2).map(n => +n);
         const menuTable = await getMenuAtDate(day, month);
         if (!menuTable) {
             const day = date ? "ese día" : "hoy";
@@ -75,7 +75,7 @@ export default class TestCommand extends Command<RawArgs> {
 
         menusCache[dateString] = menu;
         await context.fancyReply(menu, {
-            "parse_mode": "MarkdownV2",
+            parse_mode: "MarkdownV2",
         });
     }
 }
@@ -114,7 +114,7 @@ async function getMenuAtDate(day: number, month: number): Promise<HTMLElement | 
 
     const html = parseHtml(response.data);
     const error = html.querySelectorAll(querySelectors.error).find(div =>
-        div.classList.value.sort().join(" ") === menuErrorList,
+        div.classList.value.sort().join(" ") === menuErrorList
     );
     if (error) return null;
 
