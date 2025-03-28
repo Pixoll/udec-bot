@@ -1,3 +1,4 @@
+import { launch } from "puppeteer";
 import { TelegramClientType } from "../client";
 import {
     Argument,
@@ -8,7 +9,6 @@ import {
     CommandContext,
     TelegramClient,
 } from "../lib";
-import { newPage } from "../puppeteer";
 import { ClassDay, ClassType, getEngineeringSchedule, Subject, SubjectScheduleDefined } from "../schedules";
 
 enum SlotType {
@@ -158,7 +158,11 @@ export default class HorarioCommand extends Command<RawArgs> {
 }
 
 async function htmlToImage(html: string): Promise<Buffer> {
-    using page = await newPage();
+    using browser = await launch({
+        // TODO not safe on linux, should find a workaround
+        args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    });
+    using page = await browser.newPage();
     await page.setContent(html);
     const body = await page.$("div.root");
     if (!body) {

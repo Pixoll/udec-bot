@@ -3,8 +3,8 @@ import { parse as parseCsv } from "csv-parse/sync";
 import { mkdirSync } from "fs";
 import { existsSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { launch } from "puppeteer";
 import XLSX, { Range } from "xlsx";
-import { newPage } from "../puppeteer";
 
 const pdfFilesDir = path.join(process.cwd(), "resources/pdf");
 let pdfId = 0;
@@ -28,7 +28,11 @@ export async function pdfToCsv(pdfUrl: string): Promise<CsvSheet> {
     writeFileSync(pdfFilePath, Buffer.from(pdfArrayBuffer));
 
     console.log(`Uploading [${id}] ${pdfUrl}`);
-    using smallPdfPage = await newPage();
+    using browser = await launch({
+        // TODO not safe on linux, should find a workaround
+        args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    });
+    using smallPdfPage = await browser.newPage();
     await smallPdfPage.goto("https://smallpdf.com/pdf-to-excel");
     const fileInputElement = await smallPdfPage.waitForSelector("input[type=file]");
 
