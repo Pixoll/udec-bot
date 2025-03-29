@@ -29,6 +29,10 @@ export declare class CommandContext extends MessageContext implements CommandCon
     public fancyReplyWithPhoto(
         ...args: Parameters<Context["replyWithPhoto"]>
     ): Promise<Awaited<ReturnType<Context["replyWithPhoto"]>> | null>;
+
+    public fancyReplyWithMediaGroup(
+        ...args: Parameters<Context["replyWithMediaGroup"]>
+    ): Promise<Awaited<ReturnType<Context["replyWithMediaGroup"]>> | null>;
 }
 
 export function parseContext(ctx: MessageContext, client: TelegramClient): CommandContext {
@@ -51,6 +55,7 @@ export function parseContext(ctx: MessageContext, client: TelegramClient): Comma
     context.fancyReply = fancyReply.bind(context);
     context.fancyReplyWithDocument = fancyReplyWithDocument.bind(context);
     context.fancyReplyWithPhoto = fancyReplyWithPhoto.bind(context);
+    context.fancyReplyWithMediaGroup = fancyReplyWithMediaGroup.bind(context);
 
     return context;
 }
@@ -92,6 +97,22 @@ async function fancyReplyWithDocument(
     ...[document, extra]: Parameters<Context["replyWithDocument"]>
 ): Promise<Awaited<ReturnType<Context["replyWithDocument"]>> | null> {
     return await this.replyWithDocument(document, {
+        reply_parameters: {
+            message_id: this.msgId,
+            allow_sending_without_reply: true,
+        },
+        ...extra,
+    }).catch((error) => {
+        this.client.catchError(error, this);
+        return null;
+    });
+}
+
+async function fancyReplyWithMediaGroup(
+    this: CommandContext,
+    ...[media, extra]: Parameters<Context["replyWithMediaGroup"]>
+): Promise<Awaited<ReturnType<Context["replyWithMediaGroup"]>> | null> {
+    return await this.replyWithMediaGroup(media, {
         reply_parameters: {
             message_id: this.msgId,
             allow_sending_without_reply: true,

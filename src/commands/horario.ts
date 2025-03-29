@@ -125,17 +125,26 @@ export default class HorarioCommand extends Command<RawArgs> {
         await context.fancyReply("Por favor espera mientras se genera tu horario...");
 
         const groupSubjectsResult = groupSubjects(subjects);
-        const html = generateHtml(groupSubjectsResult);
+        const lightModeHtml = generateHtml(groupSubjectsResult);
+        const darkModeHtml = generateHtml(groupSubjectsResult, true);
 
         try {
-            const imageBuffer = await htmlToImage(html);
+            const { lightModeImage, darkModeImage } = await htmlToImage(lightModeHtml, darkModeHtml);
 
-            await context.fancyReplyWithDocument({
-                source: imageBuffer,
-                filename: "horario.png",
+            await context.fancyReplyWithMediaGroup([{
+                type: "document",
+                media: {
+                    source: lightModeImage,
+                    filename: "horario-claro.png",
+                },
             }, {
+                type: "document",
+                media: {
+                    source: darkModeImage,
+                    filename: "horario-oscuro.png",
+                },
                 caption: "Aquí está tu horario.",
-            });
+            }]);
         } catch (error) {
             await this.client.catchError(error, context);
         }
@@ -159,28 +168,44 @@ export default class HorarioCommand extends Command<RawArgs> {
     }
 }
 
-async function htmlToImage(html: string): Promise<Buffer> {
+async function htmlToImage(lightModeHtml: string, darkModeHtml: string): Promise<{
+    lightModeImage: Buffer;
+    darkModeImage: Buffer;
+}> {
     using browser = await launch({
         // TODO not safe on linux, should find a workaround
         args: ["--no-sandbox", "--disable-setuid-sandbox"],
     });
     using page = await browser.newPage();
-    await page.setContent(html);
-    const body = await page.$("div.root");
-    if (!body) {
+
+    await page.setContent(lightModeHtml);
+    const lightBody = await page.$("div.root");
+    if (!lightBody) {
         throw new Error("Could not find body");
     }
 
-    const image = await body.screenshot({
+    const lightModeImage = Buffer.from(await lightBody.screenshot({
         captureBeyondViewport: true,
         optimizeForSpeed: true,
         type: "png",
-    });
+    }));
 
-    return Buffer.from(image);
+    await page.setContent(darkModeHtml);
+    const darkBody = await page.$("div.root");
+    if (!darkBody) {
+        throw new Error("Could not find body");
+    }
+
+    const darkModeImage = Buffer.from(await darkBody.screenshot({
+        captureBeyondViewport: true,
+        optimizeForSpeed: true,
+        type: "png",
+    }));
+
+    return { lightModeImage, darkModeImage };
 }
 
-function generateHtml({ groupedSubjects, subjectIds }: GroupSubjectsResult): string {
+function generateHtml({ groupedSubjects, subjectIds }: GroupSubjectsResult, darkMode = false): string {
     return `
     <!doctype html>
     <html lang="en">
@@ -194,6 +219,8 @@ function generateHtml({ groupedSubjects, subjectIds }: GroupSubjectsResult): str
         }
 
         .root {
+          background-color: ${darkMode ? "#222328" : "white"};
+          color: ${darkMode ? "white" : "black"};
           font-family: Arial, Helvetica, sans-serif;
           font-size: 32px;
           padding: 1em;
@@ -227,8 +254,10 @@ function generateHtml({ groupedSubjects, subjectIds }: GroupSubjectsResult): str
         }
 
         .slots-container {
-          border-bottom: 1px solid #ddd;
-          border-right: 1px solid #ddd;
+          border-bottom: 1px solid;
+          border-bottom-color: ${darkMode ? "#3d3e43" : "#ddd"};
+          border-right: 1px solid;
+          border-right-color: ${darkMode ? "#3d3e43" : "#ddd"};
           color: white;
           display: grid;
           text-wrap: wrap;
