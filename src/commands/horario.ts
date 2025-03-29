@@ -143,7 +143,11 @@ export default class HorarioCommand extends Command<RawArgs> {
                     source: darkModeImage,
                     filename: "horario-oscuro.png",
                 },
-                caption: "Aquí está tu horario.",
+                caption: groupSubjectsResult.tbd.length > 0
+                    ? "Aquí está tu horario.\n\n"
+                    + "Los siguientes ramos fueron ignorados porque su horario aún no está definido: "
+                    + groupSubjectsResult.tbd.join(", ") + "."
+                    : "Aquí está tu horario.",
             }]);
         } catch (error) {
             await this.client.catchError(error, context);
