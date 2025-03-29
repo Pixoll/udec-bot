@@ -124,8 +124,10 @@ export default class HorarioCommand extends Command<RawArgs> {
 
         await context.fancyReply("Por favor espera mientras se genera tu horario...");
 
+        const groupSubjectsResult = groupSubjects(subjects);
+        const html = generateHtml(groupSubjectsResult);
+
         try {
-            const html = generateHtml([...subjects.values()]);
             const imageBuffer = await htmlToImage(html);
 
             await context.fancyReplyWithDocument({
@@ -178,86 +180,7 @@ async function htmlToImage(html: string): Promise<Buffer> {
     return Buffer.from(image);
 }
 
-function generateHtml(subjects: Subject[]): string {
-    const groupedSubjects = new Map<string, GroupedSubject[]>();
-    let lastSubjectId = 0;
-    const subjectIds = new Map<number, number>();
-
-    for (const subject of subjects) {
-        subjectIds.set(subject.code, lastSubjectId++);
-
-        for (const slot of subject.schedule) {
-            if ("tbd" in slot) continue;
-
-            const sortedBlocks = slot.blocks.toSorted();
-
-            for (let i = 0; i < sortedBlocks.length; i++) {
-                const block = sortedBlocks[i]!;
-                const groupKey = `${slot.day}-${block}`;
-                const subjectsGroup = groupedSubjects.get(groupKey);
-                const slotType = sortedBlocks.length === 1 ? SlotType.UNIQUE
-                    : i === 0 ? SlotType.START
-                        : i === sortedBlocks.length - 1 ? SlotType.END
-                            : SlotType.MIDDLE;
-
-                const groupedSubject: GroupedSubject = {
-                    code: subject.code,
-                    section: subject.section,
-                    name: subject.name,
-                    type: slot.type,
-                    blocks: sortedBlocks,
-                    classrooms: [{
-                        group: slot.group,
-                        classroom: slot.classroom,
-                    }],
-                    conflicts: new Set(),
-                    slotType,
-                    equals(other: GroupedSubject) {
-                        return this.code === other.code
-                            && this.type === other.type
-                            && this.blocks.toString() === other.blocks.toString();
-                    },
-                };
-
-                // eslint-disable-next-line max-depth
-                if (!subjectsGroup) {
-                    groupedSubjects.set(groupKey, [groupedSubject]);
-                    continue;
-                }
-
-                let foundEqual = false;
-                // eslint-disable-next-line max-depth
-                for (const subjectInGroup of subjectsGroup) {
-                    // eslint-disable-next-line max-depth
-                    if (subjectInGroup.equals(groupedSubject)) {
-                        const hasClassroomAlready = subjectInGroup.classrooms.some(c =>
-                            c.group === slot.group && c.classroom === slot.classroom
-                        );
-
-                        // eslint-disable-next-line max-depth
-                        if (!hasClassroomAlready) {
-                            subjectInGroup.classrooms.push({
-                                group: slot.group,
-                                classroom: slot.classroom,
-                            });
-                        }
-
-                        foundEqual = true;
-                        continue;
-                    }
-
-                    subjectInGroup.conflicts.add(groupedSubject);
-                    groupedSubject.conflicts.add(subjectInGroup);
-                }
-
-                // eslint-disable-next-line max-depth
-                if (!foundEqual) {
-                    subjectsGroup.push(groupedSubject);
-                }
-            }
-        }
-    }
-
+function generateHtml({ groupedSubjects, subjectIds }: GroupSubjectsResult): string {
     return `
     <!doctype html>
     <html lang="en">
@@ -454,6 +377,104 @@ function generateHtml(subjects: Subject[]): string {
     </html>
     `.trim().replace(/^ {4}/gm, "");
 }
+
+function groupSubjects(subjects: Map<number, Subject>): GroupSubjectsResult {
+    const groupedSubjects = new Map<`${ClassDay}-${number}`, GroupedSubject[]>();
+    const subjectIds = new Map<number, number>();
+    const tbd: string[] = [];
+
+    const iterator = {
+        * [Symbol.iterator]() {
+            let lastSubjectId = 0;
+            for (const subject of subjects.values()) {
+                subjectIds.set(subject.code, lastSubjectId++);
+
+                for (const slot of subject.schedule) {
+                    if ("tbd" in slot) {
+                        tbd.push(`${subject.code}-${subject.section}`);
+                        continue;
+                    }
+
+                    const sortedBlocks = slot.blocks.toSorted();
+
+                    for (let i = 0; i < sortedBlocks.length; i++) {
+                        yield {
+                            subject,
+                            slot,
+                            sortedBlocks,
+                            block: sortedBlocks[i]!,
+                            i,
+                        };
+                    }
+                }
+            }
+        },
+    };
+
+    for (const { subject, slot, sortedBlocks, block, i } of iterator) {
+        const subjectsGroup = groupedSubjects.get(`${slot.day}-${block}`);
+        const slotType = sortedBlocks.length === 1 ? SlotType.UNIQUE
+            : i === 0 ? SlotType.START
+                : i === sortedBlocks.length - 1 ? SlotType.END
+                    : SlotType.MIDDLE;
+
+        const groupedSubject: GroupedSubject = {
+            code: subject.code,
+            section: subject.section,
+            name: subject.name,
+            type: slot.type,
+            blocks: sortedBlocks,
+            classrooms: [{
+                group: slot.group,
+                classroom: slot.classroom,
+            }],
+            conflicts: new Set(),
+            slotType,
+            equals(other: GroupedSubject) {
+                return this.code === other.code && this.blocks.toString() === other.blocks.toString();
+            },
+        };
+
+        if (!subjectsGroup) {
+            groupedSubjects.set(`${slot.day}-${block}`, [groupedSubject]);
+            continue;
+        }
+
+        let foundEqual = false;
+        for (const subjectInGroup of subjectsGroup) {
+            if (!subjectInGroup.equals(groupedSubject)) {
+                subjectInGroup.conflicts.add(groupedSubject);
+                groupedSubject.conflicts.add(subjectInGroup);
+                continue;
+            }
+
+            const hasClassroomAlready = subjectInGroup.classrooms.some(c =>
+                c.group === slot.group && c.classroom === slot.classroom
+            );
+
+            if (!hasClassroomAlready) {
+                subjectInGroup.classrooms.push({
+                    group: slot.group,
+                    classroom: slot.classroom,
+                });
+            }
+
+            foundEqual = true;
+        }
+
+        if (!foundEqual) {
+            subjectsGroup.push(groupedSubject);
+        }
+    }
+
+    return { groupedSubjects, subjectIds, tbd };
+}
+
+type GroupSubjectsResult = {
+    groupedSubjects: Map<`${ClassDay}-${number}`, GroupedSubject[]>;
+    subjectIds: Map<number, number>;
+    tbd: string[];
+};
 
 type GroupedSubject =
     & Pick<Subject, "code" | "section" | "name">
