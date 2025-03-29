@@ -365,43 +365,43 @@ function generateHtml(subjects: Subject[]): string {
         }
 
         .subject-0 {
-          background-color: tomato;
+          background-color: #f44236; /* tomato */
         }
 
         .subject-1 {
-          background-color: orange;
+          background-color: #ff9700; /* orange */
         }
 
         .subject-2 {
-          background-color: yellowgreen;
+          background-color: #4cb050; /* yellowgreen */
         }
 
         .subject-3 {
-          background-color: mediumaquamarine;
+          background-color: #2196f3; /* 00bcd5 mediumaquamarine */
         }
 
         .subject-4 {
-          background-color: royalblue;
+          background-color: #3f51b5; /* royalblue */
         }
 
         .subject-5 {
-          background-color: darkorchid;
+          background-color: #9c45b0; /* 9c28b1 darkorchid */
         }
 
         .subject-6 {
-          background-color: rosybrown;
+          background-color: #a98273; /* rosybrown */
         }
 
         .subject-7 {
-          background-color: saddlebrown;
+          background-color: #a96214; /* c66901 saddlebrown */
         }
 
         .subject-8 {
-          background-color: darkgreen;
+          background-color: #af0039; /* 087f23 darkgreen */
         }
 
         .subject-9 {
-          background-color: darkslategray;
+          background-color: #34525d; /* 00685a darkslategray */
         }
       </style>
     </head>
