@@ -428,7 +428,7 @@ function groupSubjects(subjects: Map<number, Subject>): GroupSubjectsResult {
                         continue;
                     }
 
-                    const sortedBlocks = slot.blocks.toSorted();
+                    const sortedBlocks = slot.blocks.toSorted((a, b) => a - b);
 
                     for (let i = 0; i < sortedBlocks.length; i++) {
                         yield {
