@@ -1,11 +1,15 @@
-import axios from "axios";
+import axios, { HttpStatusCode } from "axios";
 import { parse as parseCsv } from "csv-parse/sync";
+import { config as dotenv } from "dotenv";
 import { mkdirSync } from "fs";
 import { existsSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { launch } from "puppeteer";
 import XLSX, { Range } from "xlsx";
 
+dotenv();
+
+const { PY_API_PORT } = process.env;
 const pdfFilesDir = path.join(process.cwd(), "resources/pdf");
 let pdfId = 0;
 
@@ -51,12 +55,27 @@ export async function pdfToCsv(pdfUrl: string): Promise<CsvSheet> {
 
     const xlsxFilePath = await downloadFileElement.evaluate(a => a.href);
     console.log(`Downloading [${id}] ${xlsxFilePath}`);
-    const xlsxArrayBugger = await axios.get<ArrayBuffer>(xlsxFilePath, {
+    const xlsxArrayBuffer = await axios.get<ArrayBuffer>(xlsxFilePath, {
         responseType: "arraybuffer",
     }).then(r => r.data);
     console.log(`Downloaded [${id}]`);
 
-    return await xlsxToCsv(Buffer.from(xlsxArrayBugger));
+    const form = new FormData();
+    form.append("file", new Blob([xlsxArrayBuffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    }));
+    const bordersResponse = await axios.post(
+        `http://localhost:${PY_API_PORT}/udec-bot/api/parse-xlsx-borders`,
+        form
+    );
+    if (bordersResponse.status !== HttpStatusCode.Ok) {
+        throw new Error(bordersResponse.data.error);
+    }
+
+    const borders = bordersResponse.data as XlsxBorder[];
+    console.log(borders);
+
+    return await xlsxToCsv(Buffer.from(xlsxArrayBuffer));
 }
 
 async function xlsxToCsv(buffer: Buffer): Promise<CsvSheet> {
@@ -105,11 +124,6 @@ async function xlsxToCsv(buffer: Buffer): Promise<CsvSheet> {
     });
 }
 
-type CsvSheet = {
-    csv: string[][];
-    merges: Range[];
-};
-
 function toLetter(n: number): string {
     const result: string[] = [];
     while (n >= 0) {
@@ -118,3 +132,14 @@ function toLetter(n: number): string {
     }
     return result.reverse().join("");
 }
+
+type CsvSheet = {
+    csv: string[][];
+    merges: Range[];
+};
+
+type XlsxBorder = {
+    row: number;
+    top: boolean;
+    bottom: boolean;
+};
