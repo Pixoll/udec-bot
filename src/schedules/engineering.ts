@@ -4,7 +4,7 @@ import { existsSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { LinearDataView } from "./linear-data-view";
 import { pdfToCsv } from "./pdf-to-csv";
-import { ClassDay, ClassType, Subject, SubjectCareer, SubjectProfessor, SubjectSchedule } from "./types";
+import { ClassDay, ClassType, Subject, SubjectSchedule } from "./types";
 
 const scheduleFilesDir = path.join(process.cwd(), "resources/schedules");
 const scheduleFilePath = path.join(scheduleFilesDir, "engineering.bin");
@@ -13,13 +13,8 @@ if (!existsSync(scheduleFilesDir)) {
     mkdirSync(scheduleFilesDir, { recursive: true });
 }
 
-/* eslint-disable max-len */
-
-const subjectCareersRegex = /(?<name>(?:Ing\.?C[il]?l?v?\.? ?)?[a-záéíúó.-]+)[-‐]?(?<semester>\d+)|(?<all>IngCiv[.-]? ?Especialida ?des|Complementa ?ria)/gi;
+// eslint-disable-next-line max-len
 const subjectScheduleRegex = /(?:[[|l(]?(?<type>[TPL])(?: ?G(?<group>\d))?[\]|l)])? *(?:(?<day>Lu|Ma|Mi|Ju|Vi|Sa|Do) ?(?<blocks>[\d ,]+) ?\(?(?<classroom>[^)]+)\)|(?<tbd>Coordinar?(?: con)? docentes?))/gi;
-const subjectProfessorsRegex = /[[|l(](?<type>[TPL])[\]|l)] *-? *(?<names>[^ ][^[\n]*)/gmi;
-
-/* eslint-enable max-len */
 
 export async function getEngineeringSchedule(): Promise<Map<string, Subject>> {
     const storedFile = readFile();
@@ -83,31 +78,6 @@ function readFile(): EngineeringScheduleFile {
 
         const section = dataView.getUint8();
 
-        let theoreticalHours: number | undefined = dataView.getInt8();
-        if (theoreticalHours === -1) theoreticalHours = undefined;
-
-        let practicalHours: number | undefined = dataView.getInt8();
-        if (practicalHours === -1) practicalHours = undefined;
-
-        let laboratoryHours: number | undefined = dataView.getInt8();
-        if (laboratoryHours === -1) laboratoryHours = undefined;
-
-        const careersAmount = dataView.getUint8();
-        const careers = Array<SubjectCareer>(careersAmount);
-
-        for (let j = 0; j < careersAmount; j++) {
-            const anyCivilSpecialty = !!dataView.getUint8();
-            if (anyCivilSpecialty) {
-                careers[j] = { anyCivilSpecialty };
-                continue;
-            }
-
-            const name = dataView.getString();
-            const semester = dataView.getUint8();
-
-            careers[j] = { name, semester };
-        }
-
         const schedulesAmount = dataView.getUint8();
         const schedule = Array<SubjectSchedule>(schedulesAmount);
 
@@ -138,27 +108,12 @@ function readFile(): EngineeringScheduleFile {
             schedule[j] = { type: type!, group, day, blocks, classroom };
         }
 
-        const professorsAmount = dataView.getUint8();
-        const professors = Array<SubjectProfessor>(professorsAmount);
-
-        for (let j = 0; j < professorsAmount; j++) {
-            const type = dataView.getUint8();
-            const name = dataView.getString();
-
-            professors[j] = { type, name };
-        }
-
         storedFile.subjects.set(`${code}-${section}`, {
             code,
             name,
             credits,
             section,
-            theoreticalHours,
-            practicalHours,
-            laboratoryHours,
-            careers,
             schedule,
-            professors,
         });
     }
 
@@ -181,12 +136,6 @@ function saveFile(storedFile: EngineeringScheduleFile): void {
         new DataView(codeBytes.buffer)
             .setUint32(0, subject.code);
 
-        const careersBytes = subject.careers.flatMap(career =>
-            "name" in career
-                ? [0, ...textEncoder.encode(career.name), 0, career.semester]
-                : [1]
-        );
-
         const scheduleBytes = subject.schedule.flatMap(schedule =>
             "day" in schedule
                 ? [
@@ -202,25 +151,14 @@ function saveFile(storedFile: EngineeringScheduleFile): void {
                 : [1, schedule.type ?? -1, schedule.group ?? -1]
         );
 
-        const professorsBytes = subject.professors.flatMap(professor =>
-            [professor.type, ...textEncoder.encode(professor.name), 0]
-        );
-
         return [
             ...codeBytes,
             ...textEncoder.encode(subject.name),
             0,
             subject.credits ?? -1,
             subject.section,
-            subject.theoreticalHours ?? -1,
-            subject.practicalHours ?? -1,
-            subject.laboratoryHours ?? -1,
-            subject.careers.length,
-            ...careersBytes,
             subject.schedule.length,
             ...scheduleBytes,
-            subject.professors.length,
-            ...professorsBytes,
         ];
     });
 
@@ -242,35 +180,14 @@ async function getSubjects(csv: string[][]): Promise<Map<string, Subject>> {
         const sections = row[1].split("\n");
         const name = row[2].split("\n");
         const credits = row[3].split("\n").map(n => +n).filter(n => !Number.isNaN(n));
-        const theoreticalHours = row[4].replaceAll(",", ".").split("\n").map(n => +n).filter(n => !Number.isNaN(n));
-        const practicalHours = row[5].replaceAll(",", ".").split("\n").map(n => +n).filter(n => !Number.isNaN(n));
-        const laboratoryHours = row[6].replaceAll(",", ".").split("\n").map(n => +n).filter(n => !Number.isNaN(n));
-        const careers = parseSubjectCareers(row[7]);
         const schedule = parseSubjectSchedule(row[8]);
-        const professors = parseSubjectProfessors(row[9]);
 
-        if (credits.length === 0
-            || theoreticalHours.length === 0
-            || practicalHours.length === 0
-            || laboratoryHours.length === 0
-        ) {
+        if (credits.length === 0) {
             const { data } = await axios.get<string>(`https://alumnos.udec.cl/?q=node/25&codasignatura=${codes[0]}`);
             const creditsString = data.match(/cr[eé]ditos *(?:<\/strong>)? *: *(\d+)/i)?.[1];
-            const theoreticalHoursString = data.match(/horas te[oó]ricas *(?:<\/strong>)? *: *(\d+)/i)?.[1];
-            const practicalHoursString = data.match(/horas pr[aá]cticas *(?:<\/strong>)? *: *(\d+)/i)?.[1];
-            const laboratoryHoursString = data.match(/horas laboratorio *(?:<\/strong>)? *: *(\d+)/i)?.[1];
 
-            if (credits.length === 0 && creditsString) {
+            if (creditsString) {
                 credits.push(+creditsString);
-            }
-            if (theoreticalHours.length === 0 && theoreticalHoursString) {
-                theoreticalHours.push(+theoreticalHoursString);
-            }
-            if (practicalHours.length === 0 && practicalHoursString) {
-                practicalHours.push(+practicalHoursString);
-            }
-            if (laboratoryHours.length === 0 && laboratoryHoursString) {
-                laboratoryHours.push(+laboratoryHoursString);
             }
         }
 
@@ -288,43 +205,14 @@ async function getSubjects(csv: string[][]): Promise<Map<string, Subject>> {
                     code,
                     name: name[i] ?? name[0]!,
                     credits: credits[i] ?? credits[0]!,
-                    theoreticalHours: theoreticalHours[i] ?? theoreticalHours[0]!,
-                    practicalHours: practicalHours[i] ?? practicalHours[0]!,
-                    laboratoryHours: laboratoryHours[i] ?? laboratoryHours[0]!,
                     section: +section,
-                    careers,
                     schedule,
-                    professors,
                 });
             }
         }
     }));
 
     return subjects;
-}
-
-function parseSubjectCareers(text: string): SubjectCareer[] {
-    const careerMatches = text.replaceAll("\n", " ").matchAll(subjectCareersRegex);
-    const careers: SubjectCareer[] = [];
-
-    for (const match of careerMatches) {
-        const groups = match.groups as unknown as SubjectCareerMatchGroups;
-
-        if (groups.all !== undefined) {
-            careers.push({ anyCivilSpecialty: true });
-            continue;
-        }
-
-        const name = groups.name.replace(/[-‐]$/, "");
-        const semester = +groups.semester;
-
-        careers.push({
-            name,
-            semester,
-        });
-    }
-
-    return careers;
 }
 
 function parseSubjectSchedule(text: string): SubjectSchedule[] {
@@ -376,39 +264,9 @@ function parseSubjectSchedule(text: string): SubjectSchedule[] {
     return schedule;
 }
 
-function parseSubjectProfessors(text: string): SubjectProfessor[] {
-    const professorMatches = text.replaceAll("\n", " ").matchAll(subjectProfessorsRegex);
-    const professors: SubjectProfessor[] = [];
-
-    for (const match of professorMatches) {
-        const groups = match.groups as SubjectProfessorsMatchGroups;
-        const type = ClassType[groups.type.toUpperCase()];
-        const names = groups.names.trim().split(/ *- */g);
-
-        for (const name of names) {
-            professors.push({
-                type,
-                name,
-            });
-        }
-    }
-
-    return professors;
-}
-
 type EngineeringScheduleFile = {
     updatedAt: number;
     subjects: Map<string, Subject>;
-};
-
-type SubjectCareerMatchGroups = {
-    name: string;
-    semester: string;
-    all: undefined;
-} | {
-    name: undefined;
-    semester: undefined;
-    all: string;
 };
 
 type SubjectScheduleMatchGroups = {
@@ -425,11 +283,6 @@ type SubjectScheduleMatchGroups = {
     blocks: undefined;
     classroom: undefined;
     tbd: string;
-};
-
-type SubjectProfessorsMatchGroups = {
-    type: Lowercase<keyof typeof ClassType>;
-    names: string;
 };
 
 type CsvRow = [string, string, string, string, string, string, string, string, string, string];

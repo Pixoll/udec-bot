@@ -19,19 +19,7 @@ export type Subject = {
     name: string;
     credits?: number;
     section: number;
-    theoreticalHours?: number;
-    practicalHours?: number;
-    laboratoryHours?: number;
-    careers: SubjectCareer[];
     schedule: SubjectSchedule[];
-    professors: SubjectProfessor[];
-};
-
-export type SubjectCareer = {
-    name: string;
-    semester: number;
-} | {
-    anyCivilSpecialty: true;
 };
 
 export type SubjectSchedule = SubjectScheduleDefined | SubjectScheduleTDB;
@@ -48,9 +36,4 @@ export type SubjectScheduleTDB = {
     type?: ClassType;
     group?: number;
     tbd: true;
-};
-
-export type SubjectProfessor = {
-    type: ClassType;
-    name: string;
 };
