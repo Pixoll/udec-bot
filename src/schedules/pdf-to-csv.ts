@@ -6,6 +6,7 @@ import { existsSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { launch } from "puppeteer";
 import XLSX, { Range } from "xlsx";
+import { Logger } from "../lib";
 
 dotenv();
 
@@ -31,7 +32,7 @@ export async function pdfToCsv(pdfUrl: string): Promise<CsvSheet> {
     }).then(r => r.data);
     writeFileSync(pdfFilePath, Buffer.from(pdfArrayBuffer));
 
-    console.log(`Uploading [${id}] ${pdfUrl}`);
+    Logger.info(`Uploading [${id}] ${pdfUrl}`);
     using browser = await launch({
         // TODO not safe on linux, should find a workaround
         args: ["--no-sandbox", "--disable-setuid-sandbox"],
@@ -47,18 +48,18 @@ export async function pdfToCsv(pdfUrl: string): Promise<CsvSheet> {
     await fileInputElement.uploadFile(pdfFilePath);
     const downloadFileElement = await smallPdfPage.waitForSelector("a[download]", { timeout: 0 });
     rmSync(pdfFilePath);
-    console.log(`Uploaded [${id}]`);
+    Logger.info(`Uploaded [${id}]`);
 
     if (!downloadFileElement) {
         throw new Error("Could not find file download button element on page.");
     }
 
     const xlsxFilePath = await downloadFileElement.evaluate(a => a.href);
-    console.log(`Downloading [${id}] ${xlsxFilePath}`);
+    Logger.info(`Downloading [${id}] ${xlsxFilePath}`);
     const xlsxArrayBuffer = await axios.get<ArrayBuffer>(xlsxFilePath, {
         responseType: "arraybuffer",
     }).then(r => r.data);
-    console.log(`Downloaded [${id}]`);
+    Logger.info(`Downloaded [${id}]`);
 
     const form = new FormData();
     form.append("file", new Blob([xlsxArrayBuffer], {
@@ -73,7 +74,7 @@ export async function pdfToCsv(pdfUrl: string): Promise<CsvSheet> {
     }
 
     const borders = bordersResponse.data as XlsxBorder[];
-    console.log(borders);
+    Logger.info(borders);
 
     return await xlsxToCsv(Buffer.from(xlsxArrayBuffer));
 }
