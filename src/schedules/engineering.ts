@@ -42,7 +42,7 @@ export async function getEngineeringSchedule(): Promise<Map<string, Subject>> {
         return storedFile.subjects;
     }
 
-    const { csv } = await pdfToCsv(`http://ofivirtualfi.udec.cl/api/file/downloadFile/${pdfFile.fileName}`);
+    const csv = await pdfToCsv(`http://ofivirtualfi.udec.cl/api/file/downloadFile/${pdfFile.fileName}`);
     const subjects = await getSubjects(csv);
 
     storedFile.updatedAt = fileTimestamp;

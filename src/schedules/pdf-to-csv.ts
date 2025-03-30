@@ -23,7 +23,7 @@ if (existsSync(pdfFilesDir)) {
 
 mkdirSync(pdfFilesDir, { recursive: true });
 
-export async function pdfToCsv(pdfUrl: string): Promise<CsvSheet> {
+export async function pdfToCsv(pdfUrl: string, options?: PdfToCsvOptions): Promise<Csv> {
     const id = pdfId++;
     const pdfFilePath = path.join(pdfFilesDir, `${id}`);
 
@@ -61,6 +61,11 @@ export async function pdfToCsv(pdfUrl: string): Promise<CsvSheet> {
     }).then(r => r.data);
     Logger.info(`Downloaded [${id}]`);
 
+    const csvSheet = await xlsxToCsv(Buffer.from(xlsxArrayBuffer));
+    if (!options?.mergeRows) {
+        return csvSheet.csv;
+    }
+
     const form = new FormData();
     form.append("file", new Blob([xlsxArrayBuffer], {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -74,18 +79,17 @@ export async function pdfToCsv(pdfUrl: string): Promise<CsvSheet> {
     }
 
     const borders = bordersResponse.data as XlsxBorder[];
-    Logger.info(borders);
 
-    return await xlsxToCsv(Buffer.from(xlsxArrayBuffer));
+    return mergeRows(csvSheet, borders);
 }
 
-async function xlsxToCsv(buffer: Buffer): Promise<CsvSheet> {
+async function xlsxToCsv(buffer: Buffer): Promise<CsvWithMerges> {
     const wb = XLSX.read(buffer, {
         cellFormula: false,
         cellHTML: false,
     });
 
-    const sheets = Object.values(wb.Sheets).map<CsvSheet>((ws) => ({
+    const sheets = Object.values(wb.Sheets).map<CsvWithMerges>((ws) => ({
         merges: ws["!merges"]?.map(range => ({
             ...range,
             toString() {
@@ -101,7 +105,7 @@ async function xlsxToCsv(buffer: Buffer): Promise<CsvSheet> {
         }),
     }));
 
-    return sheets.reduce<CsvSheet>((joined, sheet) => {
+    return sheets.reduce<CsvWithMerges>((joined, sheet) => {
         const rowCount = joined.csv.length;
 
         const newMerges = sheet.merges.map(range => {
@@ -125,6 +129,64 @@ async function xlsxToCsv(buffer: Buffer): Promise<CsvSheet> {
     });
 }
 
+function mergeRows({ csv, merges }: CsvWithMerges, borders: XlsxBorder[]): Csv {
+    const mergeRanges = new Map<number, number>();
+    for (const merge of merges) {
+        const start = merge.s.r;
+        const end = merge.e.r;
+        if (end > start) {
+            mergeRanges.set(start, Math.max(mergeRanges.get(start) ?? end, end));
+        }
+    }
+
+    for (let i = 0; i < borders.length; i++) {
+        const { row: start, top, bottom } = borders[i]!;
+        if (!top || bottom) continue;
+
+        let end = start;
+        while (++i < borders.length) {
+            const { row, top, bottom } = borders[i]!;
+            if (top) {
+                end = row - 1;
+                break;
+            }
+            if (bottom) {
+                end = row;
+                break;
+            }
+        }
+
+        if (end === start) {
+            i--;
+            continue;
+        }
+
+        mergeRanges.set(start, Math.max(mergeRanges.get(start) ?? end, end));
+    }
+
+    const merged: Csv = [];
+
+    for (let i = 0; i < csv.length; i++) {
+        const row = [...csv[i]!];
+        const j = mergeRanges.get(i);
+        if (!j) {
+            merged.push(row);
+            continue;
+        }
+
+        do {
+            const other = csv[++i]!;
+            for (let k = 0; k < other.length; k++) {
+                row[k] = ((row[k] ?? "") + "\n" + (other[k] ?? "")).trim();
+            }
+        } while (i < j);
+
+        merged.push(row);
+    }
+
+    return merged;
+}
+
 function toLetter(n: number): string {
     const result: string[] = [];
     while (n >= 0) {
@@ -134,10 +196,16 @@ function toLetter(n: number): string {
     return result.reverse().join("");
 }
 
-type CsvSheet = {
-    csv: string[][];
+type PdfToCsvOptions = {
+    mergeRows?: boolean;
+};
+
+type CsvWithMerges = {
+    csv: Csv;
     merges: Range[];
 };
+
+type Csv = string[][];
 
 type XlsxBorder = {
     row: number;
