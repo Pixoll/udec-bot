@@ -1,11 +1,9 @@
-// noinspection JSUnusedGlobalSymbols
 export enum ClassType {
     T,
     P,
     L,
 }
 
-// noinspection JSUnusedGlobalSymbols
 export enum ClassDay {
     LU,
     MA,

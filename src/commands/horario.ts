@@ -209,7 +209,8 @@ async function htmlToImage(lightModeHtml: string, darkModeHtml: string): Promise
     return { lightModeImage, darkModeImage };
 }
 
-function generateHtml({ groupedSubjects, subjectIds }: GroupSubjectsResult, darkMode = false): string {
+function generateHtml({ groupedSubjects, subjectIds, hasWeekendClasses }: GroupSubjectsResult, darkMode = false): string {
+    // language=HTML
     return `
     <!doctype html>
     <html lang="en">
@@ -233,7 +234,7 @@ function generateHtml({ groupedSubjects, subjectIds }: GroupSubjectsResult, dark
 
         .schedule {
           display: grid;
-          grid-template-columns: fit-content(0) repeat(5, 16em);
+          grid-template-columns: fit-content(0) repeat(${hasWeekendClasses ? 7 : 5}, 16em);
         }
 
         .day-header {
@@ -258,21 +259,19 @@ function generateHtml({ groupedSubjects, subjectIds }: GroupSubjectsResult, dark
         }
 
         .slots-container {
-          border-bottom: 1px solid;
-          border-bottom-color: ${darkMode ? "#3d3e43" : "#ddd"};
-          border-right: 1px solid;
-          border-right-color: ${darkMode ? "#3d3e43" : "#ddd"};
+          border-bottom: 1px solid ${darkMode ? "#3d3e43" : "#ddd"};
+          border-right: 1px solid ${darkMode ? "#3d3e43" : "#ddd"};
           color: white;
           display: grid;
           text-wrap: wrap;
           word-break: break-word;
         }
 
-        .schedule > *:nth-child(6n) {
+        .schedule > *:nth-child(${hasWeekendClasses ? 8 : 6}n) {
           border-right: none;
         }
 
-        .schedule > *:nth-last-child(-n + 5) {
+        .schedule > *:nth-last-child(-n + ${hasWeekendClasses ? 7 : 5}) {
           border-bottom: none;
         }
 
@@ -370,6 +369,10 @@ function generateHtml({ groupedSubjects, subjectIds }: GroupSubjectsResult, dark
         <div class="day-header">Miércoles</div>
         <div class="day-header">Jueves</div>
         <div class="day-header">Viernes</div>
+        ${hasWeekendClasses
+        ? `<div class="day-header">Sábado</div>
+        <div class="day-header">Domingo</div>`
+        : ""}
 
         ${Array.from({ length: 13 }, (_, i) => {
         const subjects = [
@@ -378,6 +381,10 @@ function generateHtml({ groupedSubjects, subjectIds }: GroupSubjectsResult, dark
             groupedSubjects.get(`${ClassDay.MI}-${i + 1}`) ?? [],
             groupedSubjects.get(`${ClassDay.JU}-${i + 1}`) ?? [],
             groupedSubjects.get(`${ClassDay.VI}-${i + 1}`) ?? [],
+            ...hasWeekendClasses ? [
+                groupedSubjects.get(`${ClassDay.SA}-${i + 1}`) ?? [],
+                groupedSubjects.get(`${ClassDay.DO}-${i + 1}`) ?? [],
+            ] : [],
         ];
 
         return `
@@ -415,6 +422,7 @@ function groupSubjects(subjects: Map<number, Subject>): GroupSubjectsResult {
     const groupedSubjects = new Map<`${ClassDay}-${number}`, GroupedSubject[]>();
     const subjectIds = new Map<number, number>();
     const tbd: string[] = [];
+    let hasWeekendClasses = false;
 
     const iterator = {
         * [Symbol.iterator]() {
@@ -426,6 +434,10 @@ function groupSubjects(subjects: Map<number, Subject>): GroupSubjectsResult {
                     if ("tbd" in slot) {
                         tbd.push(`${subject.code}-${subject.section}`);
                         continue;
+                    }
+
+                    if (slot.day === ClassDay.SA || slot.day === ClassDay.DO) {
+                        hasWeekendClasses = true;
                     }
 
                     const sortedBlocks = slot.blocks.toSorted((a, b) => a - b);
@@ -500,13 +512,19 @@ function groupSubjects(subjects: Map<number, Subject>): GroupSubjectsResult {
         }
     }
 
-    return { groupedSubjects, subjectIds, tbd };
+    return {
+        groupedSubjects,
+        subjectIds,
+        tbd,
+        hasWeekendClasses,
+    };
 }
 
 type GroupSubjectsResult = {
     groupedSubjects: Map<`${ClassDay}-${number}`, GroupedSubject[]>;
     subjectIds: Map<number, number>;
     tbd: string[];
+    hasWeekendClasses: boolean;
 };
 
 type GroupedSubject =
