@@ -6,4 +6,3 @@ node_modules
 dist
 resources
 .venv
-python/api.log
