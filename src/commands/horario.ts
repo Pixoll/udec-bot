@@ -209,7 +209,9 @@ async function htmlToImage(lightModeHtml: string, darkModeHtml: string): Promise
     return { lightModeImage, darkModeImage };
 }
 
-function generateHtml({ groupedSubjects, subjectIds, hasWeekendClasses }: GroupSubjectsResult, darkMode = false): string {
+function generateHtml(groupSubjectsResult: GroupSubjectsResult, darkMode = false): string {
+    const { groupedSubjects, subjectIds, hasWeekendClasses, maxSlot } = groupSubjectsResult;
+
     // language=HTML
     return `
     <!doctype html>
@@ -374,7 +376,7 @@ function generateHtml({ groupedSubjects, subjectIds, hasWeekendClasses }: GroupS
         <div class="day-header">Domingo</div>`
         : ""}
 
-        ${Array.from({ length: 13 }, (_, i) => {
+        ${Array.from({ length: maxSlot }, (_, i) => {
         const subjects = [
             groupedSubjects.get(`${ClassDay.LU}-${i + 1}`) ?? [],
             groupedSubjects.get(`${ClassDay.MA}-${i + 1}`) ?? [],
@@ -423,6 +425,7 @@ function groupSubjects(subjects: Map<number, Subject>): GroupSubjectsResult {
     const subjectIds = new Map<number, number>();
     const tbd: string[] = [];
     let hasWeekendClasses = false;
+    let maxSlot = 1;
 
     const iterator = {
         * [Symbol.iterator]() {
@@ -441,6 +444,7 @@ function groupSubjects(subjects: Map<number, Subject>): GroupSubjectsResult {
                     }
 
                     const sortedBlocks = slot.blocks.toSorted((a, b) => a - b);
+                    maxSlot = Math.max(maxSlot, ...sortedBlocks);
 
                     for (let i = 0; i < sortedBlocks.length; i++) {
                         yield {
@@ -517,6 +521,7 @@ function groupSubjects(subjects: Map<number, Subject>): GroupSubjectsResult {
         subjectIds,
         tbd,
         hasWeekendClasses,
+        maxSlot,
     };
 }
 
@@ -525,6 +530,7 @@ type GroupSubjectsResult = {
     subjectIds: Map<number, number>;
     tbd: string[];
     hasWeekendClasses: boolean;
+    maxSlot: number;
 };
 
 type GroupedSubject =
