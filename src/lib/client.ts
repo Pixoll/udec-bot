@@ -87,6 +87,11 @@ export class TelegramClient<Database extends object = object> extends Telegraf {
         await this.launch({ dropPendingUpdates: true }, () => {
             this.ready = true;
             Logger.info("Telegram Client is ready.");
+
+            const { ownerId } = this;
+            if (!ownerId) return;
+
+            this.telegram.sendMessage(ownerId, "Bot is ready.");
         });
     }
 }
