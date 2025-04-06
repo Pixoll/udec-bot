@@ -1,4 +1,4 @@
-import { readFileSync } from "fs";
+import { readFileSync } from "node:fs";
 import path from "path";
 import { TelegramClientType } from "../client";
 import { Command, CommandContext, escapeMarkdown, TelegramClient } from "../lib";

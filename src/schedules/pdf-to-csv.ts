@@ -1,8 +1,7 @@
 import axios, { HttpStatusCode } from "axios";
 import { parse as parseCsv } from "csv-parse/sync";
 import { config as dotenv } from "dotenv";
-import { mkdirSync } from "fs";
-import { existsSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { launch } from "puppeteer";
 import XLSX, { Range } from "xlsx";
@@ -38,7 +37,7 @@ export async function pdfToCsv(pdfUrl: string, options?: PdfToCsvOptions): Promi
         args: ["--no-sandbox", "--disable-setuid-sandbox"],
     });
     using smallPdfPage = await browser.newPage();
-    await smallPdfPage.goto("https://smallpdf.com/pdf-to-excel");
+    await smallPdfPage.goto("https://smallpdf.com/pdf-to-excel", { timeout: 0 });
     const fileInputElement = await smallPdfPage.waitForSelector("input[type=file]");
 
     if (!fileInputElement) {
@@ -61,9 +60,9 @@ export async function pdfToCsv(pdfUrl: string, options?: PdfToCsvOptions): Promi
     }).then(r => r.data);
     Logger.info(`Downloaded [${id}]`);
 
-    const csvSheet = await xlsxToCsv(Buffer.from(xlsxArrayBuffer));
-    if (!options?.mergeRows) {
-        return csvSheet.csv;
+    const { csv, merges } = await xlsxToCsv(Buffer.from(xlsxArrayBuffer));
+    if (!options?.mergeRows && !options?.mergeColumns) {
+        return csv;
     }
 
     const form = new FormData();
@@ -78,9 +77,13 @@ export async function pdfToCsv(pdfUrl: string, options?: PdfToCsvOptions): Promi
         throw new Error(bordersResponse.data.error);
     }
 
-    const borders = bordersResponse.data as XlsxBorder[];
+    const borders = bordersResponse.data as XlsxBorder[][];
 
-    return mergeRows(csvSheet, borders);
+    const mergedColumns = options.mergeColumns ? mergeColumns(csv, merges, borders, options.mergeColumns) : csv;
+    // noinspection UnnecessaryLocalVariableJS
+    const mergedRows = options.mergeRows ? mergeRows(mergedColumns, merges, borders) : mergedColumns;
+
+    return mergedRows;
 }
 
 async function xlsxToCsv(buffer: Buffer): Promise<CsvWithMerges> {
@@ -129,7 +132,7 @@ async function xlsxToCsv(buffer: Buffer): Promise<CsvWithMerges> {
     });
 }
 
-function mergeRows({ csv, merges }: CsvWithMerges, borders: XlsxBorder[]): Csv {
+function mergeRows(csv: Csv, merges: Range[], borders: XlsxBorder[][]): Csv {
     const mergeRanges = new Map<number, number>();
     for (const merge of merges) {
         const start = merge.s.r;
@@ -140,18 +143,19 @@ function mergeRows({ csv, merges }: CsvWithMerges, borders: XlsxBorder[]): Csv {
     }
 
     for (let i = 0; i < borders.length; i++) {
-        const { row: start, top, bottom } = borders[i]!;
+        const start = i;
+        const { top, bottom } = borders[i]![0]!;
         if (!top || bottom) continue;
 
-        let end = start;
+        let end = i;
         while (++i < borders.length) {
-            const { row, top, bottom } = borders[i]!;
+            const { top, bottom } = borders[i]![0]!;
             if (top) {
-                end = row - 1;
+                end = i - 1;
                 break;
             }
             if (bottom) {
-                end = row;
+                end = i;
                 break;
             }
         }
@@ -174,14 +178,97 @@ function mergeRows({ csv, merges }: CsvWithMerges, borders: XlsxBorder[]): Csv {
             continue;
         }
 
-        do {
+        while (i < j) {
             const other = csv[++i]!;
             for (let k = 0; k < other.length; k++) {
                 row[k] = ((row[k] ?? "") + "\n" + (other[k] ?? "")).trim();
             }
-        } while (i < j);
+        }
 
         merged.push(row);
+    }
+
+    return merged;
+}
+
+function mergeColumns(csv: Csv, merges: Range[], borders: XlsxBorder[][], mergeRange: OptionsMergeRange): Csv {
+    if (mergeRange.toRow < 0) {
+        mergeRange.toRow += borders.length;
+    }
+
+    const { fromRow, toRow } = mergeRange;
+
+    const mergeRanges = new Map<`${number}-${number}`, number>();
+    for (const merge of merges) {
+        const { s, e } = merge;
+        if (s.r < fromRow || e.r >= toRow) {
+            continue;
+        }
+
+        const start = s.c;
+        const end = e.c;
+        if (end > start) {
+            const key = `${s.r}-${s.c}` as `${number}-${number}`;
+            mergeRanges.set(key, Math.max(mergeRanges.get(key) ?? end, end));
+        }
+    }
+
+    for (let i = fromRow; i < toRow && i < borders.length; i++) {
+        const row = borders[i]!;
+
+        for (let j = 0; j < row.length; j++) {
+            const start = j;
+            const { left, right } = row[j]!;
+            if (!left || right) continue;
+
+            let end = j;
+            while (++j < row.length) {
+                const { left, right } = row[j]!;
+                // eslint-disable-next-line max-depth
+                if (left) {
+                    end = j - 1;
+                    break;
+                }
+                // eslint-disable-next-line max-depth
+                if (right) {
+                    end = j;
+                    break;
+                }
+            }
+
+            if (end === start) {
+                j--;
+                continue;
+            }
+
+            const key = `${i}-${start}` as `${number}-${number}`;
+            mergeRanges.set(key, Math.max(mergeRanges.get(key) ?? end, end));
+        }
+    }
+
+    const merged: Csv = [];
+
+    for (let i = 0; i < csv.length; i++) {
+        const row = csv[i]!;
+        const newRow: string[] = [];
+
+        for (let j = 0; j < row.length; j++) {
+            let cell = row[j]!;
+            const k = mergeRanges.get(`${i}-${j}`);
+            if (!k) {
+                newRow.push(cell);
+                continue;
+            }
+
+            while (j < k) {
+                const other = row[++j] ?? "";
+                cell += (" " + other).trimEnd();
+            }
+
+            newRow.push(cell);
+        }
+
+        merged.push(newRow);
     }
 
     return merged;
@@ -198,6 +285,12 @@ function toLetter(n: number): string {
 
 type PdfToCsvOptions = {
     mergeRows?: boolean;
+    mergeColumns?: OptionsMergeRange;
+};
+
+type OptionsMergeRange = {
+    fromRow: number;
+    toRow: number;
 };
 
 type CsvWithMerges = {
@@ -208,7 +301,8 @@ type CsvWithMerges = {
 type Csv = string[][];
 
 type XlsxBorder = {
-    row: number;
     top: boolean;
     bottom: boolean;
+    left: boolean;
+    right: boolean;
 };

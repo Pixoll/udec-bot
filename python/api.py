@@ -36,26 +36,30 @@ def parse_xlsx_borders() -> tuple[Response, int]:
         return jsonify({"error": f"Error processing file: {e}"}), 500
 
 
-def get_xlsx_borders(buffer: BytesIO) -> list[dict[str, int | bool]]:
+def get_xlsx_borders(buffer: BytesIO) -> list[list[dict[str, bool]]]:
     workbook = load_workbook(buffer)
-    all_borders: list[dict[str, int | bool]] = []
-    offset = -1
+    all_borders: list[list[dict[str, bool]]] = []
 
     for worksheet in workbook.worksheets:
-        rows = 0
+        for cells_row in worksheet.iter_rows():
+            borders_row: list[dict[str, bool]] = []
 
-        for column in worksheet.iter_cols(max_col=1):
-            for cell in column:
+            for cell in cells_row:
                 # noinspection PyTypeChecker
                 cell_border: Border = cell.border
-                row = cell.row + offset
                 has_top = cell_border.top is not None and cell_border.top.style is not None
                 has_bottom = cell_border.bottom is not None and cell_border.bottom.style is not None
+                has_left = cell_border.left is not None and cell_border.left.style is not None
+                has_right = cell_border.right is not None and cell_border.right.style is not None
 
-                all_borders.append(dict([("row", row), ("top", has_top), ("bottom", has_bottom)]))
-                rows += 1
+                borders_row.append(dict([
+                    ("top", has_top),
+                    ("bottom", has_bottom),
+                    ("left", has_left),
+                    ("right", has_right),
+                ]))
 
-        offset += rows
+            all_borders.append(borders_row)
 
     return all_borders
 

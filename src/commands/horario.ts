@@ -10,6 +10,7 @@ import {
     TelegramClient,
 } from "../lib";
 import { ClassDay, ClassType, getEngineeringSchedule, Subject, SubjectScheduleDefined } from "../schedules";
+import { getCfmSchedule } from "../schedules/cfm";
 
 enum SlotType {
     UNIQUE = "top-and-bottom-radius",
@@ -22,6 +23,7 @@ const classTypeToString: Record<ClassType, string> = {
     [ClassType.T]: "T",
     [ClassType.P]: "P",
     [ClassType.L]: "L",
+    [ClassType.TEST]: "TEST",
 };
 
 const args = [{
@@ -67,7 +69,7 @@ export default class HorarioCommand extends Command<RawArgs> {
     // @ts-expect-error: type override
     public declare readonly client: TelegramClientType;
     private readonly subjects: Map<string, Subject>;
-    private readonly schedulesAmount: number;
+    private readonly scheduleLoaderFns: Array<() => Promise<Map<string, Subject>>>;
     // noinspection TypeScriptFieldCanBeMadeReadonly
     private schedulesReady: number;
 
@@ -79,21 +81,22 @@ export default class HorarioCommand extends Command<RawArgs> {
         });
 
         this.subjects = new Map();
-        this.schedulesAmount = 1;
+        this.scheduleLoaderFns = [getEngineeringSchedule, getCfmSchedule];
         this.schedulesReady = 0;
 
-        getEngineeringSchedule()
+        this.scheduleLoaderFns.map(loaderFn => loaderFn()
             .then(schedule => {
                 for (const [key, value] of schedule) {
                     this.subjects.set(key, value);
                 }
                 this.schedulesReady++;
             })
-            .catch(console.error);
+            .catch(console.error)
+        );
     }
 
     public async run(context: CommandContext, { codes }: ArgsResult): Promise<void> {
-        if (this.schedulesReady !== this.schedulesAmount) {
+        if (this.schedulesReady !== this.scheduleLoaderFns.length) {
             const message = await context.fancyReply("Por favor espera mientras termino de obtener los horarios...");
             await this.waitForSchedules();
 
@@ -162,7 +165,7 @@ export default class HorarioCommand extends Command<RawArgs> {
             }, 180_000); // 3m
 
             const timer = setInterval(() => {
-                if (this.schedulesReady === this.schedulesAmount) {
+                if (this.schedulesReady === this.scheduleLoaderFns.length) {
                     clearTimeout(timeoutTimer);
                     clearInterval(timer);
                     resolve();

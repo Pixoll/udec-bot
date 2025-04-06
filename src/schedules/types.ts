@@ -2,6 +2,7 @@ export enum ClassType {
     T,
     P,
     L,
+    TEST,
 }
 
 export enum ClassDay {
@@ -13,6 +14,11 @@ export enum ClassDay {
     SA,
     DO,
 }
+
+export type ScheduleFile = {
+    updatedAt: number;
+    subjects: Map<string, Subject>;
+};
 
 export type Subject = {
     code: number;
