@@ -7,7 +7,6 @@ export function xor(a: boolean | number, b: boolean | number): boolean {
 }
 
 export function omit<T extends object, K extends keyof T>(obj: T, exclude: K[]): Omit<T, K> {
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     const res = {} as T;
     const keys = (Object.keys(obj) as K[]).filter(k => !exclude.includes(k));
     for (const key of keys) {

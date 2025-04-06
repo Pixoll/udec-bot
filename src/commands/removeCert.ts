@@ -130,7 +130,6 @@ export default class RemoveCertCommand extends Command {
 
         this.waitingConfirmation.set(context.session, assignment);
 
-        /* eslint-disable indent */
         await context.fancyReply(stripIndent(`
         *¿Estás seguro que quieres eliminar esta evaluación?*
 
@@ -141,7 +140,6 @@ export default class RemoveCertCommand extends Command {
             parse_mode: "MarkdownV2",
             reply_markup: confirmationKeyboard,
         });
-        /* eslint-enable indent */
     }
 
     private async deleteAssignment(context: CommandContext, assignment: AssignmentWithSubjectName): Promise<void> {
