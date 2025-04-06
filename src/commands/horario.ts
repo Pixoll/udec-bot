@@ -7,6 +7,7 @@ import {
     ArgumentType,
     Command,
     CommandContext,
+    Logger,
     TelegramClient,
 } from "../lib";
 import { ClassDay, ClassType, getEngineeringSchedule, Subject, SubjectScheduleDefined } from "../schedules";
@@ -84,15 +85,19 @@ export default class HorarioCommand extends Command<RawArgs> {
         this.scheduleLoaderFns = [getEngineeringSchedule, getCfmSchedule];
         this.schedulesReady = 0;
 
-        this.scheduleLoaderFns.map(loaderFn => loaderFn()
-            .then(schedule => {
-                for (const [key, value] of schedule) {
-                    this.subjects.set(key, value);
+        void async function (this: HorarioCommand) {
+            for (const loaderFn of this.scheduleLoaderFns) {
+                try {
+                    const schedule = await loaderFn();
+                    for (const [key, value] of schedule) {
+                        this.subjects.set(key, value);
+                    }
+                    this.schedulesReady++;
+                } catch (error) {
+                    Logger.error(error);
                 }
-                this.schedulesReady++;
-            })
-            .catch(console.error)
-        );
+            }
+        }.apply(this);
     }
 
     public async run(context: CommandContext, { codes }: ArgsResult): Promise<void> {

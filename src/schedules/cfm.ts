@@ -55,7 +55,7 @@ export async function getCfmSchedule(): Promise<Map<string, Subject>> {
 
     const allSubjects = new Map<string, Subject>();
 
-    await Promise.all(Object.entries(scheduleFilenames).map(async ([entryType, filename]) => {
+    for (const [entryType, filename] of Object.entries(scheduleFilenames)) {
         const scheduleFile = readScheduleFile(filename);
         const { filePath, updatedAt } = scheduleFilePaths[entryType];
 
@@ -63,7 +63,7 @@ export async function getCfmSchedule(): Promise<Map<string, Subject>> {
             for (const [key, value] of scheduleFile.subjects) {
                 allSubjects.set(key, value);
             }
-            return;
+            continue;
         }
 
         const csv = await pdfToCsv(filePath, {
@@ -80,7 +80,7 @@ export async function getCfmSchedule(): Promise<Map<string, Subject>> {
         }
 
         saveScheduleFile(filename, { updatedAt, subjects });
-    }));
+    }
 
     return allSubjects;
 }
