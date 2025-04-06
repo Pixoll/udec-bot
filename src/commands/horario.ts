@@ -77,7 +77,7 @@ export default class HorarioCommand extends Command<RawArgs> {
     public constructor(client: TelegramClient) {
         super(client, {
             name: "horario",
-            description: "Crea el horario de tus ramos (solo facultad de ingeniería por ahora).",
+            description: "Crea el horario de tus ramos (solo facultad de ingeniería y CFM por ahora).",
             args,
         });
 
