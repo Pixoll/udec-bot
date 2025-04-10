@@ -1,12 +1,11 @@
-import { defineConfig } from "eslint/config";
-import typescriptEslint from "@typescript-eslint/eslint-plugin";
+import { FlatCompat } from "@eslint/eslintrc";
+import js from "@eslint/js";
 import stylisticTs from "@stylistic/eslint-plugin-ts";
+import { defineConfig } from "eslint/config";
 import globals from "globals";
-import tsParser from "@typescript-eslint/parser";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import js from "@eslint/js";
-import { FlatCompat } from "@eslint/eslintrc";
+import { parser as tsParser, plugin as typescriptEslintPlugin } from "typescript-eslint";
 
 /* eslint-disable no-redeclare */
 const __filename = fileURLToPath(import.meta.url);
@@ -22,7 +21,7 @@ export default defineConfig([{
     extends: compat.extends("eslint:recommended", "plugin:@typescript-eslint/recommended"),
 
     plugins: {
-        "@typescript-eslint": typescriptEslint,
+        "@typescript-eslint": typescriptEslintPlugin,
         "@stylistic/ts": stylisticTs,
     },
 
