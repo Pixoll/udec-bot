@@ -71,7 +71,7 @@ export default class HorarioCommand extends Command<RawArgs> {
     public declare readonly client: TelegramClientType;
     private readonly subjects: Map<string, Subject>;
     private readonly scheduleLoaderFns: Array<() => Promise<Map<string, Subject>>>;
-    // noinspection TypeScriptFieldCanBeMadeReadonly
+    private readonly scheduleUpdateTimeoutMs: number;
     private schedulesReady: number;
 
     public constructor(client: TelegramClient) {
@@ -83,21 +83,11 @@ export default class HorarioCommand extends Command<RawArgs> {
 
         this.subjects = new Map();
         this.scheduleLoaderFns = [getEngineeringSchedule, getCfmSchedule];
+        this.scheduleUpdateTimeoutMs = 3_600_000; // 1 hour
         this.schedulesReady = 0;
 
-        void async function (this: HorarioCommand) {
-            for (const loaderFn of this.scheduleLoaderFns) {
-                try {
-                    const schedule = await loaderFn();
-                    for (const [key, value] of schedule) {
-                        this.subjects.set(key, value);
-                    }
-                    this.schedulesReady++;
-                } catch (error) {
-                    Logger.error(error);
-                }
-            }
-        }.apply(this);
+        // noinspection JSIgnoredPromiseFromCall
+        this.updateSchedules();
     }
 
     public async run(context: CommandContext, { codes }: ArgsResult): Promise<void> {
@@ -160,6 +150,26 @@ export default class HorarioCommand extends Command<RawArgs> {
         } catch (error) {
             await this.client.catchError(error, context);
         }
+    }
+
+    private async updateSchedules(): Promise<void> {
+        this.schedulesReady = 0;
+
+        for (const loaderFn of this.scheduleLoaderFns) {
+            try {
+                const schedule = await loaderFn();
+                for (const [key, value] of schedule) {
+                    this.subjects.set(key, value);
+                }
+            } catch (error) {
+                Logger.error(error);
+            }
+            this.schedulesReady++;
+        }
+
+        Logger.info(`Set schedule update for ${new Date(Date.now() + this.scheduleUpdateTimeoutMs).toISOString()}`);
+
+        setTimeout(() => this.updateSchedules(), this.scheduleUpdateTimeoutMs);
     }
 
     private waitForSchedules(): Promise<void> {
