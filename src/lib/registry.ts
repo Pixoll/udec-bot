@@ -1,4 +1,5 @@
 import requireAll from "require-all";
+import { TelegramClientType } from "../client";
 import { TelegramClient } from "./client";
 import { Collection } from "./collection";
 import { Command, ConstructableCommand, parseContext } from "./commands";
@@ -134,6 +135,37 @@ export class ClientRegistry {
                 });
                 next();
                 return;
+            }
+
+            if (command.groupOnly) {
+                const client = this.client as TelegramClientType;
+                const chatId: `${number}` = `${context.chat.id}`;
+
+                const doesChatExist = await client.db
+                    .selectFrom("udec_chat")
+                    .select("id")
+                    .where("id", "=", chatId)
+                    .executeTakeFirst()
+                    .then(v => !!v);
+
+                if (!doesChatExist) {
+                    const inserted = await client.db
+                        .insertInto("udec_chat")
+                        .values({
+                            id: chatId,
+                        })
+                        .execute();
+
+                    if (inserted.length === 0) {
+                        await context.fancyReply(
+                            "No se pudo agregar el chat actual. Por favor intenta más tarde o contacta al dueño del bot."
+                        );
+
+                        await this.client.catchError(new Error(`Could not insert "${chatId}" into udec_chat`), context);
+                        next();
+                        return;
+                    }
+                }
             }
 
             await context.react("👍").catch(() => null);
