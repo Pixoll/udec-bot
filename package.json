@@ -16,27 +16,27 @@
     "url": "https://github.com/Pixoll/udec-bot"
   },
   "dependencies": {
-    "axios": "^1.8.4",
-    "csv-parse": "^5.6.0",
-    "dotenv": "^16.4.7",
-    "kysely": "^0.27.6",
-    "mysql2": "^3.14.0",
+    "axios": "^1.11.0",
+    "csv-parse": "^6.1.0",
+    "dotenv": "^17.2.1",
+    "kysely": "^0.28.4",
+    "mysql2": "^3.14.3",
     "node-html-parser": "^7.0.1",
-    "puppeteer": "^24.6.0",
+    "puppeteer": "^24.16.0",
     "require-all": "^3.0.0",
     "telegraf": "^4.16.3",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
-    "@eslint/js": "^9.24.0",
-    "@stylistic/eslint-plugin-ts": "^4.2.0",
-    "@types/node": "^22.14.0",
+    "@eslint/js": "^9.32.0",
+    "@stylistic/eslint-plugin-ts": "^4.4.1",
+    "@types/node": "^20.19.9",
     "@types/require-all": "^3.0.6",
-    "eslint": "^9.24.0",
-    "globals": "^16.0.0",
-    "kysely-codegen": "^0.18.3",
-    "typescript": "^5.8.3",
-    "typescript-eslint": "^8.29.1"
+    "eslint": "^9.32.0",
+    "globals": "^16.3.0",
+    "kysely-codegen": "^0.18.5",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.39.0"
   }
 }
