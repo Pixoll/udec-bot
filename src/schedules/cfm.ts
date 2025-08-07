@@ -199,7 +199,12 @@ function prepareSubjectSchedule(row: string[], sections: number, entryType: Entr
             }
         }
 
-        const distributionFactor = Math.ceil(classrooms.length / days.length);
+        // TODO too lazy to check but does this change break anything?
+        // before: const distributionFactor = Math.ceil(classrooms.length / days.length);
+        const distributionFactor = Math.max(
+            Math.ceil(classrooms.length / days.length),
+            Math.ceil(days.length / classrooms.length)
+        );
 
         if (distributionFactor > 1) {
             for (let i = 0; i < classrooms.length; i++) {
