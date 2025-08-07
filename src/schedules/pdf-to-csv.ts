@@ -2,6 +2,7 @@ import axios, { HttpStatusCode } from "axios";
 import { parse as parseCsv } from "csv-parse/sync";
 import { config as dotenv } from "dotenv";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { Agent } from "node:https";
 import path from "node:path";
 import { launch } from "puppeteer";
 import XLSX, { Range } from "xlsx";
@@ -28,6 +29,9 @@ export async function pdfToCsv(pdfUrl: string, options?: PdfToCsvOptions): Promi
 
     const pdfArrayBuffer = await axios.get<ArrayBuffer>(pdfUrl, {
         responseType: "arraybuffer",
+        ...options?.ignoreSSL && {
+            httpsAgent: new Agent({ rejectUnauthorized: false }),
+        },
     }).then(r => r.data);
     writeFileSync(pdfFilePath, Buffer.from(pdfArrayBuffer));
 
@@ -286,6 +290,7 @@ function toLetter(n: number): string {
 type PdfToCsvOptions = {
     mergeRows?: boolean;
     mergeColumns?: OptionsMergeRange;
+    ignoreSSL?: boolean;
 };
 
 type OptionsMergeRange = {

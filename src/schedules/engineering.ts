@@ -1,4 +1,5 @@
 import axios from "axios";
+import { Agent } from "node:https";
 import { pdfToCsv } from "./pdf-to-csv";
 import { readScheduleFile, saveScheduleFile } from "./storage";
 import { ClassDay, ClassType, Subject, SubjectSchedule } from "./types";
@@ -12,12 +13,15 @@ export async function getEngineeringSchedule(): Promise<Map<string, Subject>> {
     const scheduleFile = readScheduleFile(scheduleFilename);
 
     const fileDocument = await axios.get<DocumentFileResponse>(
-        "http://ofivirtualfi.udec.cl/api/file/documents/"
+        "https://ofivirtualfi.udec.cl/api/file/documents/"
         + "?limit=1"
         + "&searchFields=resourceType,mimeType"
         + "&search=scheduleSubjects,application/pdf"
         + "&sort=id_file+desc"
-        + "&exactMatching=true"
+        + "&exactMatching=true",
+        {
+            httpsAgent: new Agent({ rejectUnauthorized: false }),
+        }
     ).then(r => r.data);
 
     if (!fileDocument.success) {
@@ -34,7 +38,9 @@ export async function getEngineeringSchedule(): Promise<Map<string, Subject>> {
         return scheduleFile.subjects;
     }
 
-    const csv = await pdfToCsv(`http://ofivirtualfi.udec.cl/api/file/downloadFile/${pdfFile.fileName}`);
+    const csv = await pdfToCsv(`https://ofivirtualfi.udec.cl/api/file/downloadFile/${pdfFile.fileName}`, {
+        ignoreSSL: true,
+    });
     const subjects = await getSubjects(csv);
 
     scheduleFile.updatedAt = fileTimestamp;
