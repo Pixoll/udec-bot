@@ -40,6 +40,7 @@ export async function getEngineeringSchedule(): Promise<Map<string, Subject>> {
 
     const csv = await pdfToCsv(`https://ofivirtualfi.udec.cl/api/file/downloadFile/${pdfFile.fileName}`, {
         ignoreSSL: true,
+        mergeRows: true,
     });
     const subjects = await getSubjects(csv);
 
