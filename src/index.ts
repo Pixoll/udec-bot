@@ -1,8 +1,8 @@
 import { config as dotenv } from "dotenv";
-dotenv();
-
 import { client } from "./client";
 import { clearOldAssignments } from "./util";
+
+dotenv({ quiet: true });
 
 void async function (): Promise<void> {
     await client.login();

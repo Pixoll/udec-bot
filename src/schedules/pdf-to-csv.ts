@@ -8,7 +8,7 @@ import { launch } from "puppeteer";
 import XLSX, { Range } from "xlsx";
 import { Logger } from "../lib";
 
-dotenv();
+dotenv({ quiet: true });
 
 const { PY_API_PORT } = process.env;
 const pdfFilesDir = path.join(process.cwd(), "resources/pdf");

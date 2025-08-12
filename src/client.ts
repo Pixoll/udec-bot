@@ -1,6 +1,9 @@
+import { config as dotenv } from "dotenv";
 import path from "path";
 import { TelegramClient } from "./lib";
 import { Database } from "./tables";
+
+dotenv({ quiet: true });
 
 const { OWNER_ID } = process.env;
 if (!OWNER_ID) {
