@@ -100,7 +100,7 @@ export default class HorarioCommand extends Command<RawArgs> {
             }
         }
 
-        const subjects = new Map<number, Subject>();
+        const subjects = new Map<string, Subject>();
 
         for (const code of codes) {
             const subject = this.subjects.get(code);
@@ -112,12 +112,12 @@ export default class HorarioCommand extends Command<RawArgs> {
                 return;
             }
 
-            if (subjects.has(subject.code)) {
-                await context.fancyReply(`El ramo ${subject.code} se encuentra repetido.`);
+            if (subjects.has(code)) {
+                await context.fancyReply(`El ramo ${code} se encuentra repetido.`);
                 return;
             }
 
-            subjects.set(subject.code, subject);
+            subjects.set(code, subject);
         }
 
         await context.fancyReply("Por favor espera mientras se genera tu horario...");
@@ -415,7 +415,7 @@ function generateHtml(groupSubjectsResult: GroupSubjectsResult, darkMode = false
         ${subjects.map(subjects => `
         <div class="slots-container" style="grid-template-columns: repeat(${subjects.length}, 1fr)">
           ${subjects.map(subject => `
-          <div class="subject-slot ${subject.slotType} subject-${subjectIds.get(subject.code)}">
+          <div class="subject-slot ${subject.slotType} subject-${subjectIds.get(`${subject.code}-${subject.section}`)}">
             ${subject.slotType === SlotType.UNIQUE || subject.slotType === SlotType.START ? `
             <span class="subject-name">${subject.code}-${subject.section} ${subject.name}</span>
             ${subject.classrooms.map(classroom => `
@@ -438,9 +438,9 @@ function generateHtml(groupSubjectsResult: GroupSubjectsResult, darkMode = false
     `.trim().replace(/^ {4}/gm, "");
 }
 
-function groupSubjects(subjects: Map<number, Subject>): GroupSubjectsResult {
+function groupSubjects(subjects: Map<string, Subject>): GroupSubjectsResult {
     const groupedSubjects = new Map<`${ClassDay}-${number}`, GroupedSubject[]>();
-    const subjectIds = new Map<number, number>();
+    const subjectIds = new Map<string, number>();
     const tbd: string[] = [];
     let hasWeekendClasses = false;
     let maxSlot = 1;
@@ -449,7 +449,7 @@ function groupSubjects(subjects: Map<number, Subject>): GroupSubjectsResult {
         * [Symbol.iterator]() {
             let lastSubjectId = 0;
             for (const subject of subjects.values()) {
-                subjectIds.set(subject.code, lastSubjectId++);
+                subjectIds.set(`${subject.code}-${subject.section}`, lastSubjectId++);
 
                 for (const slot of subject.schedule) {
                     if ("tbd" in slot) {
@@ -545,7 +545,7 @@ function groupSubjects(subjects: Map<number, Subject>): GroupSubjectsResult {
 
 type GroupSubjectsResult = {
     groupedSubjects: Map<`${ClassDay}-${number}`, GroupedSubject[]>;
-    subjectIds: Map<number, number>;
+    subjectIds: Map<string, number>;
     tbd: string[];
     hasWeekendClasses: boolean;
     maxSlot: number;
