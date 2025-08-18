@@ -30,7 +30,8 @@ export type ArgumentOptionsToClasses<Args extends readonly ArgumentOptions[]>
     ? [Argument<Arg["type"]>, ...ArgumentOptionsToClasses<RestArgs>]
     : [];
 
-export type ArgumentOptionsToResult<Args extends readonly ArgumentOptions[]> = {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type ArgumentOptionsToResult<Args extends ReadonlyArray<ArgumentOptions<any, any>>> = {
     [Arg in Args[number] as Arg["key"]]: (
     Arg["required"] extends true ? never
         : (
@@ -43,11 +44,16 @@ export type ArgumentOptionsToResult<Args extends readonly ArgumentOptions[]> = {
     ) | (
     Arg["choices"] extends Array<infer U> | ReadonlyArray<infer U>
         ? (Arg["infinite"] extends true ? U[] : U)
-        : (Arg["infinite"] extends true ? Array<ArgumentTypeMap[Arg["type"]]> : ArgumentTypeMap[Arg["type"]])
+        : (
+            Arg["parse"] extends (...args: infer _) => infer R
+                ? (Arg["infinite"] extends true ? Array<Awaited<R>> : Awaited<R>)
+                : (Arg["infinite"] extends true ? Array<ArgumentTypeMap[Arg["type"]]> : ArgumentTypeMap[Arg["type"]])
+            )
     );
 };
 
-export abstract class Command<Args extends readonly ArgumentOptions[] = []> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export abstract class Command<Args extends ReadonlyArray<ArgumentOptions<any, any>> = []> {
     public readonly client: TelegramClient;
     public declare readonly name: string;
     public declare readonly description: string;

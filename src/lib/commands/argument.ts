@@ -3,17 +3,17 @@ import { ArgumentType, ArgumentTypeHandler, ArgumentTypeMap, ArgumentTypeValidat
 import { Awaitable, escapeMarkdown, omit } from "../util";
 import { CommandContext } from "./context";
 
-type ArgumentDefault<T extends ArgumentType> =
+type ArgumentDefault<T extends ArgumentType, V> =
     | ArgumentTypeMap[T]
-    | ((value: string, context: CommandContext, argument: Argument<T>) => Awaitable<ArgumentTypeMap[T]>);
+    | ((value: string, context: CommandContext, argument: Argument<T, V>) => Awaitable<ArgumentTypeMap[T]>);
 
-export interface ArgumentOptions<T extends ArgumentType = ArgumentType> {
+export interface ArgumentOptions<T extends ArgumentType = ArgumentType, V = ArgumentTypeMap[T]> {
     readonly key: string;
     readonly label?: string | null;
     readonly prompt?: string | null;
     readonly type: T;
     readonly required?: boolean;
-    readonly default?: ArgumentDefault<T> | null;
+    readonly default?: ArgumentDefault<T, V> | null;
     readonly choices?: ReadonlyArray<ArgumentTypeMap[T]> | null;
     readonly min?: number | null;
     readonly max?: number | null;
@@ -22,15 +22,15 @@ export interface ArgumentOptions<T extends ArgumentType = ArgumentType> {
     readonly examples?: string[];
     readonly infinite?: boolean;
 
-    parse?(value: string, context: CommandContext, argument: Argument<T>): Awaitable<ArgumentTypeMap[T]>;
+    parse?(value: string, context: CommandContext, argument: Argument<T, V>): Awaitable<ArgumentTypeMap[T] | V>;
 
-    validate?(value: string, context: CommandContext, argument: Argument<T>): Awaitable<ArgumentTypeValidationResult>;
+    validate?(value: string, context: CommandContext, argument: Argument<T, V>): Awaitable<ArgumentTypeValidationResult>;
 
-    isEmpty?(value: string, context: CommandContext, argument: Argument<T>): boolean;
+    isEmpty?(value: string, context: CommandContext, argument: Argument<T, V>): boolean;
 }
 
-export type ArgumentResult<T extends ArgumentType, Infinite extends boolean = false> =
-    | ArgumentResultOk<T, Infinite>
+export type ArgumentResult<T extends ArgumentType, V, Infinite extends boolean = false> =
+    | ArgumentResultOk<T, V, Infinite>
     | ArgumentResultError;
 
 export enum ArgumentResultErrorType {
@@ -38,9 +38,9 @@ export enum ArgumentResultErrorType {
     Invalid,
 }
 
-export type ArgumentResultOk<T extends ArgumentType, Infinite extends boolean> = {
+export type ArgumentResultOk<T extends ArgumentType, V, Infinite extends boolean> = {
     ok: true;
-    value: Infinite extends true ? Array<ArgumentTypeMap[T]> : ArgumentTypeMap[T] | null;
+    value: Infinite extends true ? Array<ArgumentTypeMap[T] | V> : ArgumentTypeMap[T] | V | null;
 };
 
 export type ArgumentResultError = {
@@ -63,13 +63,14 @@ const defaultOptions = {
     infinite: false,
 } as const satisfies Partial<ArgumentOptions>;
 
-export class Argument<T extends ArgumentType = ArgumentType> implements Omit<ArgumentOptions<T>, "type"> {
+export class Argument<T extends ArgumentType = ArgumentType, V = ArgumentTypeMap[T]> // eslint-disable-next-line
+    implements Omit<ArgumentOptions<T, V>, "type"> {
     public declare readonly key: string;
     public declare readonly label: string | null;
     public declare readonly prompt: string | null;
     public readonly typeHandler: ArgumentTypeHandler<T>;
     public declare readonly required: boolean;
-    public declare readonly default: ArgumentDefault<T> | null;
+    public declare readonly default: ArgumentDefault<T, V> | null;
     public declare readonly choices: ReadonlyArray<ArgumentTypeMap[T]> | null;
     public declare readonly min: number | null;
     public declare readonly max: number | null;
@@ -77,12 +78,12 @@ export class Argument<T extends ArgumentType = ArgumentType> implements Omit<Arg
     public declare readonly whenInvalid: string | null;
     public declare readonly examples: string[];
     public declare readonly infinite: boolean;
-    public readonly parser: NonNullable<ArgumentOptions<T>["parse"]> | null;
-    public readonly validator: NonNullable<ArgumentOptions<T>["validate"]> | null;
-    public readonly emptyChecker: NonNullable<ArgumentOptions<T>["isEmpty"]> | null;
+    public readonly parser: NonNullable<ArgumentOptions<T, V>["parse"]> | null;
+    public readonly validator: NonNullable<ArgumentOptions<T, V>["validate"]> | null;
+    public readonly emptyChecker: NonNullable<ArgumentOptions<T, V>["isEmpty"]> | null;
     public readonly client: TelegramClient;
 
-    public constructor(client: TelegramClient, options: ArgumentOptions<T>) {
+    public constructor(client: TelegramClient, options: ArgumentOptions<T, V>) {
         this.client = client;
 
         Object.assign(this, defaultOptions, omit(options, ["parse", "validate", "isEmpty"]));
@@ -97,7 +98,7 @@ export class Argument<T extends ArgumentType = ArgumentType> implements Omit<Arg
         this.typeHandler = argumentType;
     }
 
-    public async obtain(value: string, context: CommandContext): Promise<ArgumentResult<T>> {
+    public async obtain(value: string, context: CommandContext): Promise<ArgumentResult<T, V>> {
         const {
             default: defaultValue,
             required,
@@ -153,7 +154,7 @@ export class Argument<T extends ArgumentType = ArgumentType> implements Omit<Arg
         };
     }
 
-    public async obtainInfinite(values: string[], context: CommandContext): Promise<ArgumentResult<T, true>> {
+    public async obtainInfinite(values: string[], context: CommandContext): Promise<ArgumentResult<T, V, true>> {
         const {
             default: defaultValue,
             required,
@@ -212,7 +213,7 @@ export class Argument<T extends ArgumentType = ArgumentType> implements Omit<Arg
         };
     }
 
-    public async parse(value: string, context: CommandContext): Promise<ArgumentTypeMap[T]> {
+    public async parse(value: string, context: CommandContext): Promise<ArgumentTypeMap[T] | V> {
         if (this.parser) return this.parser(value, context, this);
         return this.typeHandler.parse(value, context, this);
     }

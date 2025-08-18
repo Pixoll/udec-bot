@@ -1,3 +1,4 @@
+import { Collection } from "@discordjs/collection";
 import { clearTimeout } from "node:timers";
 import { launch } from "puppeteer";
 import { TelegramClientType } from "../client";
@@ -31,9 +32,9 @@ const classTypeToString: Record<ClassType, string> = {
 const updateString = "actualizar";
 
 const args = [{
-    key: "codes",
-    label: "códigos-con-sección",
-    prompt: "Ingrese los códigos de los ramos junto a la sección. "
+    key: "values",
+    label: "argumentos",
+    prompt: "Ingrese los códigos o nombres de los ramos junto a la sección. "
         + `Si quieres actualizar los horarios manualmente, ingresa "${updateString}".`,
     type: ArgumentType.String,
     min: 0,
@@ -42,34 +43,70 @@ const args = [{
     examples: ["/horario 123456 789012-3 ...", `/horario ${updateString}`],
     // @ts-expect-error: makes no difference
     async validate(value, context, argument: Argument) {
-        const [code = "", section = ""] = value.split("-");
-        if (code.length !== 6 && (code !== updateString || section.length > 0)) {
-            return {
-                ok: false,
-                message: `El código debe tener 6 dígitos o ser igual a "${updateString}".`,
-            };
-        }
-
-        if (code === updateString) {
+        if (value.toLowerCase() === updateString) {
             return { ok: true };
         }
 
         const numberArgTypeHandler = argument.client.registry.types.get(ArgumentType.Number);
         const numberArg = argument as Argument<ArgumentType.Number>;
 
-        const codeValidationResult = await numberArgTypeHandler.validate(code, context, numberArg);
-        if (!codeValidationResult.ok) return codeValidationResult;
+        let sectionString: string;
 
-        if (!section) return { ok: true };
+        if (/^\d{6}(-\d+)?$/.test(value)) {
+            const [code = "", section = "", ...rest] = value.split("-", 2);
+            if (rest.length > 0 || code.length !== 6) {
+                return {
+                    ok: false,
+                    message: rest.length > 0
+                        ? "Formato incorrecto, debe ser el siguiente: \"código\" o \"código-sección\"."
+                        : `El código debe tener 6 dígitos o ser igual a "${updateString}".`,
+                };
+            }
 
-        return numberArgTypeHandler.validate(section, context, numberArg);
+            const codeValidationResult = await numberArgTypeHandler.validate(code, context, numberArg);
+            if (!codeValidationResult.ok) return codeValidationResult;
+
+            sectionString = section;
+        } else {
+            const [name = "", section = "", ...rest] = value.split(/\s*\|\s*/, 2);
+            if (rest.length > 0 || name.length === 0) {
+                return {
+                    ok: false,
+                    message: rest.length > 0
+                        ? "Formato incorrecto, debe ser el siguiente: "
+                        + "\"nombre asignatura\" o \"nombre asignatura | sección\""
+                        : "El nombre del ramo no puede estar vacío",
+                };
+            }
+
+            sectionString = section;
+        }
+
+        if (!sectionString) return { ok: true };
+
+        return numberArgTypeHandler.validate(sectionString, context, numberArg);
     },
-    parse(value: string) {
-        if (value === updateString) return value;
-        const [code, section = "1"] = value.split("-");
-        return `${code}-${section}`;
+    parse(value: string): ArgumentValue {
+        if (value.toLowerCase() === updateString) {
+            return { type: "update" };
+        }
+
+        if (/^\d{6}(-\d+)?$/.test(value)) {
+            const [code = "", section = "1"] = value.split("-");
+            return {
+                type: "code",
+                code: `${code}-${section}`,
+            };
+        }
+
+        const [name = "", section = "1"] = value.split(/\s*\|\s*/, 2);
+        return {
+            type: "name",
+            name,
+            section: +section,
+        };
     },
-} as const satisfies ArgumentOptions<ArgumentType.String>] as const;
+} as const satisfies ArgumentOptions<ArgumentType.String, ArgumentValue>] as const;
 
 type RawArgs = typeof args;
 type ArgsResult = ArgumentOptionsToResult<RawArgs>;
@@ -78,7 +115,7 @@ type ArgsResult = ArgumentOptionsToResult<RawArgs>;
 export default class HorarioCommand extends Command<RawArgs> {
     // @ts-expect-error: type override
     public declare readonly client: TelegramClientType;
-    private readonly subjects: Map<string, Subject>;
+    private readonly subjects: Collection<string, Subject>;
     private readonly scheduleLoaderFns: Array<() => Promise<Map<string, Subject>>>;
     private readonly scheduleUpdateTimeoutMs: number;
     private scheduleUpdateTimeout: NodeJS.Timeout | null;
@@ -92,7 +129,7 @@ export default class HorarioCommand extends Command<RawArgs> {
             args,
         });
 
-        this.subjects = new Map();
+        this.subjects = new Collection();
         this.scheduleLoaderFns = [getEngineeringSchedule, getCfmSchedule];
         this.scheduleUpdateTimeoutMs = 3_600_000; // 1 hour
         this.scheduleUpdateTimeout = null;
@@ -103,8 +140,8 @@ export default class HorarioCommand extends Command<RawArgs> {
         this.updateSchedules();
     }
 
-    public async run(context: CommandContext, { codes }: ArgsResult): Promise<void> {
-        const triggerUpdate = codes.includes(updateString);
+    public async run(context: CommandContext, { values }: ArgsResult): Promise<void> {
+        const triggerUpdate = values.some(v => v.type === "update");
 
         if (!this.updating && triggerUpdate) {
             // noinspection ES6MissingAwait
@@ -122,31 +159,47 @@ export default class HorarioCommand extends Command<RawArgs> {
             }
         }
 
-        if (codes.length === 1 && triggerUpdate) {
+        if (values.length === 1 && triggerUpdate) {
             await context.fancyReply("Los horarios han sido actualizados.");
             return;
         }
 
         const subjects = new Map<string, Subject>();
 
-        for (const code of codes) {
-            if (code === updateString) continue;
+        for (const value of values) {
+            let subject: Subject | undefined = undefined;
 
-            const subject = this.subjects.get(code);
+            switch (value.type) {
+                case "update":
+                    continue;
+
+                case "code": {
+                    subject = this.subjects.get(value.code);
+                    break;
+                }
+
+                case "name": {
+                    subject = this.subjects
+                        .filter(s =>
+                            (s.name.toLowerCase().includes(value.name.toLowerCase())
+                                || s.name.toLowerCase().includes(value.name.toLowerCase())
+                            ) && s.section === value.section
+                        ).sort((a) => a.name.toLowerCase() === value.name.toLowerCase() ? -1 : 0)
+                        .first();
+                    break;
+                }
+            }
+
             if (!subject) {
+                const valueAsString = value.type === "code" ? value.code : `"${value.name}" sección ${value.section}`;
                 await context.fancyReply(
-                    `No se pudo encontrar información sobre el ramo ${code}.\n`
+                    `No se pudo encontrar información sobre el ramo ${valueAsString}.\n`
                     + "Recuerda que por ahora solo se puede armar el horario con ramos de la facultad de ingeniería."
                 );
                 return;
             }
 
-            if (subjects.has(code)) {
-                await context.fancyReply(`El ramo ${code} se encuentra repetido.`);
-                return;
-            }
-
-            subjects.set(code, subject);
+            subjects.set(`${subject.code}-${subject.section}`, subject);
         }
 
         await context.fancyReply("Por favor espera mientras se genera tu horario...");
@@ -594,4 +647,15 @@ type GroupedSubject =
     conflicts: Set<GroupedSubject>;
     slotType: SlotType;
     equals(other: GroupedSubject): boolean;
+};
+
+type ArgumentValue = {
+    type: "code";
+    code: string;
+} | {
+    type: "name";
+    name: string;
+    section: number;
+} | {
+    type: "update";
 };

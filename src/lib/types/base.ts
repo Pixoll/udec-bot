@@ -28,12 +28,19 @@ export abstract class ArgumentTypeHandler<T extends ArgumentType> {
     public abstract validate(
         value: string,
         context: CommandContext,
-        argument: Argument<T>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        argument: Argument<T, any>
     ): Awaitable<ArgumentTypeValidationResult>;
 
-    public abstract parse(value: string, context: CommandContext, argument: Argument<T>): Awaitable<ArgumentTypeMap[T]>;
+    public abstract parse(
+        value: string,
+        context: CommandContext,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        argument: Argument<T, any>
+    ): Awaitable<ArgumentTypeMap[T]>;
 
-    public isEmpty(value: string, _context: CommandContext, _argument: Argument<T>): boolean {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    public isEmpty(value: string, _context: CommandContext, _argument: Argument<T, any>): boolean {
         return value.length === 0;
     }
 }

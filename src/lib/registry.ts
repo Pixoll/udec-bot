@@ -1,7 +1,7 @@
+import { Collection } from "@discordjs/collection";
 import requireAll from "require-all";
 import { TelegramClientType } from "../client";
 import { TelegramClient } from "./client";
-import { Collection } from "./collection";
 import { Command, ConstructableCommand, parseContext } from "./commands";
 import { Logger } from "./logger";
 import { ArgumentType, ArgumentTypeHandler, ConstructableArgumentType as BuildableArgumentTypeHandler } from "./types";
