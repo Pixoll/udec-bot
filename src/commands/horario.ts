@@ -1,3 +1,4 @@
+import { clearTimeout } from "node:timers";
 import { launch } from "puppeteer";
 import { TelegramClientType } from "../client";
 import {
@@ -27,23 +28,30 @@ const classTypeToString: Record<ClassType, string> = {
     [ClassType.TEST]: "TEST",
 };
 
+const updateString = "actualizar";
+
 const args = [{
     key: "codes",
     label: "códigos-con-sección",
-    prompt: "Ingrese los códigos de los ramos junto a la sección.",
+    prompt: "Ingrese los códigos de los ramos junto a la sección. "
+        + `Si quieres actualizar los horarios manualmente, ingresa "${updateString}".`,
     type: ArgumentType.String,
     min: 0,
     required: true,
     infinite: true,
-    examples: ["/horario 123456 789012-3 ..."],
+    examples: ["/horario 123456 789012-3 ...", `/horario ${updateString}`],
     // @ts-expect-error: makes no difference
     async validate(value, context, argument: Argument) {
         const [code = "", section = ""] = value.split("-");
-        if (code.length !== 6) {
+        if (code.length !== 6 && (code !== updateString || section.length > 0)) {
             return {
                 ok: false,
-                message: "El código debe tener 6 dígitos.",
+                message: `El código debe tener 6 dígitos o ser igual a "${updateString}".`,
             };
+        }
+
+        if (code === updateString) {
+            return { ok: true };
         }
 
         const numberArgTypeHandler = argument.client.registry.types.get(ArgumentType.Number);
@@ -57,6 +65,7 @@ const args = [{
         return numberArgTypeHandler.validate(section, context, numberArg);
     },
     parse(value: string) {
+        if (value === updateString) return value;
         const [code, section = "1"] = value.split("-");
         return `${code}-${section}`;
     },
@@ -72,7 +81,9 @@ export default class HorarioCommand extends Command<RawArgs> {
     private readonly subjects: Map<string, Subject>;
     private readonly scheduleLoaderFns: Array<() => Promise<Map<string, Subject>>>;
     private readonly scheduleUpdateTimeoutMs: number;
+    private scheduleUpdateTimeout: NodeJS.Timeout | null;
     private schedulesReady: number;
+    private updating: boolean;
 
     public constructor(client: TelegramClient) {
         super(client, {
@@ -84,15 +95,24 @@ export default class HorarioCommand extends Command<RawArgs> {
         this.subjects = new Map();
         this.scheduleLoaderFns = [getEngineeringSchedule, getCfmSchedule];
         this.scheduleUpdateTimeoutMs = 3_600_000; // 1 hour
+        this.scheduleUpdateTimeout = null;
         this.schedulesReady = 0;
+        this.updating = false;
 
         // noinspection JSIgnoredPromiseFromCall
         this.updateSchedules();
     }
 
     public async run(context: CommandContext, { codes }: ArgsResult): Promise<void> {
+        if (!this.updating && codes.includes(updateString)) {
+            // noinspection ES6MissingAwait
+            this.updateSchedules();
+        }
+
         if (this.schedulesReady !== this.scheduleLoaderFns.length) {
-            const message = await context.fancyReply("Por favor espera mientras termino de obtener los horarios...");
+            const message = await context.fancyReply(
+                "Por favor espera mientras termino de obtener los horarios, esto puede tardar unos minutos..."
+            );
             await this.waitForSchedules();
 
             if (message) {
@@ -153,7 +173,12 @@ export default class HorarioCommand extends Command<RawArgs> {
     }
 
     private async updateSchedules(): Promise<void> {
+        this.updating = true;
         this.schedulesReady = 0;
+
+        if (this.scheduleUpdateTimeout !== null) {
+            clearTimeout(this.scheduleUpdateTimeout);
+        }
 
         for (const loaderFn of this.scheduleLoaderFns) {
             try {
@@ -169,7 +194,8 @@ export default class HorarioCommand extends Command<RawArgs> {
 
         Logger.info(`Set schedule update for ${new Date(Date.now() + this.scheduleUpdateTimeoutMs).toISOString()}`);
 
-        setTimeout(() => this.updateSchedules(), this.scheduleUpdateTimeoutMs);
+        this.updating = false;
+        this.scheduleUpdateTimeout = setTimeout(() => this.updateSchedules(), this.scheduleUpdateTimeoutMs);
     }
 
     private waitForSchedules(): Promise<void> {
