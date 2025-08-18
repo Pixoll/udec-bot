@@ -104,7 +104,9 @@ export default class HorarioCommand extends Command<RawArgs> {
     }
 
     public async run(context: CommandContext, { codes }: ArgsResult): Promise<void> {
-        if (!this.updating && codes.includes(updateString)) {
+        const triggerUpdate = codes.includes(updateString);
+
+        if (!this.updating && triggerUpdate) {
             // noinspection ES6MissingAwait
             this.updateSchedules();
         }
@@ -120,9 +122,16 @@ export default class HorarioCommand extends Command<RawArgs> {
             }
         }
 
+        if (codes.length === 1 && triggerUpdate) {
+            await context.fancyReply("Los horarios han sido actualizados.");
+            return;
+        }
+
         const subjects = new Map<string, Subject>();
 
         for (const code of codes) {
+            if (code === updateString) continue;
+
             const subject = this.subjects.get(code);
             if (!subject) {
                 await context.fancyReply(
