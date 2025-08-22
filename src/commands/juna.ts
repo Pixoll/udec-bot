@@ -97,7 +97,7 @@ function menuToString(menuStrings: string[]): string {
         .flatMap((menu: string) => {
             menu = menu.replace(/\s*:\s*/, ": ");
             const name = menu.slice(0, menu.indexOf(":"));
-            const dish = menu.slice(menu.indexOf(":") + 2);
+            const dish = menu.slice(menu.indexOf(":") + 2) || "s/i";
             return [`\\- *${name}*:`, `_${escapeMarkdown(dish)}_`, ""];
         })
         .join("\n")
